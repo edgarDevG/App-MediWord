@@ -1,0 +1,25 @@
+# ── BACKEND ─────────────────────────────
+backend-v2/.env
+backend-v2/venv/
+backend-v2/__pycache__/
+backend-v2/**/__pycache__/
+backend-v2/**/*.pyc
+backend-v2/*.db
+backend-v2/mediword.db
+
+# ── FRONTEND ────────────────────────────
+frontend/react-v2/.env
+frontend/react-v2/.env.local
+frontend/react-v2/.env.production
+frontend/react-v2/.env.development
+frontend/react-v2/node_modules/
+frontend/react-v2/dist/
+frontend/react-v2/.vite/
+
+# ── OS / IDE ────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/settings.json
+
+# ── Claude ───────────────────────────────
+.claude/

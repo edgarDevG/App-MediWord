@@ -1,0 +1,473 @@
+/*
+  FormMedico-FINAL.css
+  ════════════════════════════════════════════════════════════════
+  REEMPLAZA FormMedico.css + FormMedico-fixes.css + mediwork-stepper-footer.css
+  Importar UNA sola vez en FormMedico.jsx:
+    import './FormMedico-FINAL.css'
+
+  Análisis del código fuente real:
+  - .fm-root usa `margin: -2rem` del page-content → lo compensamos
+  - .stepper-bar + .fm-stepper → fondo blanco en CSS anterior → fix navy
+  - .form-footer usa `position: sticky` → NO fixed, por eso no respeta sidebar ✓
+  - Sidebar = 220px expanded, 64px collapsed (.sidebar.collapsed)
+  - Footer tiene clase .form-footer con btn .btn-tonal y .btn-signature
+  - Paso 5: connector style tiene `marginBottom: 20` inline → override
+  ════════════════════════════════════════════════════════════════
+*/
+
+/* ── VARIABLES MAESTRAS ─────────────────────────────────────── */
+:root {
+  --mw-navy:          #0A2540;
+  --mw-navy-2:        #0D3358;
+  --mw-navy-border:   rgba(255,255,255,0.09);
+  --mw-jade:          #0A7E6E;
+  --mw-jade-hover:    #086557;
+  --mw-jade-glow:     rgba(10,126,110,0.30);
+  --mw-jade-done:     rgba(10,126,110,0.20);
+  --mw-jade-text:     #5FD1C2;
+  --mw-step-pending:  rgba(255,255,255,0.10);
+  --mw-text-inv:      #ffffff;
+  --mw-text-dim:      rgba(255,255,255,0.55);
+  --mw-text-faint:    rgba(255,255,255,0.28);
+  --mw-bg:            #EEF1F5;
+  --mw-surface:       #ffffff;
+  --mw-border:        rgba(15,40,80,0.10);
+  --mw-ease:          180ms cubic-bezier(0.16,1,0.3,1);
+  --mw-footer-h:      60px;
+  /* Colores primarios alineados con index.css */
+  --color-primary:    #0A5C99;
+  --color-action:     #0A7E6E;
+  --color-action-hover: #086557;
+  --color-secondary:  #0A5C99;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   1. ROOT LAYOUT — compensa el margin:-2rem del page-content
+══════════════════════════════════════════════════════════════ */
+.fm-root {
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: calc(100vh - 56px) !important;  /* 56px = topbar */
+  max-width: -1620px !important;
+  margin: -2rem !important;                   /* hereda el negativo del page-content */
+  background: var(--mw-bg) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   2. STEPPER BAR — navy, sticky, horizontal FORZADO
+      Clase en JSX: "stepper-bar fm-stepper"
+══════════════════════════════════════════════════════════════ */
+.stepper-bar,
+.fm-stepper {
+    position: sticky !important;
+  top: 5px !important;
+  z-index: 200 !important;
+  
+  /* ── Control de ancho independiente ── */
+  width: var(--stepper-width) !important;
+  max-width: calc(100% - 4rem) !important;  /* nunca se desborda en pantallas pequeñas */
+  margin-inline: auto !important;
+  
+  /* ── Estilo tarjeta ── */
+  background: var(--mw-navy) !important;
+  padding: 12px 62px 10px !important;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: 0 2px 20px rgba(10, 37, 64, 0.32) !important;
+}
+
+/* ── Fila de pasos — siempre horizontal ── */
+.stepper-steps {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items:center !important;
+  flex-wrap: nowrap !important;
+  gap: 0 !important;
+  width: 100% !important;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+.stepper-steps::-webkit-scrollbar { display: none !important; }
+
+/* ── Wrapper externo de cada step (div con style flex:1 / none en JSX) ── */
+/* Este div contiene [.step-item] + [.step-connector] */
+.stepper-steps {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+  gap: 0 !important;
+  width: 100% !important;
+  overflow: visible !important; /* ← quita el scroll, deja que el texto fluya */
+  scrollbar-width: none !important;
+}
+
+/* ── Step item: columna (círculo + label) ── */
+.step-item,
+.fm-step-item {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 5px !important;
+  flex: 1 !important;          /* ← reparte el espacio disponible */
+  flex-shrink: 1 !important;   /* ← permite ajuste fino */
+  min-width: 80px !important;  /* ← sube de 64 a 80px */
+  max-width: 160px !important; /* ← sube de 100 a 160px */
+}
+
+.step-item span,
+.step-item a,
+.fm-step-item span,
+.fm-step-item a {
+  white-space: normal !important;   /* ← permite salto de línea */
+  word-break: break-word !important;
+  text-align: center !important;
+  line-height: 1.3 !important;
+  font-size: 10.5px !important;
+  display: block !important;
+}
+
+
+/* ── Círculo ── */
+.step-circle,
+.fm-step-circle {
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 0.8125rem !important;
+  font-weight: 700 !important;
+  flex-shrink: 0 !important;
+  position: relative !important;
+  transition: transform var(--mw-ease), box-shadow var(--mw-ease) !important;
+}
+.step-circle.pending {
+  background: var(--mw-step-pending) !important;
+  border: 2px solid rgba(255,255,255,0.18) !important;
+  color: var(--mw-text-faint) !important;
+  box-shadow: none !important;
+}
+.step-circle.active {
+  background: var(--mw-jade) !important;
+  border: 2px solid var(--mw-jade) !important;
+  color: #fff !important;
+  transform: scale(1.08) !important;
+  box-shadow: 0 0 0 4px var(--mw-jade-glow) !important;
+}
+.step-circle.done {
+  background: var(--mw-jade-done) !important;
+  border: 2px solid rgba(10,126,110,0.50) !important;
+  color: var(--mw-jade-text) !important;
+  box-shadow: none !important;
+}
+
+/* Pulse ring solo en activo */
+.fm-pulse-ring {
+  position: absolute !important;
+  inset: -5px !important;
+  border-radius: 50% !important;
+  border: 2px solid rgba(10,126,110,0.40) !important;
+  opacity: 0 !important;
+  animation: mw-pulse 2s ease-in-out infinite !important;
+  pointer-events: none !important;
+}
+@keyframes mw-pulse {
+  0%   { transform: scale(0.85); opacity: 0.8; }
+  70%  { transform: scale(1.3);  opacity: 0; }
+  100% { transform: scale(1.3);  opacity: 0; }
+}
+
+/* ── Labels ── */
+.step-label {
+  font-size: 0.6875rem !important;
+  font-weight: 500 !important;
+  color: var(--mw-text-dim) !important;
+  text-align: center !important;
+  line-height: 1.25 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 90px !important;
+  display: block !important;
+}
+.step-label.active {
+  color: var(--mw-text-inv) !important;
+  font-weight: 600 !important;
+}
+
+/* ── Connector — FIX marginBottom inline del JSX ──
+   El JSX pone style="marginBottom: 20" en el connector wrapper div.
+   Lo sobreescribimos en el elemento .step-connector directamente.    */
+.step-connector,
+.fm-connector {
+  flex: 1 1 0% !important;
+  height: 2px !important;
+  min-width: 16px !important;
+  background: rgba(255,255,255,0.12) !important;
+  border-radius: 2px !important;
+  /* Centrar verticalmente con el círculo de 34px */
+  align-self: flex-start !important;
+  margin-top: 16px !important;   /* (34px / 2) - (2px / 2) = 16px */
+  margin-bottom: 0 !important;  /* cancela el inline marginBottom:20 */
+  flex-shrink: 1 !important;
+  transition: background 0.4s ease !important;
+}
+.step-connector.done,
+.fm-connector.done {
+  background: rgba(10,126,110,0.55) !important;
+}
+
+/* ── Barra de progreso ── */
+.stepper-progress,
+.fm-progress-wrap {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  margin-top: 8px !important;
+}
+.progress-bar,
+.fm-progress-bar {
+  flex: 1 !important;
+  height: 4px !important;
+  background: rgba(255,255,255,0.10) !important;
+  border-radius: 99px !important;
+  overflow: hidden !important;
+}
+.progress-fill,
+.fm-progress-fill {
+  height: 100% !important;
+  background: var(--mw-jade) !important;
+  border-radius: 99px !important;
+  transition: width 0.5s cubic-bezier(0.16,1,0.3,1) !important;
+  position: relative;
+  overflow: hidden;
+}
+.fm-progress-shimmer {
+  position: absolute !important;
+  inset: 0 !important;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.30) 50%, transparent 100%) !important;
+  background-size: 200% 100% !important;
+  animation: mw-shimmer 2s ease-in-out infinite !important;
+}
+@keyframes mw-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.progress-meta {
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  color: rgba(255,255,255,0.55) !important;
+  white-space: nowrap !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   3. CONTENT AREA — padding correcto
+      La clase en JSX es .fm-content
+══════════════════════════════════════════════════════════════ */
+.fm-content {
+  flex: 1 !important;
+  padding: 3rem 2rem calc(var(--mw-footer-h) + 2rem) !important;
+  max-width: 1620px !important;
+  margin: 0 auto !important;
+  width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1rem !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   4. FORM FOOTER — sticky bottom, ancho correcto
+      Clase en JSX: .form-footer
+      Con `position: sticky` funciona bien dentro del fm-root flex column.
+      El problema anterior era margin:-2rem del fm-root que lo desplazaba.
+══════════════════════════════════════════════════════════════ */
+.form-footer {
+  position: sticky !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  z-index: 100 !important;
+  flex-shrink: 0 !important;
+
+  background: rgba(255,255,255,0.95) !important;
+  backdrop-filter: blur(14px) saturate(1.6) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.6) !important;
+  border-top: 1px solid var(--mw-border) !important;
+  box-shadow: 0 -4px 24px rgba(10,37,64,0.08) !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 10px 2rem !important;
+  min-height: var(--mw-footer-h) !important;
+  margin: 0 !important;
+}
+
+/* Botones del footer — ya existen .btn-tonal y .btn-signature en index.css */
+/* Solo reforzamos los tamaños */
+.form-footer .btn {
+  height: 38px !important;
+  padding: 0 20px !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  white-space: nowrap !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   5. HERO HEADER — alineado con paleta navy/jade
+══════════════════════════════════════════════════════════════ */
+.fm-hero-header {
+  background: linear-gradient(135deg,
+    rgba(10,37,64,0.04) 0%,
+    rgba(10,94,153,0.05) 50%,
+    rgba(10,37,64,0.02) 100%) !important;
+  border: 1px solid rgba(10,94,153,0.12) !important;
+  border-radius: 16px !important;
+  padding: 1.25rem 1.5rem !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+.fm-hero-header::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 4px !important;
+  height: 100% !important;
+  background: linear-gradient(180deg, var(--mw-navy), var(--mw-jade)) !important;
+  border-radius: 4px 0 0 4px !important;
+}
+.fm-hero-title {
+  color: var(--mw-navy) !important;
+}
+.fm-hero-icon-wrap {
+  background: var(--mw-navy) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   6. SECTION CARDS — elevación sutil
+══════════════════════════════════════════════════════════════ */
+.fm-section-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(197,198,210,0.35) !important;
+  border-radius: 14px !important;
+  overflow: hidden !important;
+  box-shadow: 0 1px 4px rgba(10,37,64,0.05), 0 0 0 0 rgba(10,94,153,0) !important;
+  transition: box-shadow 250ms !important;
+}
+.fm-section-card:hover {
+  box-shadow: 0 2px 12px rgba(10,37,64,0.08) !important;
+}
+.fm-section-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 0.75rem 1.25rem !important;
+  background: linear-gradient(90deg, rgba(10,37,64,0.03) 0%, rgba(10,94,153,0.025) 100%) !important;
+  border-bottom: 1px solid rgba(197,198,210,0.30) !important;
+}
+.fm-section-icon {
+  color: var(--mw-jade) !important;
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24 !important;
+}
+.fm-section-title {
+  color: var(--mw-navy) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   7. INPUTS — focus ring jade (no azul brillante)
+══════════════════════════════════════════════════════════════ */
+.fm-input:focus,
+.fm-select:focus {
+  border-color: var(--mw-jade) !important;
+  box-shadow: 0 0 0 3px rgba(10,126,110,0.14) !important;
+}
+.fm-field:focus-within .form-label {
+  color: var(--mw-jade) !important;
+}
+.fm-select-wrap:focus-within .fm-select-arrow {
+  color: var(--mw-jade) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   8. ANIMACIONES DE ENTRADA
+══════════════════════════════════════════════════════════════ */
+@keyframes fm-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fm-animate-in {
+  animation: fm-fade-in 0.3s cubic-bezier(0.16,1,0.3,1) both !important;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   9. RESPONSIVE
+══════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════
+   10. GRIDS COMPARTIDOS
+══════════════════════════════════════════════════════════════ */
+.fm-grid {
+  display: grid;
+  gap: 1rem;
+}
+.fm-grid-3 { grid-template-columns: repeat(3, 1fr); }
+.fm-grid-4 { grid-template-columns: repeat(4, 1fr); }
+
+/* ── fm-select-wrap ── */
+.fm-select-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.fm-select-wrap .form-select {
+  width: 100%;
+  padding-right: 2rem;
+  appearance: none;
+}
+.fm-select-arrow {
+  position: absolute;
+  right: 0.5rem;
+  pointer-events: none;
+  color: #64748b;
+}
+
+@media (max-width: 768px) {
+  .fm-content {
+    padding: 1rem 1rem calc(var(--mw-footer-h) + 1.5rem) !important;
+  }
+  .form-footer {
+    padding: 8px 1rem !important;
+  }
+  .stepper-bar,
+  .fm-stepper {
+    padding: 12px 12px 8px !important;
+  }
+  .step-label {
+    font-size: 0.5625rem !important;
+    max-width: 64px !important;
+  }
+  .fm-grid-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .fm-grid-3 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+@media (max-width: 480px) {
+  .fm-grid-4,
+  .fm-grid-3 {
+    grid-template-columns: 1fr !important;
+  }
+}

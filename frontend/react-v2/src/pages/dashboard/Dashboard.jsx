@@ -67,51 +67,53 @@ function BadgeEstado({ estado }) {
 }
 
 /* ── KPI Card ─────────────────────────────────────────────────── */
-function KpiCard({ label, valor, sub, accentColor, topColor, icon, children, alert }) {
+function KpiCard({ label, valor, sub, accentColor, icon, children, alert }) {
   return (
     <div
       style={{
         background: 'white',
         borderRadius: 14,
-        padding: '18px 20px',
-        boxShadow: '0 1px 3px rgba(25,28,30,0.06), 0 0 0 1px rgba(197,198,210,0.18)',
-        display: 'flex', flexDirection: 'column', gap: 8,
+        padding: '22px 20px 22px 24px',
+        boxShadow: '0 1px 4px rgba(25,28,30,0.07), 0 0 0 1px rgba(197,198,210,0.20)',
+        display: 'flex', flexDirection: 'column', gap: 10,
         position: 'relative', overflow: 'hidden',
         transition: 'box-shadow 150ms, transform 150ms',
         cursor: 'default',
       }}
       onMouseEnter={e => {
-        e.currentTarget.style.boxShadow = '0 6px 20px rgba(25,28,30,0.10)';
+        e.currentTarget.style.boxShadow = '0 8px 24px rgba(25,28,30,0.11)';
         e.currentTarget.style.transform = 'translateY(-2px)';
       }}
       onMouseLeave={e => {
-        e.currentTarget.style.boxShadow = '0 1px 3px rgba(25,28,30,0.06), 0 0 0 1px rgba(197,198,210,0.18)';
+        e.currentTarget.style.boxShadow = '0 1px 4px rgba(25,28,30,0.07), 0 0 0 1px rgba(197,198,210,0.20)';
         e.currentTarget.style.transform = 'translateY(0)';
       }}
     >
-      {/* barra superior */}
+      {/* barra vertical izquierda */}
       <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0, height: 3,
-        background: topColor ?? accentColor,
-        borderRadius: '14px 14px 0 0',
+        position: 'absolute', top: 0, left: 0, bottom: 0, width: 4,
+        background: accentColor,
+        borderRadius: '14px 0 0 14px',
       }} />
 
       {/* icono */}
       {icon && (
         <div style={{
-          position: 'absolute', right: 16, top: 18,
-          width: 34, height: 34, borderRadius: 9,
-          background: `${accentColor}14`,
+          position: 'absolute', right: 18, top: 18,
+          width: 44, height: 44, borderRadius: 12,
+          background: `radial-gradient(circle at 60% 40%, ${accentColor}22 0%, ${accentColor}0d 100%)`,
+          border: `1px solid ${accentColor}18`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           color: accentColor,
         }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>{icon}</span>
+          <span className="material-symbols-outlined" style={{ fontSize: 22 }}>{icon}</span>
         </div>
       )}
 
       <p style={{
-        fontSize: '0.625rem', fontWeight: 700, color: '#94a3b8',
-        textTransform: 'uppercase', letterSpacing: '0.07em', lineHeight: 1,
+        fontSize: '0.6875rem', fontWeight: 700, color: '#8694aa',
+        textTransform: 'uppercase', letterSpacing: '0.08em', lineHeight: 1,
+        paddingRight: 56,
       }}>
         {label}
       </p>
@@ -120,14 +122,16 @@ function KpiCard({ label, valor, sub, accentColor, topColor, icon, children, ale
         <>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
             <span style={{
-              fontSize: '2rem', fontWeight: 800, lineHeight: 1,
+              fontSize: '2.625rem', fontWeight: 800, lineHeight: 1,
               color: alert ? '#dc2626' : '#00103e',
+              letterSpacing: '-0.02em',
+              fontVariantNumeric: 'tabular-nums',
             }}>
               {safe(valor)}
             </span>
           </div>
           {sub && (
-            <p style={{ fontSize: '0.6875rem', color: '#94a3b8', fontWeight: 500 }}>
+            <p style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 500, marginTop: -2 }}>
               {sub}
             </p>
           )}
@@ -393,8 +397,8 @@ export default function Dashboard({ showToast }) {
       {/* KPI Grid */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: 14, marginBottom: 26,
+        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+        gap: 16, marginBottom: 28,
       }}>
         {loadKpi
           ? Array.from({ length: 6 }).map((_, i) => (
@@ -403,32 +407,32 @@ export default function Dashboard({ showToast }) {
           : (<>
               <KpiCard
                 label="Total Médicos" valor={tot.total_medicos}
-                accentColor="#00103e" topColor="#00103e"
+                accentColor="#00103e"
                 icon="groups" sub="Cuerpo médico"
               />
               <KpiCard
                 label="Médicos Activos" valor={tot.activos}
-                accentColor="#1a4ed7" topColor="#1a4ed7"
+                accentColor="#1a4ed7"
                 icon="verified_user" sub="Planta activa"
               />
               <KpiCard
                 label="En Proceso" valor={tot.en_proceso}
-                accentColor="#d97706" topColor="#f59e0b"
+                accentColor="#d97706"
                 icon="pending"
               />
               <KpiCard
                 label="Personal Inactivo" valor={tot.inactivos}
-                accentColor="#94a3b8" topColor="#94a3b8"
+                accentColor="#94a3b8"
                 icon="person_off"
               />
               <KpiCard
                 label="Alertas Venc." valor={alertas || '—'}
-                accentColor="#dc2626" topColor="#ef4444"
+                accentColor="#dc2626"
                 icon={alertas > 0 ? 'priority_high' : 'check_circle'}
                 alert={alertas > 0}
               />
               {/* Por Categoría */}
-              <KpiCard label="Por Categoría" accentColor="#0e7e6e" topColor="#0e7e6e" icon="category">
+              <KpiCard label="Por Categoría" accentColor="#0e7e6e" icon="category">
                 {cats.length > 0
                   ? (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 2 }}>

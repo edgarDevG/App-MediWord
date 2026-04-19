@@ -8,8 +8,7 @@ import axiosInstance from '../../api/axiosInstance';
 import { useAuth } from '../../context/AuthContext';
 
 const NAV_ITEMS = [
-  { label: 'Dashboard',         icon: 'dashboard',         path: '/' },
-  { label: 'Cuerpo Médico',     icon: 'group',             path: '/medicos' },
+  { label: 'Cuerpo Médico',     icon: 'group',             path: '/' },
   { label: 'Médicos FSFB',      icon: 'business',          path: '/medicos-fsfb' },
   { label: 'Renuncias',         icon: 'assignment_return', path: '/renuncias' },
   { label: 'Finalizaciones',    icon: 'event_busy',        path: '/finalizaciones' },
@@ -21,7 +20,7 @@ const NAV_BOTTOM = [
 ];
 
 const ROUTE_TITLES = {
-  '/':                  'Dashboard',
+  '/':                  'Cuerpo Médico',
   '/medicos':           'Cuerpo Médico',
   '/medicos/nuevo':     'Nuevo Médico',
   '/medicos-fsfb':      'Médicos FSFB',

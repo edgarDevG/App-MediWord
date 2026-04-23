@@ -308,23 +308,17 @@ export default function Reportes() {
         .rpt-spin { animation: rpt-spin 1s linear infinite; }
       `}</style>
 
-      <div style={{ padding: '1.75rem 2rem', minHeight: '100%', width: '100%', maxWidth: 1200 }}>
+      <div style={{ padding: '1.5rem 2rem', minHeight: '100%', width: '100%', maxWidth: 1200 }}>
 
         {/* ══ 1. HEADER ══════════════════════════════════════════ */}
-        <div style={{ marginBottom: 28 }}>
-          <h2 style={{
-            fontSize: '1.625rem', fontWeight: 800,
-            color: 'var(--color-primary)', lineHeight: 1.2,
-          }}>
-            Reportes y Exportaciones
-          </h2>
-          <p style={{
-            fontSize: '0.8125rem', color: '#64748b',
-            marginTop: 4, lineHeight: 1.5,
-          }}>
-            Indicadores de estado del cuerpo médico, alertas de documentos por vencer
-            y herramientas de exportación de datos.
-          </p>
+        <div className="page-header">
+          <div className="page-header-left">
+            <h2>Reportes y Exportaciones</h2>
+            <p>
+              Indicadores de estado del cuerpo médico, alertas de documentos por vencer
+              y herramientas de exportación de datos.
+            </p>
+          </div>
         </div>
 
         {/* ══ 2. KPI CARDS ══════════════════════════════════════ */}

@@ -2,11 +2,13 @@
    Dashboard.jsx v6 — MediWork HSM
    Diseño refinado — lógica de fetching intacta
    ══════════════════════════════════════════════════════════════ */
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import axiosInstance from '../../api/axiosInstance';
 import { useAuth } from '../../context/AuthContext';
-import toast from 'react-hot-toast';
+import { useToast } from '../../components/Toast';
+import MedicoTable from '../../components/shared/MedicoTable';
 
 const CAT_COLORS = {
   A:  { bg: '#dce1ff', color: '#003ab3' },
@@ -190,139 +192,126 @@ function AlertBanner({ count }) {
 
 /* ── ActionMenu de Tabla ───────────────────────────────────── */
 function ActionMenu({ doc, onReload, showToast }) {
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const [open, setOpen] = useState(false);
+  const navigate  = useNavigate();
+  const { user }  = useAuth();
+  const [open, setOpen]     = useState(false);
+  const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
+  const btnRef  = useRef(null);
   const menuRef = useRef(null);
 
-  // Close menu when clicking outside
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false);
+    if (!open) return;
+    const close    = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target) &&
+          btnRef.current  && !btnRef.current.contains(e.target)) setOpen(false);
     };
-    if (open) document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    const onScroll = () => setOpen(false);
+    document.addEventListener('mousedown', close);
+    document.addEventListener('scroll', onScroll, true);
+    return () => {
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('scroll', onScroll, true);
+    };
   }, [open]);
+
+  const handleOpen = (e) => {
+    e.stopPropagation();
+    if (!open && btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      setMenuPos({ top: r.bottom + 4, right: window.innerWidth - r.right });
+    }
+    setOpen(o => !o);
+  };
 
   const handleChangeStatus = async (nuevoEstado, tipoListado) => {
     setOpen(false);
-    if (!window.confirm(`¿Estás seguro que deseas marcar a este médico como ${nuevoEstado}?`)) return;
+    if (!window.confirm(`¿Confirmas cambiar el estado del médico a ${nuevoEstado}?`)) return;
     try {
-      await axiosInstance.patch(`/medicos/${doc}/estado`, {
-        estado: nuevoEstado,
-        tipo_listado: tipoListado
-      });
-      showToast?.('Médico clasificado exitosamente', 'success');
+      await axiosInstance.patch(`/medicos/${doc}/estado`, { estado: nuevoEstado, tipo_listado: tipoListado });
+      showToast?.('Estado actualizado correctamente', 'success');
       onReload?.();
     } catch (e) {
       showToast?.(e.response?.data?.detail ?? 'Error al actualizar el estado', 'error');
     }
   };
 
+  const dropdown = open && createPortal(
+    <div ref={menuRef} style={{
+      position: 'fixed', top: menuPos.top, right: menuPos.right,
+      background: 'white', borderRadius: 10,
+      boxShadow: '0 4px 20px rgba(0,0,0,0.12), 0 0 0 1px rgba(197,198,210,0.3)',
+      minWidth: 210, zIndex: 9999,
+      display: 'flex', flexDirection: 'column', padding: '4px 0',
+    }}>
+      <Link to={`/medicos/${doc}/perfil`} style={{ ...menuItemStyle(false), textDecoration: 'none' }} onClick={() => setOpen(false)}>
+        <span className="material-symbols-outlined sm">person</span> Ver perfil médico
+      </Link>
+      <Link to={`/medicos/${doc}/editar`} style={{ ...menuItemStyle(false), textDecoration: 'none' }} onClick={() => setOpen(false)}>
+        <span className="material-symbols-outlined sm">edit</span> Editar carpetas
+      </Link>
+      <div style={{ height: 1, background: 'rgba(197,198,210,0.25)', margin: '3px 0' }} />
+      <button style={menuItemStyle('#92400E')} onClick={() => handleChangeStatus('RENUNCIA', 'renuncia')}>
+        <span className="material-symbols-outlined sm">assignment_return</span> Marcar Renuncia
+      </button>
+      <button style={menuItemStyle('#991B1B')} onClick={() => handleChangeStatus('FINALIZADO', 'finalizacion')}>
+        <span className="material-symbols-outlined sm">event_busy</span> Marcar Finalización
+      </button>
+      <button style={menuItemStyle('#374151')} onClick={() => handleChangeStatus('INACTIVO', 'inactivo')}>
+        <span className="material-symbols-outlined sm">person_off</span> Trasladar a Inactivo
+      </button>
+    </div>,
+    document.body
+  );
+
   return (
     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 4 }}>
       <button
-        title="Editar"
-        onClick={() => navigate(`/medicos/editar/${doc}`)}
-        style={{
-          width: 30, height: 30, borderRadius: 7, border: 'none',
-          cursor: 'pointer', background: 'transparent', color: '#94a3b8',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          transition: 'color 120ms, background 120ms',
-        }}
-        onMouseEnter={e => { e.currentTarget.style.color = '#1a4ed7'; e.currentTarget.style.background = '#eef2ff'; }}
+        title="Ver perfil"
+        onClick={() => navigate(`/medicos/${doc}/perfil`)}
+        style={iconBtnStyle}
+        onMouseEnter={e => { e.currentTarget.style.color = '#00103e'; e.currentTarget.style.background = '#f2f4f6'; }}
         onMouseLeave={e => { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.background = 'transparent'; }}
       >
-        <span className="material-symbols-outlined sm">edit</span>
+        <span className="material-symbols-outlined sm">open_in_new</span>
       </button>
-
-      {user?.rol === 'admin' ? (
-        <div style={{ position: 'relative' }} ref={menuRef}>
-          <button
-            title="Clasificar u Opciones"
-            onClick={() => setOpen(o => !o)}
-            style={{
-              width: 30, height: 30, borderRadius: 7, border: 'none',
-              cursor: 'pointer', background: open ? '#f2f4f6' : 'transparent', color: open ? '#00103e' : '#94a3b8',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'color 120ms, background 120ms',
-            }}
+      {user?.rol === 'admin' && (
+        <>
+          <button ref={btnRef} title="Acciones" onClick={handleOpen}
+            style={{ ...iconBtnStyle, background: open ? '#f2f4f6' : 'transparent', color: open ? '#00103e' : '#94a3b8' }}
             onMouseEnter={e => { e.currentTarget.style.color = '#00103e'; e.currentTarget.style.background = '#f2f4f6'; }}
-            onMouseLeave={e => {
-              if(!open) { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.background = 'transparent'; }
-            }}
+            onMouseLeave={e => { if (!open) { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.background = 'transparent'; } }}
           >
             <span className="material-symbols-outlined sm">more_vert</span>
           </button>
-
-          {open && (
-            <div style={{
-              position: 'absolute', right: 0, top: 34,
-              background: 'white', borderRadius: 10,
-              boxShadow: '0 4px 16px rgba(0,0,0,0.1), 0 0 0 1px rgba(197,198,210,0.3)',
-              width: 210, zIndex: 100,
-              display: 'flex', flexDirection: 'column', padding: '6px 0',
-              animation: 'fadeInMenu 150ms ease-out',
-            }}>
-              <style>{`
-                @keyframes fadeInMenu { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
-                .action-menu-btn {
-                  textAlign: left; padding: 10px 16px; border: none; background: transparent; cursor: pointer;
-                  fontSize: 0.8125rem; fontWeight: 600; color: #334155; display: flex; align-items: center; gap: 8px;
-                }
-                .action-menu-btn:hover { background: #f8f9fb; color: #00103e; }
-                .action-menu-btn.danger:hover { background: #fef2f2; color: #dc2626; }
-              `}</style>
-              <button className="action-menu-btn" onClick={() => navigate(`/medicos/${doc}`)}>
-                <span className="material-symbols-outlined sm">open_in_new</span> Ver perfil completo
-              </button>
-              <div style={{ height: 1, background: 'rgba(197,198,210,0.3)', margin: '4px 0' }} />
-              <button className="action-menu-btn danger" onClick={() => handleChangeStatus('RENUNCIA', 'renuncia')}>
-                <span className="material-symbols-outlined sm">assignment_return</span> Marcar Renuncia
-              </button>
-              <button className="action-menu-btn danger" onClick={() => handleChangeStatus('FINALIZADO', 'finalizacion')}>
-                <span className="material-symbols-outlined sm">event_busy</span> Marcar Finalización
-              </button>
-              <button className="action-menu-btn" onClick={() => handleChangeStatus('INACTIVO', 'inactivo')}>
-                <span className="material-symbols-outlined sm">person_off</span> Trasladar a Inactivo
-              </button>
-            </div>
-          )}
-        </div>
-      ) : (
-        <button
-          title="Ver perfil"
-          onClick={() => navigate(`/medicos/${doc}`)}
-          style={{
-            width: 30, height: 30, borderRadius: 7, border: 'none',
-            cursor: 'pointer', background: 'transparent', color: '#94a3b8',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            transition: 'color 120ms, background 120ms',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.color = '#00103e'; e.currentTarget.style.background = '#f2f4f6'; }}
-          onMouseLeave={e => { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.background = 'transparent'; }}
-        >
-          <span className="material-symbols-outlined sm">open_in_new</span>
-        </button>
+          {dropdown}
+        </>
       )}
     </div>
   );
 }
 
+const iconBtnStyle = {
+  width: 30, height: 30, borderRadius: 7, border: 'none',
+  cursor: 'pointer', background: 'transparent', color: '#94a3b8',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  transition: 'color 120ms, background 120ms',
+};
+
+const menuItemStyle = (color) => ({
+  textAlign: 'left', padding: '9px 14px', border: 'none',
+  background: 'transparent', cursor: 'pointer',
+  fontSize: '0.8125rem', fontWeight: 600,
+  color: color || '#334155',
+  display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+});
+
 /* ── Dashboard principal ──────────────────────────────────────── */
-export default function Dashboard({ showToast }) {
+export default function Dashboard() {
   const navigate = useNavigate();
+  const { showToast, ToastContainer } = useToast();
 
   const [resumen,   setResumen]   = useState(null);
-  const [medicos,   setMedicos]   = useState([]);
-  const [total,     setTotal]     = useState(0);
-  const [page,      setPage]      = useState(1);
-  const [search,    setSearch]    = useState('');
-  const [catFiltro, setCatFiltro] = useState('');
   const [loadKpi,   setLoadKpi]   = useState(true);
-  const [loadTbl,   setLoadTbl]   = useState(true);
-
-  const SIZE = 20;
 
   /* ── KPIs ─────────────────────────────────────────────────── */
   useEffect(() => {
@@ -333,57 +322,23 @@ export default function Dashboard({ showToast }) {
       .finally(() => setLoadKpi(false));
   }, []);
 
-  /* ── Médicos ──────────────────────────────────────────────── */
-  const fetchMedicos = useCallback(() => {
-    setLoadTbl(true);
-    const params = new URLSearchParams({ page, size: SIZE });
-    if (search)    params.set('search',    search);
-    if (catFiltro) params.set('categoria', catFiltro);
-
-    axiosInstance.get(`/medicos/?${params}`, { skipToast: true })
-      .then(r => {
-        const items = Array.isArray(r.data) ? r.data : (r.data.items ?? r.data.data ?? []);
-        const cnt   = Array.isArray(r.data) ? r.data.length : (r.data.total ?? r.data.count ?? items.length);
-        setMedicos(items);
-        setTotal(cnt);
-      })
-      .catch(() => showToast?.('Error cargando médicos', 'error'))
-      .finally(() => setLoadTbl(false));
-  }, [page, search, catFiltro]);
-
-  useEffect(() => { fetchMedicos(); }, [fetchMedicos]);
-  useEffect(() => {
-    const t = setTimeout(() => setPage(1), 350);
-    return () => clearTimeout(t);
-  }, [search]);
-
   /* ── Extraer KPIs ─────────────────────────────────────────── */
   const tot     = resumen?.totales ?? {};
   const cats    = resumen?.por_categoria ?? [];
   const alertas = Number(tot.alertas ?? tot.alertas_vencimiento ?? 0);
-
-  const totalPages = Math.max(1, Math.ceil(total / SIZE));
 
   /* ── Render ───────────────────────────────────────────────── */
   return (
     <div style={{ padding: '1.5rem 2rem', minHeight: '100%', width: '100%' }}>
 
       {/* Page Header */}
-      <div style={{
-        display: 'flex', justifyContent: 'space-between',
-        alignItems: 'flex-end', marginBottom: 24,
-        flexWrap: 'wrap', gap: 12,
-      }}>
-        <div>
-          <h2 style={{ fontSize: '1.625rem', fontWeight: 800, color: '#00103e', lineHeight: 1.2 }}>
-            Cuerpo Médico
-          </h2>
-          <p style={{ fontSize: '0.8125rem', color: '#64748b', marginTop: 3 }}>
-            Dirección Médica · Vista integrada · Hospital Serena del Mar
-          </p>
+      <div className="page-header">
+        <div className="page-header-left">
+          <h2>Cuerpo Médico</h2>
+          <p>Dirección Médica · Vista integrada · Hospital Serena del Mar</p>
         </div>
         <button
-          className="btn-signature"
+          className="btn btn-signature"
           onClick={() => navigate('/medicos/nuevo')}
         >
           <span className="material-symbols-outlined sm">person_add</span>
@@ -397,8 +352,8 @@ export default function Dashboard({ showToast }) {
       {/* KPI Grid */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-        gap: 16, marginBottom: 28,
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+        gap: 14, marginBottom: 26,
       }}>
         {loadKpi
           ? Array.from({ length: 6 }).map((_, i) => (
@@ -407,32 +362,32 @@ export default function Dashboard({ showToast }) {
           : (<>
               <KpiCard
                 label="Total Médicos" valor={tot.total_medicos}
-                accentColor="#00103e"
+                accentColor="#00103e" topColor="#00103e"
                 icon="groups" sub="Cuerpo médico"
               />
               <KpiCard
                 label="Médicos Activos" valor={tot.activos}
-                accentColor="#1a4ed7"
+                accentColor="#1a4ed7" topColor="#1a4ed7"
                 icon="verified_user" sub="Planta activa"
               />
               <KpiCard
                 label="En Proceso" valor={tot.en_proceso}
-                accentColor="#d97706"
+                accentColor="#d97706" topColor="#f59e0b"
                 icon="pending"
               />
               <KpiCard
                 label="Personal Inactivo" valor={tot.inactivos}
-                accentColor="#94a3b8"
+                accentColor="#94a3b8" topColor="#94a3b8"
                 icon="person_off"
               />
               <KpiCard
                 label="Alertas Venc." valor={alertas || '—'}
-                accentColor="#dc2626"
+                accentColor="#dc2626" topColor="#ef4444"
                 icon={alertas > 0 ? 'priority_high' : 'check_circle'}
                 alert={alertas > 0}
               />
               {/* Por Categoría */}
-              <KpiCard label="Por Categoría" accentColor="#0e7e6e" icon="category">
+              <KpiCard label="Por Categoría" accentColor="#0e7e6e" topColor="#0e7e6e" icon="category">
                 {cats.length > 0
                   ? (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 2 }}>
@@ -457,247 +412,17 @@ export default function Dashboard({ showToast }) {
         }
       </div>
 
-      {/* Tabla */}
-      <div style={{
-        background: 'white', borderRadius: 14,
-        border: '1px solid rgba(197,198,210,0.28)',
-        boxShadow: '0 1px 3px rgba(25,28,30,0.06)',
-        overflow: 'hidden',
-      }}>
-
-        {/* Toolbar */}
-        <div style={{
-          padding: '16px 22px',
-          display: 'flex', flexWrap: 'wrap',
-          alignItems: 'center', justifyContent: 'space-between', gap: 12,
-          borderBottom: '1px solid rgba(197,198,210,0.22)',
-        }}>
-          <div>
-            <h3 style={{ fontWeight: 700, color: '#00103e', fontSize: '0.9375rem' }}>
-              Listado del cuerpo médico
-            </h3>
-            {total > 0 && (
-              <p style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 500, marginTop: 2 }}>
-                {total} registros
-              </p>
-            )}
-          </div>
-
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            {/* Buscador */}
-            <div style={{ position: 'relative' }}>
-              <span className="material-symbols-outlined sm" style={{
-                position: 'absolute', left: 10, top: '50%',
-                transform: 'translateY(-50%)', color: '#94a3b8',
-                pointerEvents: 'none', fontSize: 16,
-              }}>search</span>
-              <input
-                style={{
-                  paddingLeft: 34, paddingRight: 14, paddingBlock: 8,
-                  border: '1px solid rgba(197,198,210,0.45)', borderRadius: 9,
-                  fontSize: '0.8125rem', width: 270, outline: 'none',
-                  background: '#f8f9fb', color: '#191c1e',
-                  transition: 'border-color 150ms, box-shadow 150ms',
-                }}
-                onFocus={e => {
-                  e.target.style.borderColor = '#4facb8';
-                  e.target.style.boxShadow   = '0 0 0 3px rgba(79,172,184,0.12)';
-                  e.target.style.background  = '#fff';
-                }}
-                onBlur={e => {
-                  e.target.style.borderColor = 'rgba(197,198,210,0.45)';
-                  e.target.style.boxShadow   = 'none';
-                  e.target.style.background  = '#f8f9fb';
-                }}
-                placeholder="Buscar nombre, documento, especialidad..."
-                value={search}
-                onChange={e => { setSearch(e.target.value); setPage(1); }}
-              />
-            </div>
-
-            {/* Filtro categoría */}
-            <div style={{
-              display: 'flex', background: '#f2f4f6',
-              padding: 3, borderRadius: 9, gap: 2,
-            }}>
-              {['', ...cats.map(c => c.categoria)].map(c => (
-                <button
-                  key={c || 'todos'}
-                  onClick={() => { setCatFiltro(c); setPage(1); }}
-                  style={{
-                    padding: '5px 13px', borderRadius: 6, border: 'none',
-                    fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
-                    background: catFiltro === c ? 'white' : 'transparent',
-                    color: catFiltro === c ? '#1a4ed7' : '#475569',
-                    boxShadow: catFiltro === c ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
-                    transition: 'all 120ms',
-                  }}
-                >
-                  {c === '' ? 'Todos' : `Cat ${c}`}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Tabla interna */}
-        <div style={{ paddingBottom: '160px' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{
-                background: '#f8f9fb',
-                borderBottom: '1px solid rgba(197,198,210,0.3)',
-              }}>
-                {['Documento','Nombre','Categoría','Especialidad','Departamento / Sección','Estado','Acciones'].map(h => (
-                  <th key={h} style={{
-                    padding: '10px 16px',
-                    textAlign: h === 'Acciones' ? 'right' : 'left',
-                    fontSize: '0.625rem', fontWeight: 700, color: '#94a3b8',
-                    textTransform: 'uppercase', letterSpacing: '0.06em',
-                    whiteSpace: 'nowrap',
-                  }}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {loadTbl
-                ? Array.from({ length: 8 }).map((_, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid rgba(197,198,210,0.12)' }}>
-                      {Array.from({ length: 7 }).map((_, j) => (
-                        <td key={j} style={{ padding: '13px 16px' }}>
-                          <div className="skeleton" style={{
-                            height: 13, borderRadius: 6,
-                            width: j === 1 ? '70%' : j === 3 ? '55%' : '40%',
-                          }} />
-                        </td>
-                      ))}
-                    </tr>
-                  ))
-                : medicos.length === 0
-                ? (
-                  <tr>
-                    <td colSpan={7} style={{ textAlign: 'center', padding: '3.5rem', color: '#94a3b8' }}>
-                      <span className="material-symbols-outlined"
-                        style={{ fontSize: 44, display: 'block', marginBottom: 10, opacity: 0.4 }}>
-                        person_search
-                      </span>
-                      <p style={{ fontWeight: 700, color: '#64748b', fontSize: '0.9375rem' }}>
-                        No se encontraron médicos
-                      </p>
-                      {search && (
-                        <p style={{ fontSize: '0.8125rem', marginTop: 4, color: '#94a3b8' }}>
-                          Intenta con otro término de búsqueda
-                        </p>
-                      )}
-                    </td>
-                  </tr>
-                )
-                : medicos.map((m, i) => {
-                    const { doc, nom, cat, esp, dep, sec, est } = mapMedico(m);
-                    const depLabel = sec !== '—' ? sec : dep;
-                    return (
-                      <tr
-                        key={doc + i}
-                        style={{
-                          borderBottom: '1px solid rgba(197,198,210,0.15)',
-                          transition: 'background 100ms', cursor: 'default',
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(79,172,184,0.035)'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                      >
-                        <td style={{ padding: '11px 16px', fontSize: '0.75rem', color: '#64748b', fontVariantNumeric: 'tabular-nums' }}>
-                          {doc}
-                        </td>
-                        <td style={{ padding: '11px 16px', fontSize: '0.875rem', fontWeight: 600, color: '#00103e', whiteSpace: 'nowrap' }}>
-                          {nom}
-                        </td>
-                        <td style={{ padding: '11px 16px' }}>
-                          <BadgeCat cat={cat} />
-                        </td>
-                        <td style={{ padding: '11px 16px', fontSize: '0.875rem', color: '#334155' }}>
-                          {esp}
-                        </td>
-                        <td style={{ padding: '11px 16px', fontSize: '0.75rem', color: '#475569' }}>
-                          {depLabel}
-                        </td>
-                        <td style={{ padding: '11px 16px' }}>
-                          <BadgeEstado estado={est} />
-                        </td>
-                        <td style={{ padding: '11px 16px', textAlign: 'right' }}>
-                          <ActionMenu doc={doc} onReload={fetchMedicos} showToast={showToast} />
-                        </td>
-                      </tr>
-                    );
-                  })
-              }
-            </tbody>
-          </table>
-        </div>
-
-        {/* Paginación */}
-        {!loadTbl && total > SIZE && (
-          <div style={{
-            padding: '12px 22px',
-            borderTop: '1px solid rgba(197,198,210,0.2)',
-            display: 'flex', justifyContent: 'space-between',
-            alignItems: 'center', fontSize: '0.75rem',
-            color: '#64748b', flexWrap: 'wrap', gap: 8,
-          }}>
-            <span>
-              {(page - 1) * SIZE + 1}–{Math.min(page * SIZE, total)} de {total} médicos
-            </span>
-            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-              <button
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-                style={{
-                  width: 30, height: 30, borderRadius: 7, border: 'none',
-                  cursor: page === 1 ? 'default' : 'pointer',
-                  background: 'none', color: '#475569',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  opacity: page === 1 ? 0.3 : 1,
-                }}
-              >
-                <span className="material-symbols-outlined sm">chevron_left</span>
-              </button>
-              {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => i + 1).map(pg => (
-                <button
-                  key={pg}
-                  onClick={() => setPage(pg)}
-                  style={{
-                    width: 30, height: 30, borderRadius: 7, border: 'none',
-                    cursor: 'pointer', fontWeight: 700, fontSize: '0.75rem',
-                    background: page === pg ? '#00103e' : 'transparent',
-                    color: page === pg ? 'white' : '#475569',
-                    transition: 'all 120ms',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}
-                >
-                  {pg}
-                </button>
-              ))}
-              {totalPages > 7 && (
-                <span style={{ padding: '0 4px', color: '#94a3b8' }}>…</span>
-              )}
-              <button
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                style={{
-                  width: 30, height: 30, borderRadius: 7, border: 'none',
-                  cursor: page === totalPages ? 'default' : 'pointer',
-                  background: 'none', color: '#475569',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  opacity: page === totalPages ? 0.3 : 1,
-                }}
-              >
-                <span className="material-symbols-outlined sm">chevron_right</span>
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+      {/* Tabla — componente compartido con avatares y estilos premium */}
+      <MedicoTable
+        apiParams={{}}
+        titulo="Listado del cuerpo médico"
+        subtitulo="Planta HSM · Vista integrada"
+        emptyIcon="person_search"
+        emptyText="No se encontraron médicos"
+        showCatFilter
+        SIZE={20}
+      />
+      <ToastContainer />
     </div>
   );
 }

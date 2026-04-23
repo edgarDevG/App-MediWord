@@ -1,0 +1,61 @@
+services:
+
+  # ── Base de datos PostgreSQL ─────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       ${POSTGRES_DB:-MEDW}
+      POSTGRES_USER:     ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - mediword_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-MEDW}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # ── Backend FastAPI ──────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend-v2
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-MEDW}
+      PORT:         8001
+    ports:
+      - "${BACKEND_PORT:-8001}:8001"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - mediword_net
+
+  # ── Frontend React + Nginx ───────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend/react-v2
+      dockerfile: Dockerfile
+      args:
+        # Ruta relativa: nginx proxy /api/v1/* → backend:8001
+        VITE_API_URL: /api/v1
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    depends_on:
+      - backend
+    networks:
+      - mediword_net
+
+networks:
+  mediword_net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    name: mediword_postgres_data

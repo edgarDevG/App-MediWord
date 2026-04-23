@@ -49,7 +49,7 @@
   flex-direction: column !important;
   min-height: calc(100vh - 56px) !important;  /* 56px = topbar */
   max-width: -1620px !important;
-  margin: -2rem !important;                   /* hereda el negativo del page-content */
+  margin: -2rem !important;
   background: var(--mw-bg) !important;
 }
 
@@ -277,6 +277,10 @@
   flex-direction: column !important;
   gap: 1rem !important;
 }
+/* Compact top padding — forms without a sticky stepper (e.g. FormFSFB) */
+.fm-content-compact {
+  padding-top: 1.5rem !important;
+}
 
 /* ══════════════════════════════════════════════════════════════
    4. FORM FOOTER — sticky bottom, ancho correcto
@@ -470,4 +474,30 @@
   .fm-grid-3 {
     grid-template-columns: 1fr !important;
   }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   11. FORM HEADER — usado por FormFSFB (título + barra de tabs)
+══════════════════════════════════════════════════════════════ */
+.fm-header {
+  padding: 1.5rem 2rem 1.25rem;
+  background: var(--mw-surface, #ffffff);
+  border-bottom: 1px solid var(--mw-border, rgba(15,40,80,0.10));
+  flex-shrink: 0;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+.fm-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--mw-navy, #0A2540);
+  line-height: 1.2;
+  margin: 0 0 4px 0;
+}
+.fm-subtitle {
+  font-size: 0.8125rem;
+  color: #64748b;
+  margin: 0;
 }

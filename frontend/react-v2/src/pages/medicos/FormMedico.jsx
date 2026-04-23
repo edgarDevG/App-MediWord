@@ -224,9 +224,9 @@ function StepperBar({ currentStep, completedSteps, onStepClick }) {
    COMPONENTE PRINCIPAL
 ════════════════════════════════════════════════════════════ */
 export default function FormMedico() {
-  const navigate      = useNavigate();
-  const { documento } = useParams();
-  const isEdit        = Boolean(documento);
+  const navigate          = useNavigate();
+  const { doc: documento } = useParams();   // route param is :doc, not :documento
+  const isEdit             = Boolean(documento);
 
   const [currentStep,    setCurrentStep]    = useState(1);
   const [completedSteps, setCompletedSteps] = useState(isEdit ? [1, 2, 3, 4] : []);
@@ -768,7 +768,7 @@ export default function FormMedico() {
       {/* ── Footer sticky ── */}
       {currentStep === 1 && (
         <div className="form-footer">
-          <button className="btn btn-tonal" onClick={() => navigate('/medicos')} disabled={saving}>
+          <button className="btn btn-tonal" onClick={() => navigate('/')} disabled={saving}>
             <span className="material-symbols-outlined sm">arrow_back</span>
             Cancelar
           </button>
@@ -793,7 +793,6 @@ export default function FormMedico() {
           display: flex;
           flex-direction: column;
           min-height: calc(100vh - 64px);
-          margin: -2rem;
           background: var(--color-background, #f8f9fb);
         }
 

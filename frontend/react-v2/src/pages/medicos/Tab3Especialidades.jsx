@@ -250,12 +250,9 @@ export default function Tab3Especialidades({ medicoDoc, onNext, onPrev, markComp
     const load = async () => {
       setLoading(true);
       try {
-        const [rDip, rNorm, rAcc, rHv, rCon] = await Promise.allSettled([
+        const [rDip, rHab] = await Promise.allSettled([
           axiosInstance.get(`/medicos/${medicoDoc}/diplomas-verificaciones/`),
-          axiosInstance.get(`/medicos/${medicoDoc}/normativos/`,    { skipToast: true }),
-          axiosInstance.get(`/medicos/${medicoDoc}/accesos/`,       { skipToast: true }),
-          axiosInstance.get(`/medicos/${medicoDoc}/documentos-hv/`, { skipToast: true }),
-          axiosInstance.get(`/medicos/${medicoDoc}/contratacion/`,  { skipToast: true }),
+          axiosInstance.get(`/medicos/${medicoDoc}/docs-habilitacion/`,  { skipToast: true }),
         ]);
 
         /* ── Diplomas ── */
@@ -302,36 +299,28 @@ export default function Tab3Especialidades({ medicoDoc, onNext, onPrev, markComp
           setExiste(true);
         }
 
-        /* ── Hab docs ── */
-        const dNorm = rNorm.status === 'fulfilled' ? rNorm.value.data : {};
-        const dAcc  = rAcc.status  === 'fulfilled' ? rAcc.value.data  : {};
-        const dHv   = rHv.status   === 'fulfilled' ? rHv.value.data   : {};
-        const dCon  = rCon.status  === 'fulfilled' ? rCon.value.data  : {};
-        const dDip  = rDip.status  === 'fulfilled' ? rDip.value.data  : {};
-
-        setDocs(prev => {
-          const n = { ...prev };
-          const inject = (key, val, extra = {}) => {
-            if (val && val !== 'PENDIENTE' && val !== 'N.A.')
-              n[key] = { ...n[key], tiene_documento: true, numero_documento_hv: val !== 'OK' ? val : '', ...extra };
-          };
-          inject('rethus',                     dNorm.tarjeta_rethus);
-          inject('tarjeta_profesional',        dNorm.tarjeta_profesional);
-          inject('examen_medico',              dNorm.examen_medico);
-          inject('poliza_responsabilidad',     dAcc.poliza_resp_civil,   { fecha_vencimiento: dAcc.fecha_venc_poliza || '' });
-          inject('antecedentes_disciplinarios',dHv.antecedentes_disciplinarios);
-          inject('antecedentes_judiciales',    dHv.antecedentes_judiciales);
-          inject('contrato_prestacion',        dCon.contrato_prestacion);
-          if (dDip?.pregrado && typeof dDip.pregrado === 'object')
-            n['diploma_pregrado'] = { ...n['diploma_pregrado'], tiene_documento: true,
-              numero_documento_hv: dDip.pregrado.numero || '', fecha_expedicion: dDip.pregrado.fecha_exp || '',
-              entidad_expide: dDip.pregrado.entidad || '', observaciones: dDip.pregrado.observaciones || '' };
-          if (dDip?.especialidad_1 && typeof dDip.especialidad_1 === 'object')
-            n['certificado_especialidad'] = { ...n['certificado_especialidad'], tiene_documento: true,
-              numero_documento_hv: dDip.especialidad_1.numero || '', fecha_expedicion: dDip.especialidad_1.fecha_exp || '',
-              entidad_expide: dDip.especialidad_1.entidad || '', observaciones: dDip.especialidad_1.observaciones || '' };
-          return n;
-        });
+        /* ── Hab docs — nueva tabla unificada ── */
+        if (rHab.status === 'fulfilled' && rHab.value.data) {
+          const dHab = rHab.value.data;
+          setDocs(prev => {
+            const n = { ...prev };
+            DOCS_HABILITACION.forEach(doc => {
+              const item = dHab[doc.key];
+              if (item && item.codigo) {
+                n[doc.key] = {
+                  ...n[doc.key],
+                  tiene_documento: true,
+                  numero_documento_hv: item.codigo        || '',
+                  fecha_expedicion:    item.fecha_expedicion  || '',
+                  fecha_vencimiento:   item.fecha_vencimiento || '',
+                  entidad_expide:      item.entidad_expide    || '',
+                  observaciones:       item.observaciones     || '',
+                };
+              }
+            });
+            return n;
+          });
+        }
 
       } catch (e) {
         if (e.response?.status !== 404) console.error('Error cargando Tab3:', e);
@@ -407,29 +396,22 @@ export default function Tab3Especialidades({ medicoDoc, onNext, onPrev, markComp
         certificaciones_entrenamientos: d.certentrenamavanzado || null,
       };
 
-      const normativosHabPayload = {
-        tarjeta_rethus:       snap.rethus?.tiene_documento               ? (snap.rethus.numero_documento_hv               || 'OK') : null,
-        tarjeta_profesional:  snap.tarjeta_profesional?.tiene_documento   ? (snap.tarjeta_profesional.numero_documento_hv  || 'OK') : null,
-        examen_medico:        snap.examen_medico?.tiene_documento         ? (snap.examen_medico.numero_documento_hv        || 'OK') : null,
-      };
-      const accesosHabPayload = {
-        poliza_resp_civil:  snap.poliza_responsabilidad?.tiene_documento ? (snap.poliza_responsabilidad.numero_documento_hv || 'OK') : null,
-        fecha_venc_poliza:  snap.poliza_responsabilidad?.tiene_documento ? (snap.poliza_responsabilidad.fecha_vencimiento   || null) : null,
-      };
-      const hvHabPayload = {
-        antecedentes_disciplinarios: snap.antecedentes_disciplinarios?.tiene_documento ? (snap.antecedentes_disciplinarios.numero_documento_hv || 'OK') : null,
-        antecedentes_judiciales:     snap.antecedentes_judiciales?.tiene_documento     ? (snap.antecedentes_judiciales.numero_documento_hv     || 'OK') : null,
-      };
-      const contratacionHabPayload = {
-        contrato_prestacion: snap.contrato_prestacion?.tiene_documento ? (snap.contrato_prestacion.numero_documento_hv || 'OK') : null,
-      };
+      /* ── Docs habilitación — tabla unificada con JSON por documento ── */
+      const docsHabPayload = {};
+      DOCS_HABILITACION.forEach(doc => {
+        const d = snap[doc.key];
+        docsHabPayload[doc.key] = d.tiene_documento ? {
+          codigo:            d.numero_documento_hv || null,
+          fecha_expedicion:  d.fecha_expedicion    || null,
+          fecha_vencimiento: d.fecha_vencimiento   || null,
+          entidad_expide:    d.entidad_expide       || null,
+          observaciones:     d.observaciones        || null,
+        } : null;
+      });
 
       await Promise.all([
         axiosInstance.put(`/medicos/${medicoDoc}/diplomas-verificaciones/`, diplomasPayload),
-        axiosInstance.put(`/medicos/${medicoDoc}/normativos/`,    normativosHabPayload),
-        axiosInstance.put(`/medicos/${medicoDoc}/accesos/`,       accesosHabPayload),
-        axiosInstance.put(`/medicos/${medicoDoc}/documentos-hv/`, hvHabPayload),
-        axiosInstance.put(`/medicos/${medicoDoc}/contratacion/`,  contratacionHabPayload),
+        axiosInstance.put(`/medicos/${medicoDoc}/docs-habilitacion/`,       docsHabPayload),
       ]);
 
       setExiste(true);

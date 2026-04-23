@@ -18,16 +18,15 @@ const OPTESTPRE = [
 ];
 
 const CAMPOS_INGRESO_FECHA = [
-  { docKey: 'formsolingreso',       fechaKey: 'fechaformsolingreso',      label: 'Form. solicitud ingreso'       },
-  { docKey: 'formcapeducacion',     fechaKey: 'fechaformcapeducacion',     label: 'Form. capacitación educación'  },
-  { docKey: 'cartaprescoorddpto',   fechaKey: 'fechacartaprescoorddpto',   label: 'Carta coord. departamento'     },
-  { docKey: 'cartaprescoordseccion',fechaKey: 'fechacartaprescoordsecc',   label: 'Carta coord. sección'          },
-  { docKey: 'cartaaspirante',       fechaKey: 'fechacartaaspirante',       label: 'Carta aspirante'               },
-  { docKey: 'cartarecomendacion1',  fechaKey: 'fecharecomendacion1',       label: 'Carta recomendación 1'         },
-  { docKey: 'cartarecomendacion2',  fechaKey: 'fecharecomendacion2',       label: 'Carta recomendación 2'         },
-  { docKey: 'cartapresdm',          fechaKey: 'fechapresdm',               label: 'Carta presentación DM'         },
-  { docKey: 'cartaauthcredenciales',fechaKey: 'fechacartaauthcredenciales',label: 'Auth. credenciales'            },
-  { docKey: 'cartaauthingresocme',  fechaKey: 'fechacartaauthingresocme',  label: 'Auth. ingreso CME'             },
+  { docKey: 'formsolingreso',       fechaKey: 'fechaformsolingreso',    label: 'Form. solicitud ingreso'      },
+  { docKey: 'formcapeducacion',     fechaKey: 'fechaformcapeducacion',  label: 'Form. capacitación educación' },
+  { docKey: 'cartaprescoorddpto',   fechaKey: 'fechacartaprescoorddpto',label: 'Carta coord. departamento'    },
+  { docKey: 'cartaprescoordseccion',fechaKey: 'fechacartaprescoordsecc',label: 'Carta coord. sección'         },
+  { docKey: 'cartaaspirante',       fechaKey: 'fechacartaaspirante',    label: 'Carta aspirante'              },
+  { docKey: 'cartarecomendacion1',  fechaKey: 'fecharecomendacion1',    label: 'Carta recomendación 1'        },
+  { docKey: 'cartarecomendacion2',  fechaKey: 'fecharecomendacion2',    label: 'Carta recomendación 2'        },
+  { docKey: 'cartapresdm',          fechaKey: 'fechapresdm',            label: 'Carta presentación DM'        },
+  // Auth. credenciales y Auth. ingreso CME se gestionan en la sección Prerrogativas
 ];
 
 const toDate = (v) => {
@@ -169,6 +168,8 @@ export default function Tab2Habilitacion({ medicoDoc, onNext, onPrev, markComple
           cartacodconducta:          dHv.carta_cod_conducta        ?? '',
           cartapresdm:               dHv.carta_presentacion_dm     ?? '',
           otrosdocumentosrelacionados: dHv.otros_docs_ingreso      ?? '',
+          fechaformsolingreso:       toDate(dHv.fecha_form_sol_ingreso) || null,
+          fechaformcapeducacion:     toDate(dHv.fecha_form_cap)         || null,
           fechacartaprescoorddpto:   toDate(dHv.fecha_carta_coord_dpto) || null,
           fechacartaprescoordsecc:   toDate(dHv.fecha_carta_coord_sec)  || null,
           fechacartaaspirante:       toDate(dHv.fecha_carta_aspirante)  || null,
@@ -235,6 +236,8 @@ export default function Tab2Habilitacion({ medicoDoc, onNext, onPrev, markComple
         carta_cod_conducta:        hv.cartacodconducta          || null,
         carta_presentacion_dm:     hv.cartapresdm               || null,
         otros_docs_ingreso:        hv.otrosdocumentosrelacionados || null,
+        fecha_form_sol_ingreso:    hv.fechaformsolingreso       || null,
+        fecha_form_cap:            hv.fechaformcapeducacion     || null,
         fecha_carta_coord_dpto:    hv.fechacartaprescoorddpto   || null,
         fecha_carta_coord_sec:     hv.fechacartaprescoordsecc   || null,
         fecha_carta_aspirante:     hv.fechacartaaspirante       || null,

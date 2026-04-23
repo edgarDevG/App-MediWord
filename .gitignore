@@ -21,5 +21,12 @@ frontend/react-v2/.vite/
 Thumbs.db
 .vscode/settings.json
 
+# ── Docker / entorno raíz ────────────────
+.env
+
 # ── Claude ───────────────────────────────
 .claude/
+
+# ── Archivos sensibles / internos ────────
+mediword_data.sql
+prompt_master.txt

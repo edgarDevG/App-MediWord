@@ -5,15 +5,17 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func as sa_func
 from database import get_db
+from datetime import date as date_type
 from model import (
     Medico, MedicoDatosHV, MedicoContacto, MedicoPrerrogativas,
     MedicoDiplomas, MedicoNormativos, MedicoContratacion, MedicoAccesos,
+    MedicoDocsHabilitacion, HistorialEstados,
     Seccion, Departamento, User,
 )
 from routers.auth import get_current_user
 from schemas import (
     MedicoCreate, MedicoUpdate, MedicoOut, MedicoListOut,
-    EstadoUpdate,
+    EstadoUpdate, HistorialEstadoOut,
     DatosHVUpdate, DatosHVOut,
     ContactoUpdate, ContactoOut,
     PrerrogativasUpdate, PrerrogativasOut,
@@ -21,6 +23,7 @@ from schemas import (
     NormativosUpdate, NormativosOut, calcular_estado,
     ContratacionUpdate, ContratacionOut,
     AccesosUpdate, AccesosOut,
+    DocsHabilitacionUpdate, DocsHabilitacionOut,
 )
 
 router = APIRouter(tags=["Médicos"])
@@ -36,15 +39,35 @@ def get_medico_or_404(documento: str, db: Session) -> Medico:
 
 
 def enrich(items: list[Medico], db: Session) -> list[MedicoOut]:
-    sec_ids  = {m.seccion_id           for m in items if m.seccion_id}
-    dept_ids = {m.dept_coordinacion_id for m in items if m.dept_coordinacion_id}
-    sec_map  = {s.id: s.nombre for s in db.query(Seccion).filter(Seccion.id.in_(sec_ids)).all()}         if sec_ids  else {}
-    dept_map = {d.id: d.nombre for d in db.query(Departamento).filter(Departamento.id.in_(dept_ids)).all()} if dept_ids else {}
+    sec_ids   = {m.seccion_id           for m in items if m.seccion_id}
+    dept_ids  = {m.dept_coordinacion_id for m in items if m.dept_coordinacion_id}
+    medico_ids = [m.id for m in items]
+
+    sec_map  = {s.id: s.nombre for s in db.query(Seccion).filter(Seccion.id.in_(sec_ids)).all()}             if sec_ids   else {}
+    dept_map = {d.id: d.nombre for d in db.query(Departamento).filter(Departamento.id.in_(dept_ids)).all()}  if dept_ids  else {}
+
+    # Batch: contacto y contratación para el listado
+    contacto_map = {
+        c.medico_id: c
+        for c in db.query(MedicoContacto).filter(MedicoContacto.medico_id.in_(medico_ids)).all()
+    } if medico_ids else {}
+    contratacion_map = {
+        c.medico_id: c
+        for c in db.query(MedicoContratacion).filter(MedicoContratacion.medico_id.in_(medico_ids)).all()
+    } if medico_ids else {}
+
     result = []
     for m in items:
         out = MedicoOut.model_validate(m)
         out.seccion_nombre           = sec_map.get(m.seccion_id)
         out.dept_coordinacion_nombre = dept_map.get(m.dept_coordinacion_id)
+        ct = contacto_map.get(m.id)
+        if ct:
+            out.correo  = ct.correo
+            out.celular = ct.celular
+        con = contratacion_map.get(m.id)
+        if con:
+            out.tipo_vinculacion = con.tipo_vinculacion
         result.append(out)
     return result
 
@@ -149,14 +172,81 @@ def patch_medico_estado(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.rol != "admin":
-        raise HTTPException(403, "Solo administradores pueden cambiar el estado de un médico")
     medico = get_medico_or_404(documento, db)
-    medico.estado = data.estado
-    medico.tipo_listado = data.tipo_listado
+    nuevo = data.nuevoEstado.upper()
+
+    # REGLA 1: Solo médicos ACTIVOS pueden cambiar de estado
+    if medico.estado != "ACTIVO":
+        raise HTTPException(400, f"El médico ya tiene estado '{medico.estado}'. Solo se puede cambiar el estado de médicos ACTIVOS.")
+
+    estados_validos = {"RENUNCIA", "INACTIVO", "FINALIZADO"}
+    if nuevo not in estados_validos:
+        raise HTTPException(400, f"Estado '{nuevo}' no válido. Use: renuncia, inactivo o finalizado.")
+
+    # REGLA 2: Renuncia requiere fecha_terminacion
+    if nuevo == "RENUNCIA":
+        if not data.fechaTerminacion:
+            raise HTTPException(400, "La fecha de terminación es obligatoria para registrar una renuncia.")
+        medico.fecha_terminacion = data.fechaTerminacion
+        medico.tipo_listado = "renuncia"
+
+    # REGLA 3: Inactivo requiere fecha_inactivacion (default: hoy)
+    elif nuevo == "INACTIVO":
+        medico.fecha_inactivacion = data.fechaInactivacion or date_type.today()
+        medico.tipo_listado = "inactivo"
+        # Campos opcionales de contacto al inactivar
+        if data.direccionCorrespondencia or data.direccionConsultorio:
+            contacto = db.query(MedicoContacto).filter(MedicoContacto.medico_id == medico.id).first()
+            if contacto:
+                if data.direccionCorrespondencia:
+                    contacto.direccion_correspondencia = data.direccionCorrespondencia
+                if data.direccionConsultorio:
+                    contacto.direccion_consultorio = data.direccionConsultorio
+            else:
+                nuevoc = MedicoContacto(
+                    medico_id=medico.id,
+                    direccion_correspondencia=data.direccionCorrespondencia,
+                    direccion_consultorio=data.direccionConsultorio,
+                )
+                db.add(nuevoc)
+
+    # REGLA 4: Finalización requiere fecha y formulario autorizado
+    elif nuevo == "FINALIZADO":
+        if not data.fechaFinalizacionContrato:
+            raise HTTPException(400, "La fecha de finalización de contrato es obligatoria para registrar una finalización.")
+        if not data.formularioAutorizacionDatos:
+            raise HTTPException(400, "El formulario de autorización de datos (Ley 1581) debe estar marcado como True para registrar una finalización.")
+        medico.fecha_finalizacion_contrato = data.fechaFinalizacionContrato
+        medico.formulario_autorizacion_datos = True
+        medico.tipo_listado = "finalizacion"
+
+    estado_anterior = medico.estado
+    medico.estado = nuevo
+
+    # REGLA 5: Registrar en historial_estados
+    usuario_label = current_user.username if current_user else "sistema"
+    historial = HistorialEstados(
+        medico_id=medico.id,
+        estado_anterior=estado_anterior,
+        estado_nuevo=nuevo,
+        usuario_cambio=usuario_label,
+        motivo=data.motivo,
+    )
+    db.add(historial)
     db.commit()
     db.refresh(medico)
     return medico
+
+
+@router.get("/medicos/{documento}/historial", response_model=list[HistorialEstadoOut])
+def get_historial_estados(documento: str, db: Session = Depends(get_db)):
+    medico = get_medico_or_404(documento, db)
+    return (
+        db.query(HistorialEstados)
+        .filter(HistorialEstados.medico_id == medico.id)
+        .order_by(HistorialEstados.fecha_cambio.desc())
+        .all()
+    )
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -294,6 +384,31 @@ def get_accesos(documento: str, db: Session = Depends(get_db)):
 def update_accesos(documento: str, data: AccesosUpdate, db: Session = Depends(get_db)):
     m = get_medico_or_404(documento, db)
     return upsert_sub(db, MedicoAccesos, m.id, data.model_dump())
+
+
+# ── Docs Habilitación ─────────────────────────────────────────
+@router.get("/medicos/{documento}/docs-habilitacion/", response_model=DocsHabilitacionOut)
+def get_docs_habilitacion(documento: str, db: Session = Depends(get_db)):
+    m = get_medico_or_404(documento, db)
+    obj = db.query(MedicoDocsHabilitacion).filter(MedicoDocsHabilitacion.medico_id == m.id).first()
+    if not obj:
+        raise HTTPException(404, "Sin docs de habilitación para este médico")
+    return obj
+
+
+@router.put("/medicos/{documento}/docs-habilitacion/", response_model=DocsHabilitacionOut)
+def update_docs_habilitacion(documento: str, data: DocsHabilitacionUpdate, db: Session = Depends(get_db)):
+    m = get_medico_or_404(documento, db)
+    obj = db.query(MedicoDocsHabilitacion).filter(MedicoDocsHabilitacion.medico_id == m.id).first()
+    if obj:
+        for k, v in data.model_dump().items():
+            setattr(obj, k, v)  # permite limpiar a null cuando se desmarca un documento
+    else:
+        obj = MedicoDocsHabilitacion(medico_id=m.id, **data.model_dump())
+        db.add(obj)
+    db.commit()
+    db.refresh(obj)
+    return obj
 
 
 # ── Completitud ───────────────────────────────────────────────

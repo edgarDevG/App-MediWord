@@ -73,17 +73,24 @@ class Medico(Base):
     tipo_listado            = Column(String(30))                    # cuerpo_medico|fsfb_externo|inactivo|renuncia|finalizacion
     fecha_ingreso           = Column(Date)
     anios_cuerpo_medico     = Column(Numeric(5, 2))
+    # Campos de cambio de estado
+    fecha_terminacion           = Column(Date)                      # Fecha efectiva de renuncia
+    fecha_inactivacion          = Column(Date)                      # Fecha de traslado a inactivo
+    fecha_finalizacion_contrato = Column(Date)                      # Fecha de finalización de contrato
+    formulario_autorizacion_datos = Column(Boolean, default=False)  # Ley 1581 — autorización tratamiento datos
     created_at              = Column(DateTime(timezone=True), server_default=func.now())
     updated_at              = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Relationships
-    datos_hv        = relationship("MedicoDatosHV", back_populates="medico", uselist=False)
-    contacto        = relationship("MedicoContacto", back_populates="medico", uselist=False)
-    prerrogativas   = relationship("MedicoPrerrogativas", back_populates="medico", uselist=False)
-    diplomas        = relationship("MedicoDiplomas", back_populates="medico", uselist=False)
-    normativos      = relationship("MedicoNormativos", back_populates="medico", uselist=False)
-    contratacion    = relationship("MedicoContratacion", back_populates="medico", uselist=False)
-    accesos         = relationship("MedicoAccesos", back_populates="medico", uselist=False)
+    datos_hv            = relationship("MedicoDatosHV", back_populates="medico", uselist=False)
+    contacto            = relationship("MedicoContacto", back_populates="medico", uselist=False)
+    prerrogativas       = relationship("MedicoPrerrogativas", back_populates="medico", uselist=False)
+    diplomas            = relationship("MedicoDiplomas", back_populates="medico", uselist=False)
+    normativos          = relationship("MedicoNormativos", back_populates="medico", uselist=False)
+    contratacion        = relationship("MedicoContratacion", back_populates="medico", uselist=False)
+    accesos             = relationship("MedicoAccesos", back_populates="medico", uselist=False)
+    docs_habilitacion   = relationship("MedicoDocsHabilitacion", back_populates="medico", uselist=False)
+    historial_estados   = relationship("HistorialEstados", back_populates="medico", order_by="HistorialEstados.fecha_cambio.desc()")
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -327,7 +334,47 @@ class MedicoAccesos(Base):
 
 
 # ═══════════════════════════════════════════════════════════════
-# 9. AUDIT_LOG (Ley 1581)
+# 9. MEDICOS_DOCS_HABILITACION (Carpeta Habilitación — JSON por doc)
+# ═══════════════════════════════════════════════════════════════
+
+class MedicoDocsHabilitacion(Base):
+    __tablename__ = "medicos_docs_habilitacion"
+
+    medico_id                   = Column(BigInteger, ForeignKey("medicos.id", ondelete="SET NULL"), primary_key=True)
+    # Cada columna JSON: {"codigo", "fecha_expedicion", "fecha_vencimiento", "entidad_expide", "observaciones"}
+    rethus                      = Column(JSON)
+    tarjeta_profesional         = Column(JSON)
+    poliza_responsabilidad      = Column(JSON)
+    certificado_especialidad    = Column(JSON)
+    examen_medico               = Column(JSON)
+    diploma_pregrado            = Column(JSON)
+    antecedentes_disciplinarios = Column(JSON)
+    antecedentes_judiciales     = Column(JSON)
+    contrato_prestacion         = Column(JSON)
+
+    medico = relationship("Medico", back_populates="docs_habilitacion")
+
+
+# ═══════════════════════════════════════════════════════════════
+# 10. HISTORIAL DE ESTADOS
+# ═══════════════════════════════════════════════════════════════
+
+class HistorialEstados(Base):
+    __tablename__ = "historial_estados"
+
+    id              = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
+    medico_id       = Column(BigInteger, ForeignKey("medicos.id", ondelete="CASCADE"), nullable=False, index=True)
+    estado_anterior = Column(String(30), nullable=False)
+    estado_nuevo    = Column(String(30), nullable=False)
+    fecha_cambio    = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    usuario_cambio  = Column(String(100), nullable=False, default="sistema")
+    motivo          = Column(Text)
+
+    medico = relationship("Medico", back_populates="historial_estados")
+
+
+# ═══════════════════════════════════════════════════════════════
+# 11. AUDIT_LOG (Ley 1581)
 # ═══════════════════════════════════════════════════════════════
 
 class AuditLog(Base):

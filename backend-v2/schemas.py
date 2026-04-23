@@ -106,8 +106,25 @@ class MedicoUpdate(BaseModel):
     anios_cuerpo_medico: Optional[float] = None
 
 class EstadoUpdate(BaseModel):
-    estado: str
-    tipo_listado: str
+    nuevoEstado: str                                   # renuncia | inactivo | finalizado
+    fechaTerminacion: Optional[date] = None            # obligatorio para renuncia
+    fechaInactivacion: Optional[date] = None           # obligatorio/default=hoy para inactivo
+    fechaFinalizacionContrato: Optional[date] = None   # obligatorio para finalizado
+    formularioAutorizacionDatos: Optional[bool] = None # obligatorio True para finalizado
+    direccionCorrespondencia: Optional[str] = None
+    direccionConsultorio: Optional[str] = None
+    motivo: Optional[str] = None
+
+
+class HistorialEstadoOut(BaseModel):
+    id: int
+    medico_id: int
+    estado_anterior: str
+    estado_nuevo: str
+    fecha_cambio: datetime
+    usuario_cambio: str
+    motivo: Optional[str] = None
+    model_config = {"from_attributes": True}
 
 
 class MedicoOut(BaseModel):
@@ -127,11 +144,20 @@ class MedicoOut(BaseModel):
     tipo_listado: Optional[str] = None
     fecha_ingreso: Optional[date] = None
     anios_cuerpo_medico: Optional[float] = None
+    # Campos de cambio de estado
+    fecha_terminacion: Optional[date] = None
+    fecha_inactivacion: Optional[date] = None
+    fecha_finalizacion_contrato: Optional[date] = None
+    formulario_autorizacion_datos: Optional[bool] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     # Campos resueltos (nombres, no IDs)
     seccion_nombre: Optional[str] = None
     dept_coordinacion_nombre: Optional[str] = None
+    # Campos enriquecidos para listado (batch join)
+    correo: Optional[str] = None
+    celular: Optional[str] = None
+    tipo_vinculacion: Optional[str] = None
     model_config = {"from_attributes": True}
 
 
@@ -360,6 +386,37 @@ class AccesosUpdate(BaseModel):
 
 
 class AccesosOut(AccesosUpdate):
+    medico_id: int
+    model_config = {"from_attributes": True}
+
+
+# ═══════════════════════════════════════════════════════════════
+# DOCS HABILITACIÓN (Tab 3 — tabla propia JSON por documento)
+# ═══════════════════════════════════════════════════════════════
+
+class DocHabItem(BaseModel):
+    """Estructura JSON almacenada por cada documento de habilitación."""
+    codigo: Optional[str] = None
+    fecha_expedicion: Optional[date] = None
+    fecha_vencimiento: Optional[date] = None
+    entidad_expide: Optional[str] = None
+    observaciones: Optional[str] = None
+    model_config = {"from_attributes": True}
+
+
+class DocsHabilitacionUpdate(BaseModel):
+    rethus:                      Optional[Any] = None
+    tarjeta_profesional:         Optional[Any] = None
+    poliza_responsabilidad:      Optional[Any] = None
+    certificado_especialidad:    Optional[Any] = None
+    examen_medico:               Optional[Any] = None
+    diploma_pregrado:            Optional[Any] = None
+    antecedentes_disciplinarios: Optional[Any] = None
+    antecedentes_judiciales:     Optional[Any] = None
+    contrato_prestacion:         Optional[Any] = None
+
+
+class DocsHabilitacionOut(DocsHabilitacionUpdate):
     medico_id: int
     model_config = {"from_attributes": True}
 

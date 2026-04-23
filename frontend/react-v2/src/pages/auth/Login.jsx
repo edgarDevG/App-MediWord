@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/Toast';
 
@@ -7,7 +8,8 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
-  const { showToast } = useToast(); // If useToast works here. Otherwise we can use a local alert.
+  const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -15,6 +17,7 @@ export default function Login() {
     try {
       await login(username, password);
       showToast('Sesión iniciada correctamente', 'success');
+      navigate('/');
     } catch (err) {
       showToast('Credenciales inválidas', 'error');
     } finally {

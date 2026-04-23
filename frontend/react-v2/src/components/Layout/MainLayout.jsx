@@ -376,10 +376,10 @@ export default function MainLayout({ children }) {
               <div className="topbar-avatar" aria-hidden="true">
                 {user?.username ? user.username.substring(0, 2).toUpperCase() : 'DM'}
               </div>
-              <button 
-                onClick={logout} 
-                className="topbar-icon-btn" 
-                title="Cerrar Sessión"
+              <button
+                onClick={() => logout(navigate)}
+                className="topbar-icon-btn"
+                title="Cerrar Sesión"
                 style={{ marginLeft: '4px', color: '#dc2626' }}
               >
                 <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>logout</span>

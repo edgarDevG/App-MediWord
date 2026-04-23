@@ -8,11 +8,13 @@ import Dashboard               from '../pages/dashboard/Dashboard';
 import ListaMedicos            from '../pages/medicos/ListaMedicos';
 import FormMedico              from '../pages/medicos/FormMedico';
 import PerfilMedicoPage        from '../pages/medicos/PerfilMedicoPage';
+import PerfilMedico            from '../pages/medicos/PerfilMedico';
 import ListaFSFB               from '../pages/fsfb/ListaFSFB';
 import FormFSFB                from '../pages/fsfb/FormFSFB';
 import ListaRenuncias          from '../pages/renuncias/ListaRenuncias';
 import ListaFinalizaciones     from '../pages/finalizaciones/ListaFinalizaciones';
 import ListaInactivos          from '../pages/personal_inactivo/ListaInactivos';
+import Reportes                from '../pages/reportes/Reportes';
 
 // ── Definición de permisos por módulo ──────────────────────────
 // admin : acceso total
@@ -54,6 +56,11 @@ export default function AppRoutes() {
           } />
           <Route path="/medicos/:doc/perfil" element={
             <ProtectedRoute roles={ROLES_OPERATIVOS}>
+              <MainLayout><PerfilMedico /></MainLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/medicos/:doc/carpetas" element={
+            <ProtectedRoute roles={ROLES_OPERATIVOS}>
               <MainLayout><PerfilMedicoPage /></MainLayout>
             </ProtectedRoute>
           } />
@@ -91,6 +98,13 @@ export default function AppRoutes() {
           <Route path="/personal-inactivo" element={
             <ProtectedRoute roles={ROLES_OPERATIVOS}>
               <MainLayout><ListaInactivos /></MainLayout>
+            </ProtectedRoute>
+          } />
+
+          {/* Reportes — todos los roles operativos */}
+          <Route path="/reportes" element={
+            <ProtectedRoute roles={ROLES_OPERATIVOS}>
+              <MainLayout><Reportes /></MainLayout>
             </ProtectedRoute>
           } />
 

@@ -332,6 +332,27 @@ table { border-collapse: collapse; width: 100%; }
   border-radius: var(--radius-sm);
 }
 
+/* Suprime el outline en contenedores de layout (no son elementos interactivos).
+   Cubre tanto :focus-visible (teclado) como :focus (focus() programático),
+   ya que React Router y algunos scroll handlers llaman .focus() en la <main>
+   al navegar entre rutas, disparando el borde amarillo nativo de Chromium. */
+div:focus,
+div:focus-visible,
+section:focus,
+section:focus-visible,
+main:focus,
+main:focus-visible,
+article:focus,
+article:focus-visible,
+form:focus,
+form:focus-visible,
+body:focus,
+body:focus-visible,
+html:focus,
+html:focus-visible {
+  outline: none !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -934,6 +955,28 @@ tbody tr:hover td {
   font-size: var(--text-xs);
   color: var(--color-text-muted);
   margin-top: var(--space-1);
+}
+
+.page-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.page-header-left h2,
+.page-header h2 {
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 1.1rem + 0.75vw, 1.625rem);
+  font-weight: 800;
+  color: var(--color-text, #00103e);
+  line-height: 1.2;
+}
+
+.page-header-left p,
+.page-header p {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted, #64748b);
+  margin-top: 3px;
 }
 
 /* ══ SKELETON LOADER ══════════════════════════════════════════════════════ */

@@ -1,0 +1,1417 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MediWord · Propuesta de Redistribución de Formularios</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20,400,0,0">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy:    #0A2540;
+      --jade:    #0A7E6E;
+      --blue:    #1a4ed7;
+      --bg:      #EEF1F5;
+      --surface: #ffffff;
+      --border:  rgba(197,198,210,0.4);
+      --label:   #444650;
+      --muted:   #757681;
+      --error:   #ba1a1a;
+      --ease:    180ms cubic-bezier(0.16,1,0.3,1);
+      --r-sm:    0.25rem;
+      --r-md:    0.375rem;
+      --r-lg:    0.5rem;
+      --r-xl:    0.75rem;
+      --r-2xl:   1rem;
+      --r-full:  9999px;
+    }
+    html, body { height: 100%; font-family: "Inter", sans-serif; font-size: 14px; background: var(--bg); color: #1c1e22; }
+
+    /* ── APP SHELL ──────────────────────────────────────────────────────── */
+    .app { display: flex; height: 100vh; overflow: hidden; }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: 240px; flex-shrink: 0;
+      background: var(--navy);
+      display: flex; flex-direction: column;
+      padding: 0;
+    }
+    .sidebar-brand {
+      display: flex; align-items: center; gap: 10px;
+      padding: 18px 20px; border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .brand-icon {
+      width: 32px; height: 32px; border-radius: var(--r-lg);
+      background: var(--jade); display: flex; align-items: center; justify-content: center;
+    }
+    .brand-icon .material-symbols-outlined { font-size: 18px; color: #fff; }
+    .brand-name { font-size: 0.875rem; font-weight: 700; color: #fff; line-height: 1.1; }
+    .brand-sub  { font-size: 0.65rem; color: rgba(255,255,255,0.45); letter-spacing: 0.04em; }
+
+    .sidebar-nav { padding: 12px 10px; flex: 1; display: flex; flex-direction: column; gap: 2px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 12px; border-radius: var(--r-lg); cursor: pointer;
+      color: rgba(255,255,255,0.5); font-size: 0.8125rem; font-weight: 500;
+      transition: background var(--ease), color var(--ease);
+    }
+    .nav-item:hover  { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.8); }
+    .nav-item.active { background: rgba(10,126,110,0.2); color: #fff; }
+    .nav-item .material-symbols-outlined { font-size: 18px; }
+
+    .sidebar-footer {
+      padding: 14px 20px; border-top: 1px solid rgba(255,255,255,0.06);
+      font-size: 0.7rem; color: rgba(255,255,255,0.25); text-align: center;
+    }
+
+    /* MAIN */
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* TOPBAR */
+    .topbar {
+      height: 64px; background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 28px; flex-shrink: 0;
+    }
+    .topbar-title { font-size: 0.9375rem; font-weight: 700; color: var(--navy); }
+    .topbar-right { display: flex; align-items: center; gap: 12px; }
+    .topbar-avatar {
+      width: 34px; height: 34px; border-radius: var(--r-full);
+      background: linear-gradient(135deg, var(--navy), var(--blue));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem; font-weight: 700; color: #fff;
+    }
+    .topbar-badge {
+      width: 32px; height: 32px; border-radius: var(--r-lg);
+      border: 1px solid var(--border); background: transparent;
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
+      color: var(--muted);
+    }
+    .topbar-badge .material-symbols-outlined { font-size: 18px; }
+
+    /* ── FORM WRAPPER ───────────────────────────────────────────────────── */
+    .form-wrap {
+      flex: 1; display: flex; flex-direction: column;
+      overflow: hidden; background: var(--bg);
+    }
+
+    /* STEPPER BAR */
+    .stepper-bar {
+      background: linear-gradient(135deg, var(--navy) 0%, #0d3060 100%);
+      padding: 14px 48px 12px;
+      display: flex; align-items: center; justify-content: center;
+      position: relative; flex-shrink: 0;
+    }
+    .stepper-bar::after {
+      content: ""; position: absolute; bottom: 0; left: 0; right: 0; height: 4px;
+      background: rgba(255,255,255,0.08);
+    }
+    .stepper-progress {
+      position: absolute; bottom: 0; left: 0; height: 4px;
+      background: linear-gradient(90deg, var(--jade), var(--blue));
+      transition: width 500ms ease-out;
+    }
+    .stepper-steps { display: flex; align-items: center; gap: 0; width: 100%; max-width: 860px; }
+    .step-item { display: flex; align-items: center; flex: 1; }
+    .step-circle {
+      width: 36px; height: 36px; border-radius: var(--r-full);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; position: relative; cursor: pointer;
+      font-size: 0.8rem; font-weight: 700; transition: transform 200ms;
+    }
+    .step-circle.pending  { background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.18); color: rgba(255,255,255,0.35); }
+    .step-circle.active   { background: var(--jade); border: 2px solid var(--jade); color: #fff; transform: scale(1.08); box-shadow: 0 0 0 4px rgba(10,126,110,0.3); }
+    .step-circle.done     { background: rgba(10,126,110,0.2); border: 2px solid rgba(10,126,110,0.5); color: #5FD1C2; }
+    .step-circle .material-symbols-outlined { font-size: 16px; }
+    .step-label { display: flex; flex-direction: column; align-items: flex-start; padding-left: 10px; }
+    .step-num   { font-size: 0.6rem; font-weight: 600; letter-spacing: 0.08em; color: rgba(255,255,255,0.35); text-transform: uppercase; }
+    .step-name  { font-size: 0.78rem; font-weight: 600; color: rgba(255,255,255,0.45); line-height: 1.2; }
+    .step-item.active  .step-name { color: #fff; }
+    .step-item.done    .step-name { color: rgba(95,209,194,0.8); }
+    .step-connector { flex: 1; height: 2px; margin: 0 8px; border-radius: 1px; background: rgba(255,255,255,0.1); }
+    .step-connector.done { background: rgba(10,126,110,0.5); }
+
+    /* CONTENT AREA */
+    .form-content {
+      flex: 1; overflow-y: auto;
+      padding: 1.5rem 2rem 6rem;
+      display: flex; flex-direction: column; gap: 1rem;
+    }
+
+    /* HERO HEADER */
+    .hero {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.125rem 1.5rem;
+      display: flex; align-items: center; justify-content: space-between;
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+      background: linear-gradient(to bottom, var(--jade), var(--blue));
+    }
+    .hero::after {
+      content: ""; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(10,37,64,0.04) 0%, rgba(26,78,215,0.02) 100%);
+      pointer-events: none;
+    }
+    .hero-left { display: flex; align-items: center; gap: 14px; padding-left: 12px; }
+    .hero-icon {
+      width: 40px; height: 40px; border-radius: var(--r-xl);
+      background: var(--navy);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .hero-icon .material-symbols-outlined { font-size: 20px; color: #fff; }
+    .hero-title   { font-size: 1rem; font-weight: 700; color: var(--navy); }
+    .hero-sub     { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 14px; border-radius: var(--r-full);
+      background: rgba(255,255,255,0.85);
+      border: 1px solid rgba(26,78,215,0.18);
+      font-size: 0.78rem; font-weight: 500; color: var(--navy);
+    }
+    .hero-badge .dot { width: 7px; height: 7px; border-radius: var(--r-full); background: var(--jade); }
+
+    /* ── SECTION CARD ───────────────────────────────────────────────────── */
+    .sc {
+      background: var(--surface);
+      border: 1px solid rgba(197,198,210,0.35);
+      border-radius: 14px;
+      box-shadow: 0 1px 4px rgba(25,28,30,0.05);
+      overflow: hidden;
+      transition: box-shadow var(--ease);
+    }
+    .sc:hover { box-shadow: 0 2px 12px rgba(25,28,30,0.08); }
+
+    .sc-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.9rem 1.5rem;
+      border-bottom: 1px solid rgba(197,198,210,0.3);
+      background: linear-gradient(135deg, rgba(10,37,64,0.03) 0%, rgba(26,78,215,0.02) 100%);
+    }
+    .sc-head-left { display: flex; align-items: center; gap: 12px; }
+    .sc-icon {
+      width: 34px; height: 34px; border-radius: var(--r-lg);
+      background: rgba(10,126,110,0.1);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .sc-icon .material-symbols-outlined { font-size: 17px; color: var(--jade); font-variation-settings: "FILL" 1; }
+    .sc-title   { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--navy); }
+    .sc-sub     { font-size: 0.7rem; color: var(--muted); margin-top: 1px; }
+    .sc-tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 8px; border-radius: var(--r-full);
+      font-size: 0.65rem; font-weight: 600;
+      background: rgba(10,126,110,0.08); color: var(--jade); border: 1px solid rgba(10,126,110,0.2);
+    }
+    .sc-body { padding: 1.25rem 1.5rem; }
+
+    /* GRIDS */
+    .g2 { display: grid; grid-template-columns: repeat(2,1fr); gap: 1rem; }
+    .g3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem; }
+    .g4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 1rem; }
+    .span2 { grid-column: span 2; }
+    .span3 { grid-column: span 3; }
+    .span4 { grid-column: span 4; }
+
+    /* FIELDS */
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .label { font-size: 0.8rem; font-weight: 500; color: var(--label); display: flex; align-items: center; gap: 3px; }
+    .req   { color: var(--error); }
+    .hint  { font-size: 0.7rem; color: var(--blue); margin-top: 1px; }
+
+    .inp, .sel {
+      width: 100%; padding: 8px 13px;
+      font-size: 0.8125rem; font-family: "Inter",sans-serif;
+      border: 1px solid rgba(197,198,210,0.45);
+      border-radius: var(--r-lg); background: #fff;
+      color: var(--navy); appearance: none; -webkit-appearance: none;
+    }
+    .sel { padding-right: 30px; cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; }
+    .inp:focus, .sel:focus { outline: none; border-color: var(--jade); box-shadow: 0 0 0 3px rgba(10,126,110,0.14); }
+    .inp::placeholder { color: rgba(100,103,115,0.4); }
+    .inp.disabled, .inp[disabled], .sel[disabled] { background: #f2f4f6; color: var(--muted); cursor: not-allowed; }
+
+    .sel-wrap { position: relative; }
+
+    /* Status selects */
+    .sel.ok        { color: #065f46; background-color: rgba(10,126,110,0.07); border-color: rgba(10,126,110,0.28); font-weight:500; }
+    .sel.pending   { color: #92600a; background-color: rgba(180,120,0,0.07);  border-color: rgba(180,120,0,0.28);  font-weight:500; }
+    .sel.na        { color: var(--muted); background-color: rgba(100,103,115,0.05); }
+
+    /* Textarea */
+    .ta { resize: vertical; min-height: 60px; line-height: 1.5; }
+
+    /* Dividers */
+    .divider { margin-top: 1.1rem; padding-top: 1.1rem; border-top: 1px solid rgba(197,198,210,0.3); }
+    .sub-title {
+      font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.07em; color: var(--muted); margin-bottom: 0.75rem;
+    }
+    .sub-block {
+      padding: 0.9rem 1.1rem;
+      background: #f2f4f6;
+      border-radius: var(--r-xl); border: 1px solid rgba(197,198,210,0.3);
+      margin-top: 0.75rem;
+    }
+
+    /* Banners */
+    .banner {
+      display: flex; align-items: flex-start; gap: 8px;
+      padding: 9px 13px; border-radius: var(--r-lg);
+      border: 1px solid; font-size: 0.78rem; line-height: 1.5; margin-bottom: 1rem;
+    }
+    .banner .material-symbols-outlined { font-size: 16px; flex-shrink:0; margin-top:1px; }
+    .banner.warn { background: rgba(180,120,0,0.06); border-color: rgba(180,120,0,0.22); color: #92600a; }
+    .banner.warn .material-symbols-outlined { color: #d97706; }
+    .banner.info { background: rgba(26,78,215,0.05); border-color: rgba(26,78,215,0.18); color: #1a3a8a; }
+    .banner.info .material-symbols-outlined { color: var(--blue); }
+
+    /* Badge estado normativo */
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 8px; border-radius: var(--r-full);
+      font-size: 0.7rem; font-weight: 500; border: 1px solid;
+    }
+    .badge .dot { width: 5px; height: 5px; border-radius: 50%; }
+    .badge.vigente   { background: rgba(10,126,110,0.08); color: #065f46; border-color: rgba(10,126,110,0.22); }
+    .badge.vigente .dot { background: var(--jade); }
+    .badge.vence     { background: rgba(180,120,0,0.08);  color: #92600a; border-color: rgba(180,120,0,0.22); }
+    .badge.vence .dot { background: #d97706; }
+    .badge.vencido   { background: rgba(186,26,26,0.08);  color: var(--error); border-color: rgba(186,26,26,0.22); }
+    .badge.vencido .dot { background: var(--error); }
+
+    /* Idiomas chips */
+    .chips { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
+    .chip {
+      padding: 5px 12px; border-radius: var(--r-lg);
+      border: 1px solid rgba(197,198,210,0.5);
+      background: #edeef0; font-size: 0.78rem; font-weight: 500; color: var(--muted);
+      cursor: pointer;
+    }
+    .chip.active { background: rgba(10,126,110,0.09); border-color: rgba(10,126,110,0.35); color: var(--jade); font-weight: 600; }
+
+    /* Toggle switch */
+    .toggle-wrap { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+    .toggle { position: relative; width: 44px; height: 24px; cursor: pointer; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .track {
+      position: absolute; inset: 0; border-radius: 12px;
+      background: #cbd5e1; transition: background 200ms;
+    }
+    .track::after {
+      content: ""; position: absolute; left: 3px; top: 3px;
+      width: 18px; height: 18px; border-radius: 50%; background: #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2); transition: left 200ms;
+    }
+    .toggle input:checked + .track { background: #065f46; }
+    .toggle input:checked + .track::after { left: 23px; }
+    .toggle-label { font-size: 0.8rem; font-weight: 500; color: var(--label); }
+
+    /* Doc table */
+    .doc-table { display: flex; flex-direction: column; }
+    .doc-head {
+      display: grid; grid-template-columns: 1fr 130px 150px;
+      gap: 0.75rem; padding: 5px 0 8px;
+      font-size: 0.63rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.07em; color: var(--muted);
+      border-bottom: 1px solid rgba(197,198,210,0.4);
+    }
+    .doc-row {
+      display: grid; grid-template-columns: 1fr 130px 150px;
+      gap: 0.75rem; align-items: center;
+      padding: 5px 0; border-bottom: 1px solid rgba(197,198,210,0.18);
+    }
+    .doc-row:last-child { border-bottom: none; }
+    .doc-lbl { font-size: 0.8rem; font-weight: 500; color: var(--navy); }
+
+    /* Normativo cards grid */
+    .norm-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 0.75rem; }
+    .norm-card {
+      border: 1px solid rgba(197,198,210,0.35); border-radius: var(--r-lg);
+      padding: 0.75rem; background: #f2f4f6;
+      display: flex; flex-direction: column; gap: 7px;
+    }
+    .norm-name { font-size: 0.75rem; font-weight: 600; color: var(--navy); line-height: 1.3; }
+    .norm-row  { display: flex; align-items: center; justify-content: space-between; min-height: 22px; }
+
+    /* Dipoma accordion items */
+    .titulo-item {
+      border: 1px solid rgba(197,198,210,0.3); border-radius: var(--r-lg); overflow: hidden;
+    }
+    .titulo-head {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 14px;
+      background: rgba(10,37,64,0.03);
+      border-bottom: 1px solid rgba(197,198,210,0.3);
+      font-size: 0.8rem; font-weight: 600; color: var(--navy);
+    }
+    .titulo-head .material-symbols-outlined { font-size: 17px; color: var(--jade); }
+    .titulo-body { padding: 1rem 1.25rem; }
+
+    /* Footer */
+    .form-footer {
+      position: sticky; bottom: 0; background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(14px); border-top: 1px solid var(--border);
+      padding: 10px 2rem; display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 -4px 24px rgba(10,37,64,0.08); z-index: 50;
+    }
+    .btn-tonal {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 18px; border-radius: var(--r-lg);
+      background: #f2f4f6; border: 1px solid rgba(197,198,210,0.5);
+      color: var(--navy); font-size: 0.8125rem; font-weight: 600;
+      cursor: pointer; font-family: "Inter",sans-serif;
+      transition: background var(--ease);
+    }
+    .btn-tonal:hover { background: #e5e7eb; }
+    .btn-tonal .material-symbols-outlined { font-size: 16px; }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 22px; border-radius: var(--r-lg);
+      background: linear-gradient(135deg, var(--navy), var(--blue));
+      border: none; color: #fff; font-size: 0.8125rem; font-weight: 600;
+      cursor: pointer; font-family: "Inter",sans-serif;
+      box-shadow: 0 2px 8px rgba(26,78,215,0.3);
+      transition: box-shadow var(--ease);
+    }
+    .btn-primary:hover { box-shadow: 0 4px 16px rgba(26,78,215,0.4); }
+    .btn-primary .material-symbols-outlined { font-size: 16px; }
+
+    /* TAB VISIBILITY */
+    .tab-panel { display: none; flex-direction: column; gap: 1rem; }
+    .tab-panel.active { display: flex; }
+
+    /* PROPOSAL BANNER (outside app shell) */
+    .proposal-note {
+      position: fixed; top: 0; left: 0; right: 0;
+      background: linear-gradient(90deg, #7c3aed, #4f46e5);
+      color: #fff; text-align: center;
+      padding: 7px 16px; font-size: 0.75rem; font-weight: 600;
+      z-index: 9999; letter-spacing: 0.02em;
+    }
+    body { padding-top: 34px; }
+
+    /* Review tab specifics */
+    .review-card {
+      border: 1px solid rgba(197,198,210,0.35); border-radius: var(--r-lg);
+      overflow: hidden; cursor: pointer;
+    }
+    .review-head {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px;
+      background: rgba(10,37,64,0.03);
+    }
+    .review-head .material-symbols-outlined { font-size: 18px; color: var(--jade); }
+    .review-title { flex: 1; font-size: 0.8125rem; font-weight: 600; color: var(--navy); }
+    .mini-bar-wrap { width: 80px; height: 4px; background: rgba(197,198,210,0.3); border-radius: var(--r-full); overflow: hidden; }
+    .mini-bar-fill { height: 100%; border-radius: var(--r-full); }
+    .review-body {
+      border-top: 1px solid rgba(197,198,210,0.25);
+      padding: 0.75rem 1rem;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px;
+    }
+    .review-row { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px solid rgba(197,198,210,0.15); font-size: 0.78rem; }
+    .review-row:last-child { border-bottom: none; }
+    .review-key   { color: var(--muted); }
+    .review-val   { font-weight: 500; color: var(--navy); }
+    .review-val.ok      { color: #065f46; }
+    .review-val.pending { color: #92600a; }
+    .review-val.missing { color: var(--error); }
+
+    /* Progress circle */
+    .prog-wrap { display: flex; align-items: center; gap: 20px; padding: 1.25rem; background: linear-gradient(135deg, rgba(26,78,215,0.06), rgba(10,126,110,0.04)); border-radius: var(--r-2xl); margin-bottom: 1rem; }
+    .prog-circle { position: relative; width: 72px; height: 72px; flex-shrink: 0; }
+    .prog-circle svg { transform: rotate(-90deg); }
+    .prog-pct { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: 800; color: var(--blue); }
+    .prog-info { flex: 1; }
+    .prog-label { font-size: 0.9rem; font-weight: 700; color: var(--navy); }
+    .prog-sub   { font-size: 0.78rem; color: var(--muted); margin-top: 3px; }
+    .prog-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .prog-chip  { padding: 3px 9px; border-radius: var(--r-full); font-size: 0.68rem; font-weight: 600; border: 1px solid; }
+    .prog-chip.ok      { background: rgba(10,126,110,0.08); color: #065f46; border-color: rgba(10,126,110,0.25); }
+    .prog-chip.missing { background: rgba(180,120,0,0.08);  color: #92600a; border-color: rgba(180,120,0,0.25); }
+
+    .mb { margin-bottom: 1rem; }
+    .mt { margin-top: 0.75rem; }
+  </style>
+</head>
+<body>
+<div class="proposal-note">⚡ PROPUESTA DE DISEÑO — MediWord v2 · Redistribución de Formularios · No es la versión en producción</div>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon"><span class="material-symbols-outlined">local_hospital</span></div>
+      <div>
+        <div class="brand-name">MediWork HSM</div>
+        <div class="brand-sub">CLINICAL ADMIN</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-item"><span class="material-symbols-outlined">dashboard</span> Dashboard</div>
+      <div class="nav-item active"><span class="material-symbols-outlined">groups</span> Cuerpo Médico</div>
+      <div class="nav-item"><span class="material-symbols-outlined">corporate_fare</span> Médicos FSFB</div>
+      <div class="nav-item"><span class="material-symbols-outlined">exit_to_app</span> Renuncias</div>
+      <div class="nav-item"><span class="material-symbols-outlined">event_busy</span> Finalizaciones</div>
+      <div class="nav-item"><span class="material-symbols-outlined">person_off</span> Personal Inactivo</div>
+      <div class="nav-item"><span class="material-symbols-outlined">bar_chart</span> Reportes</div>
+    </nav>
+    <div class="sidebar-footer">MediWork v2.0 · CHSM</div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <span class="topbar-title">Nuevo Médico</span>
+      <div class="topbar-right">
+        <div class="topbar-badge"><span class="material-symbols-outlined">notifications</span></div>
+        <div class="topbar-avatar">AD</div>
+      </div>
+    </div>
+
+    <!-- FORM -->
+    <div class="form-wrap">
+      <!-- STEPPER -->
+      <div class="stepper-bar" id="stepperBar">
+        <div class="stepper-progress" id="stepProgress" style="width:20%"></div>
+        <div class="stepper-steps">
+
+          <div class="step-item active" data-tab="1" onclick="goTab(1)" style="cursor:pointer">
+            <div class="step-circle active" id="sc1"><span class="material-symbols-outlined">person</span></div>
+            <div class="step-label">
+              <span class="step-num">Paso 1</span>
+              <span class="step-name">Datos del Médico</span>
+            </div>
+          </div>
+          <div class="step-connector" id="conn1"></div>
+
+          <div class="step-item" data-tab="2" onclick="goTab(2)" style="cursor:pointer">
+            <div class="step-circle pending" id="sc2">2</div>
+            <div class="step-label">
+              <span class="step-num">Paso 2</span>
+              <span class="step-name">Carpeta: HV y Prerrogativas</span>
+            </div>
+          </div>
+          <div class="step-connector" id="conn2"></div>
+
+          <div class="step-item" data-tab="3" onclick="goTab(3)" style="cursor:pointer">
+            <div class="step-circle pending" id="sc3">3</div>
+            <div class="step-label">
+              <span class="step-num">Paso 3</span>
+              <span class="step-name">Académica y Habilitación</span>
+            </div>
+          </div>
+          <div class="step-connector" id="conn3"></div>
+
+          <div class="step-item" data-tab="4" onclick="goTab(4)" style="cursor:pointer">
+            <div class="step-circle pending" id="sc4">4</div>
+            <div class="step-label">
+              <span class="step-num">Paso 4</span>
+              <span class="step-name">Contratación y Accesos</span>
+            </div>
+          </div>
+          <div class="step-connector" id="conn4"></div>
+
+          <div class="step-item" data-tab="5" onclick="goTab(5)" style="cursor:pointer">
+            <div class="step-circle pending" id="sc5">5</div>
+            <div class="step-label">
+              <span class="step-num">Paso 5</span>
+              <span class="step-name">Revisión y Confirmar</span>
+            </div>
+          </div>
+
+        </div>
+      </div><!-- /stepper -->
+
+      <!-- CONTENT -->
+      <div class="form-content">
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             TAB 1 — Datos del Médico
+             Contiene: Identificación+Cargo / Nombre / Info Personal / Contacto
+        ════════════════════════════════════════════════════════════════════ -->
+        <div class="tab-panel active" id="tab1">
+
+          <div class="hero">
+            <div class="hero-left">
+              <div class="hero-icon"><span class="material-symbols-outlined">person_add</span></div>
+              <div>
+                <div class="hero-title">Nuevo médico <span style="color:var(--muted);font-weight:400">— Datos del Médico</span></div>
+                <div class="hero-sub">Información de identificación, personal y de contacto del profesional.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 1.1: Identificación y Cargo -->
+          <div class="sc">
+            <div class="sc-head">
+              <div class="sc-head-left">
+                <div class="sc-icon"><span class="material-symbols-outlined">badge</span></div>
+                <div>
+                  <div class="sc-title">Identificación y Cargo</div>
+                  <div class="sc-sub">Documento de identidad, categoría y vinculación institucional</div>
+                </div>
+              </div>
+            </div>
+            <div class="sc-body">
+              <div class="g3 mb">
+                <div class="field">
+                  <label class="label">Tipo de Documento <span class="req">*</span></label>
+                  <div class="sel-wrap"><select class="sel"><option>C.C.</option><option>C.E.</option></select></div>
+                </div>
+                <div class="field">
+                  <label class="label">Número de Documento <span class="req">*</span></label>
+                  <input class="inp" placeholder="Ej: 1045234112">
+                  <span class="hint">⚠ No podrá modificarse después de guardar</span>
+                </div>
+                <div class="field">
+                  <label class="label">Lugar de Expedición</label>
+                  <div class="sel-wrap"><select class="sel"><option value="">Seleccionar ciudad…</option><option>Bogotá D.C.</option><option>Medellín</option><option>Cali</option></select></div>
+                </div>
+              </div>
+              <div class="divider">
+                <p class="sub-title">Vinculación Institucional</p>
+                <div class="g4">
+                  <div class="field">
+                    <label class="label">Categoría <span class="req">*</span></label>
+                    <div class="sel-wrap"><select class="sel"><option value="">Seleccionar…</option><option>H — Hospitalarios</option><option>I — Institucionales</option><option>AE — Adscritos esp.</option><option>A — Adscritos</option></select></div>
+                  </div>
+                  <div class="field">
+                    <label class="label">Condición Laboral <span class="req">*</span></label>
+                    <div class="sel-wrap"><select class="sel"><option value="">Seleccionar…</option><option>Tiempo Completo</option><option>Medio Tiempo</option><option>Prestación de Servicios</option></select></div>
+                  </div>
+                  <div class="field">
+                    <label class="label">Fecha de Ingreso <span class="req">*</span></label>
+                    <input type="date" class="inp">
+                  </div>
+                  <div class="field">
+                    <label class="label">Estado</label>
+                    <div class="toggle-wrap">
+                      <label class="toggle"><input type="checkbox" checked><div class="track"></div></label>
+                      <span class="toggle-label">Activo</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 1.2: Nombre Completo -->
+          <div class="sc">
+            <div class="sc-head">
+              <div class="sc-head-left">
+                <div class="sc-icon"><span class="material-symbols-outlined">person</span></div>
+                <div>
+                  <div class="sc-title">Nombre Completo</div>
+                  <div class="sc-sub">Tal como figura en el documento de identidad</div>
+                </div>
+              </div>
+            </div>
+            <div class="sc-body">
+              <div class="g4">
+                <div class="field">
+                  <label class="label">Primer Nombre <span class="req">*</span></label>
+                  <input class="inp" placeholder="Ej: Carlos">
+                </div>
+                <div class="field">
+                  <label class="label">Segundo Nombre</label>
+                  <input class="inp" placeholder="Opcional">
+                </div>
+                <div class="field">
+                  <label class="label">Primer Apellido <span class="req">*</span></label>
+                  <input class="inp" placeholder="Ej: Martínez">
+                </div>
+                <div class="field">
+                  <label class="label">Segundo Apellido</label>
+                  <input class="inp" placeholder="Opcional">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 1.3: Información Personal -->
+          <div class="sc">
+            <div class="sc-head">
+              <div class="sc-head-left">
+                <div class="sc-icon"><span class="material-symbols-outlined">lock</span></div>
+                <div>
+                  <div class="sc-title">Información Personal</div>
+                  <div class="sc-sub">Datos sensibles — Ley 1581 de 2012</div>
+                </div>
+              </div>
+            </div>
+            <div class="sc-body">
+              <div class="banner warn">
+                <span class="material-symbols-outlined">warning</span>
+                <p>Datos personales sensibles. Solo usuarios con rol autorizado pueden visualizarlos. Tratamiento conforme a la Ley 1581/2012.</p>
+              </div>
+              <div class="g4">
+                <div class="field">
+                  <label class="label">Fecha de Nacimiento</label>
+                  <input type="date" class="inp">
+                </div>
+                <div class="field">
+                  <label class="label">Lugar de Nacimiento</label>
+                  <div class="sel-wrap"><select class="sel"><option value="">Seleccionar ciudad…</option><option>Bogotá D.C.</option></select></div>
+                </div>
+                <div class="field">
+                  <label class="label">Género</label>
+                  <div class="sel-wrap"><select class="sel"><option value="">Seleccionar…</option><option>Masculino</option><option>Femenino</option></select></div>
+                </div>
+                <div class="field">
+                  <label class="label">Estado Civil</label>
+                  <div class="sel-wrap"><select class="sel"><option value="">Seleccionar…</option><option>Soltero/a</option><option>Casado/a</option><option>Unión Libre</option></select></div>
+                </div>
+              </div>
+              <div class="divider">
+                <p class="sub-title">Documentos Personales</p>
+                <div class="g3">
+                  <div class="field">
+                    <label class="label">Form. Autorización Datos <span class="req">*</span></label>
+                    <div class="sel-wrap"><select class="sel ok"><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select></div>
+                    <span class="hint">Firmado por el titular</span>
+                  </div>
+                  <div class="field">
+                    <label class="label">Foto</label>
+                    <div class="sel-wrap"><select class="sel pending"><option>PENDIENTE</option><option>OK</option><option>N.A.</option></select></div>
+                  </div>
+                  <div class="field">
+                    <label class="label">Hoja de Vida</label>
+                    <div class="sel-wrap"><select class="sel"><option value="">— Estado —</option><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 1.4: Contacto -->
+          <div class="sc">
+            <div class="sc-head">
+              <div class="sc-head-left">
+                <div class="sc-icon"><span class="material-symbols-outlined">contact_phone</span></div>
+                <div>
+                  <div class="sc-title">Contacto y Comunicaciones</div>
+                  <div class="sc-sub">Directorio médico e información de emergencia</div>
+                </div>
+              </div>
+            </div>
+            <div class="sc-body">
+              <div class="g3">
+                <div class="field">
+                  <label class="label">Correo Electrónico <span class="req">*</span></label>
+                  <input type="email" class="inp" placeholder="correo@institucion.com">
+                </div>
+                <div class="field">
+                  <label class="label">Celular <span class="req">*</span></label>
+                  <input class="inp" placeholder="+57 300 000 0000">
+                </div>
+                <div class="field">
+                  <label class="label">Teléfono Fijo</label>
+                  <input class="inp" placeholder="+57 1 000 0000">
+                </div>
+                <div class="field span3">
+                  <label class="label">Dirección de Residencia</label>
+                  <input class="inp" placeholder="Dirección completa">
+                </div>
+              </div>
+              <div class="divider">
+                <p class="sub-title">Contacto de Emergencia</p>
+                <div class="g3">
+                  <div class="field">
+                    <label class="label">Nombre Contacto</label>
+                    <input class="inp" placeholder="Nombre completo">
+                  </div>
+                  <div class="field">
+                    <label class="label">Parentesco</label>
+                    <div class="sel-wrap"><select class="sel"><option value="">Seleccionar…</option><option>Cónyuge</option><option>Hijo/a</option><option>Padre/Madre</option><option>Hermano/a</option></select></div>
+                  </div>
+                  <div class="field">
+                    <label class="label">Teléfono Emergencia</label>
+                    <input class="inp" placeholder="+57 300 000 0000">
+                  </div>
+                  <div class="field">
+                    <label class="label">Correo Alterno</label>
+                    <input type="email" class="inp" placeholder="correo@personal.com">
+                  </div>
+                </div>
+              </div>
+              <div class="divider">
+                <p class="sub-title">Idiomas</p>
+                <div class="chips">
+                  <div class="chip active">Inglés</div>
+                  <div class="chip">Francés</div>
+                  <div class="chip">Italiano</div>
+                  <div class="chip">Alemán</div>
+                  <div class="chip">Portugués</div>
+                  <input class="inp" style="max-width:160px" placeholder="Otro idioma…">
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /tab1 -->
+
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             TAB 2 — Carpeta: HV y Prerrogativas
+             Contiene: Docs Ingreso / Prerrogativas / Docs Finales CME
+        ════════════════════════════════════════════════════════════════════ -->
+        <div class="tab-panel" id="tab2">
+
+          <div class="hero">
+            <div class="hero-left">
+              <div class="hero-icon"><span class="material-symbols-outlined">folder_open</span></div>
+              <div>
+                <div class="hero-title">Carpeta: HV y Prerrogativas <span style="color:var(--muted);font-weight:400">— Paso 2</span></div>
+                <div class="hero-sub">Documentos de ingreso al Cuerpo Médico y estado de prerrogativas.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2.1: Carpeta 1 — Docs HV -->
+          <div class="sc">
+            <div class="sc-head">
+              <div class="sc-head-left">
+                <div class="sc-icon"><span class="material-symbols-outlined">folder</span></div>
+                <div>
+                  <div class="sc-title">Carpeta 1 · Documentos Hoja de Vida</div>
+                  <div class="sc-sub">Documentos requeridos para el proceso de ingreso</div>
+                </div>
+              </div>
+            </div>
+            <div class="sc-body">
+              <div class="doc-table">
+                <div class="doc-head"><span>Documento</span><span>Estado</span><span>Fecha</span></div>
+                <div class="doc-row">
+                  <span class="doc-lbl">Form. Solicitud Ingreso</span>
+                  <select class="sel ok"><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select>
+                  <input type="date" class="inp">
+                </div>
+                <div class="doc-row">
+                  <span class="doc-lbl">Form. Cap. y Educación</span>
+                  <select class="sel pending"><option>PENDIENTE</option><option>OK</option><option>N.A.</option></select>
+                  <input type="date" class="inp disabled" disabled>
+                </div>
+                <div class="doc-row">
+                  <span class="doc-lbl">Carta Pres. Coord. Depto.</span>
+                  <select class="sel"><option value="">— Estado —</option><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select>
+                  <input type="date" class="inp disabled" disabled>
+                </div>
+                <div class="doc-row">
+                  <span class="doc-lbl">Carta Pres. Coord. Sección</span>
+                  <select class="sel"><option value="">— Estado —</option><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select>
+                  <input type="date" class="inp disabled" disabled>
+                </div>
+                <div class="doc-row">
+                  <span class="doc-lbl">Carta Aspirante</span>
+                  <select class="sel ok"><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select>
+                  <input type="date" class="inp">
+                </div>
+                <div class="doc-row">
+                  <span class="doc-lbl">Carta Recomendación 1</span>
+                  <select class="sel"><option value="">— Estado —</option><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select>
+                  <input type="date" class="inp disabled" disabled>
+                </div>
+                <div class="doc-row">
+                  <span class="doc-lbl">Carta Recomendación 2</span>
+                  <select class="sel"><option value="">— Estado —</option><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select>
+                  <input type="date" class="inp disabled" disabled>
+                </div>
+                <div class="doc-row">
+                  <span class="doc-lbl">Carta Institucionalidad</span>
+                  <select class="sel"><option value="">— Estado —</option><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select>
+                  <div></div>
+                </div>
+                <div class="doc-row">
+                  <span class="doc-lbl">Carta Cód. Conducta (inicial)</span>
+                  <select class="sel"><option value="">— Estado —</option><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select>
+                  <div></div>
+                </div>
+                <div class="doc-row">
+                  <span class="doc-lbl">Carta Presentación DM</span>
+                  <select class="sel"><option value="">— Estado —</option><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select>
+                  <input type="date" class="inp disabled" disabled>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2.2: Prerrogativas -->
+          <div class="sc">
+            <div class="sc-head">
+              <div class="sc-head-left">
+                <div class="sc-icon"><span class="material-symbols-outlined">account_balance</span></div>
+                <div>
+                  <div class="sc-title">Carpeta 2 & 3 · Estado de Prerrogativas</div>
+                  <div class="sc-sub">Proceso de vinculación formal al Cuerpo Médico</div>
+                </div>
+              </div>
+            </div>
+            <div class="sc-body">
+              <div class="g2">
+                <div class="field">
+                  <label class="label">Estado Prerrogativas</label>
+                  <div class="sel-wrap"><select class="sel"><option value="">Seleccionar…</option><option>Prerrogativas Definitivas CME</option><option>Prerrogativas Definitivas CME - Extensión HUFSFB</option><option>Prerrogativas Definitivas CME - Caso Extraordinario</option><option>Prerrogativas Temporales</option><option>PENDIENTE</option></select></div>
+                </div>
+                <div class="field">
+                  <label class="label">Fecha Aprobación Definitivas</label>
+                  <input type="date" class="inp">
+                </div>
+              </div>
+              <div class="divider">
+                <p class="sub-title">Prerrogativas Temporales</p>
+                <div class="g4">
+                  <div class="field">
+                    <label class="label">Solicitud</label>
+                    <div class="sel-wrap"><select class="sel"><option value="">—</option><option>SI</option><option>PENDIENTE</option><option>N.A.</option></select></div>
+                  </div>
+                  <div class="field">
+                    <label class="label">Fecha Solicitud</label>
+                    <input type="date" class="inp">
+                  </div>
+                  <div class="field">
+                    <label class="label">Respuesta</label>
+                    <div class="sel-wrap"><select class="sel"><option value="">—</option><option>SI</option><option>PENDIENTE</option><option>N.A.</option></select></div>
+                  </div>
+                  <div class="field">
+                    <label class="label">Fecha Respuesta</label>
+                    <input type="date" class="inp">
+                  </div>
+                  <div class="field">
+                    <label class="label">Fecha Inicio</label>
+                    <input type="date" class="inp">
+                  </div>
+                  <div class="field">
+                    <label class="label">Fecha Fin</label>
+                    <input type="date" class="inp">
+                  </div>
+                  <div class="field">
+                    <label class="label">Notif. Coordinador</label>
+                    <div class="sel-wrap"><select class="sel"><option value="">—</option><option>SI</option><option>PENDIENTE</option><option>N.A.</option></select></div>
+                  </div>
+                </div>
+              </div>
+              <div class="divider">
+                <p class="sub-title">Documentos Finales de Ingreso</p>
+                <div class="g3">
+                  <div class="field"><label class="label">Carta Auth. Credenciales</label><div class="sel-wrap"><select class="sel"><option value="">— Estado —</option><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select></div></div>
+                  <div class="field"><label class="label">Carta Auth. Ingreso CME</label><div class="sel-wrap"><select class="sel"><option value="">— Estado —</option><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select></div></div>
+                  <div class="field"><label class="label">Notif. Ingreso a Profesional</label><div class="sel-wrap"><select class="sel"><option value="">— Estado —</option><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select></div></div>
+                  <div class="field"><label class="label">Certif. Entrega Modelo Médico</label><div class="sel-wrap"><select class="sel"><option value="">— Estado —</option><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select></div></div>
+                  <div class="field"><label class="label">Carta Recepción Docs. MM</label><div class="sel-wrap"><select class="sel"><option value="">— Estado —</option><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select></div></div>
+                  <div class="field"><label class="label">Declaración Conflicto Interés</label><div class="sel-wrap"><select class="sel"><option value="">— Estado —</option><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select></div></div>
+                </div>
+                <div class="mt">
+                  <div class="field"><label class="label">Otros documentos relacionados</label><textarea class="inp ta" placeholder="Describa documentos adicionales…"></textarea></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /tab2 -->
+
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             TAB 3 — Académica y Habilitación
+             Contiene: Verificación Credenciales / Diplomas / Docs Habilitación
+        ════════════════════════════════════════════════════════════════════ -->
+        <div class="tab-panel" id="tab3">
+
+          <div class="hero">
+            <div class="hero-left">
+              <div class="hero-icon"><span class="material-symbols-outlined">school</span></div>
+              <div>
+                <div class="hero-title">Académica y Habilitación <span style="color:var(--muted);font-weight:400">— Paso 3</span></div>
+                <div class="hero-sub">Títulos, diplomas, verificación de credenciales y documentos de habilitación.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 3.1: Verificación + Diplomas -->
+          <div class="sc">
+            <div class="sc-head">
+              <div class="sc-head-left">
+                <div class="sc-icon"><span class="material-symbols-outlined">school</span></div>
+                <div>
+                  <div class="sc-title">Carpeta 4 · Diplomas y Verificación de Credenciales</div>
+                  <div class="sc-sub">Documentos académicos con soporte en S3</div>
+                </div>
+              </div>
+            </div>
+            <div class="sc-body">
+              <div class="g3 mb">
+                <div class="field"><label class="label">Cartas Solicitud Verificación</label><div class="sel-wrap"><select class="sel"><option value="">— Estado —</option><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select></div></div>
+                <div class="field"><label class="label">Soporte Verificación Títulos</label><div class="sel-wrap"><select class="sel"><option value="">— Estado —</option><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select></div></div>
+                <div class="field"><label class="label">Fecha Verificación Títulos</label><input type="date" class="inp"></div>
+              </div>
+
+              <!-- Título Profesional -->
+              <div class="titulo-item mb">
+                <div class="titulo-head"><span class="material-symbols-outlined">arrow_right</span>Diploma Médico General / Odontólogo</div>
+                <div class="titulo-body">
+                  <div class="g3">
+                    <div class="field"><label class="label">Título/Acta (URL S3)</label><input class="inp" placeholder="https://…"></div>
+                    <div class="field"><label class="label">Nombre del Título</label><input class="inp" placeholder="Ej: Médico Cirujano"></div>
+                    <div class="field"><label class="label">Universidad</label><input class="inp" placeholder="Nombre de la institución"></div>
+                    <div class="field"><label class="label">País Universidad</label><input class="inp" placeholder="Colombia"></div>
+                    <div class="field"><label class="label">Convalidación</label><div class="sel-wrap"><select class="sel na"><option>N.A.</option><option>OK</option><option>PENDIENTE</option></select></div></div>
+                    <div class="field"><label class="label">Verif. por Credenciales</label><div class="sel-wrap"><select class="sel ok"><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select></div></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Especialidad 1 -->
+              <div class="titulo-item mb">
+                <div class="titulo-head"><span class="material-symbols-outlined">arrow_right</span>Especialidad 1</div>
+                <div class="titulo-body">
+                  <div class="g3">
+                    <div class="field"><label class="label">Diploma / Acta (URL S3)</label><input class="inp" placeholder="https://…"></div>
+                    <div class="field"><label class="label">Nombre del Título</label><input class="inp" placeholder="Especialista en…"></div>
+                    <div class="field"><label class="label">Universidad</label><input class="inp" placeholder="Nombre de la institución"></div>
+                    <div class="field"><label class="label">País Universidad</label><input class="inp" placeholder="Colombia"></div>
+                    <div class="field"><label class="label">Convalidación</label><div class="sel-wrap"><select class="sel"><option value="">—</option><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select></div></div>
+                    <div class="field"><label class="label">Verif. por Credenciales</label><div class="sel-wrap"><select class="sel"><option value="">—</option><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select></div></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- SubEsp 2 & 3 colapsados (placeholder) -->
+              <div class="titulo-item mb" style="opacity:0.6">
+                <div class="titulo-head" style="cursor:pointer"><span class="material-symbols-outlined">arrow_right</span>SubEspecialidad 2 <span style="font-size:0.7rem;color:var(--muted);margin-left:auto">clic para expandir</span></div>
+              </div>
+              <div class="titulo-item" style="opacity:0.6">
+                <div class="titulo-head" style="cursor:pointer"><span class="material-symbols-outlined">arrow_right</span>Otros Estudios Formales y Entrenamientos Avanzados <span style="font-size:0.7rem;color:var(--muted);margin-left:auto">clic para expandir</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 3.2: Documentos de Habilitación -->
+          <div class="sc">
+            <div class="sc-head">
+              <div class="sc-head-left">
+                <div class="sc-icon"><span class="material-symbols-outlined">verified_user</span></div>
+                <div>
+                  <div class="sc-title">Documentos de Habilitación</div>
+                  <div class="sc-sub">Certificaciones y documentos requeridos para el ejercicio profesional</div>
+                </div>
+              </div>
+            </div>
+            <div class="sc-body">
+              <div class="doc-table">
+                <div class="doc-head"><span>Documento</span><span>Estado</span><span>Fecha Vencimiento</span></div>
+                <div class="doc-row">
+                  <span class="doc-lbl">Tarjeta Profesional / RETHUS <span class="req">*</span></span>
+                  <select class="sel ok"><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select>
+                  <input type="date" class="inp">
+                </div>
+                <div class="doc-row">
+                  <span class="doc-lbl">Certificado de Especialidad <span class="req">*</span></span>
+                  <select class="sel pending"><option>PENDIENTE</option><option>OK</option><option>N.A.</option></select>
+                  <input type="date" class="inp disabled" disabled>
+                </div>
+                <div class="doc-row">
+                  <span class="doc-lbl">Diploma de Pregrado</span>
+                  <select class="sel ok"><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select>
+                  <input type="date" class="inp disabled" disabled>
+                </div>
+                <div class="doc-row">
+                  <span class="doc-lbl">Cert. Antecedentes Disciplinarios</span>
+                  <select class="sel"><option value="">— Estado —</option><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select>
+                  <input type="date" class="inp disabled" disabled>
+                </div>
+                <div class="doc-row">
+                  <span class="doc-lbl">Cert. Antecedentes Judiciales</span>
+                  <select class="sel"><option value="">— Estado —</option><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select>
+                  <input type="date" class="inp disabled" disabled>
+                </div>
+                <div class="doc-row">
+                  <span class="doc-lbl">Examen Médico Ocupacional <span class="req">*</span></span>
+                  <select class="sel"><option value="">— Estado —</option><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select>
+                  <input type="date" class="inp disabled" disabled>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /tab3 -->
+
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             TAB 4 — Contratación, Normativos y Accesos
+        ════════════════════════════════════════════════════════════════════ -->
+        <div class="tab-panel" id="tab4">
+
+          <div class="hero">
+            <div class="hero-left">
+              <div class="hero-icon"><span class="material-symbols-outlined">description</span></div>
+              <div>
+                <div class="hero-title">Contratación, Normativos y Accesos <span style="color:var(--muted);font-weight:400">— Paso 4</span></div>
+                <div class="hero-sub">Tipo de vinculación, cursos normativos obligatorios, inducciones y accesos al sistema.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 4.1: Vinculación / Contrato -->
+          <div class="sc">
+            <div class="sc-head">
+              <div class="sc-head-left">
+                <div class="sc-icon"><span class="material-symbols-outlined">description</span></div>
+                <div>
+                  <div class="sc-title">Tipo de Vinculación y Contrato</div>
+                  <div class="sc-sub">Contrato laboral y/o Oferta Mercantil</div>
+                </div>
+              </div>
+            </div>
+            <div class="sc-body">
+              <div class="g2 mb">
+                <div class="field">
+                  <label class="label">Tipo de Vinculación <span class="req">*</span></label>
+                  <div class="sel-wrap"><select class="sel"><option value="">Seleccionar…</option><option>Laboral</option><option>Oferta Mercantil</option><option>Laboral + Oferta Mercantil</option><option>N.A. - Emérito</option><option>Consultor</option></select></div>
+                </div>
+                <div class="field">
+                  <label class="label">Estado Contrato Laboral</label>
+                  <div class="sel-wrap"><select class="sel ok"><option>Contratado</option><option>N.A.</option></select></div>
+                </div>
+              </div>
+              <div class="sub-block">
+                <p class="sub-title">Contrato Laboral</p>
+                <div class="g4">
+                  <div class="field"><label class="label">Jornada</label><div class="sel-wrap"><select class="sel"><option value="">—</option><option>0.25</option><option>0.5</option><option>0.75</option><option>1</option><option>1.25</option></select></div></div>
+                  <div class="field"><label class="label">Tipo</label><div class="sel-wrap"><select class="sel"><option value="">—</option><option>Término Fijo</option><option>Término Indefinido</option><option>Temporal</option></select></div></div>
+                  <div class="field"><label class="label">Fecha Firma</label><input type="date" class="inp"></div>
+                  <div class="field"><label class="label">Modalidad Horario</label><div class="sel-wrap"><select class="sel"><option value="">—</option><option>Turnos</option><option>Jornada Regular</option></select></div></div>
+                  <div class="field span4"><label class="label">Condiciones</label><div class="sel-wrap"><select class="sel"><option value="">Seleccionar condiciones…</option><option>Salario Base</option><option>Salario Base + Jornadas Adicionales</option><option>Salario Base + Productividad</option></select></div></div>
+                </div>
+              </div>
+              <div class="sub-block mt">
+                <p class="sub-title">Oferta Mercantil</p>
+                <div class="g3">
+                  <div class="field"><label class="label">Estado Oferta</label><div class="sel-wrap"><select class="sel ok"><option>Vigente</option><option>Vencida</option><option>Por vencer</option><option>N.A.</option></select></div></div>
+                  <div class="field"><label class="label">Persona</label><div class="sel-wrap"><select class="sel"><option value="">—</option><option>Natural</option><option>Jurídica</option></select></div></div>
+                  <div class="field"><label class="label">Modalidad Honorarios</label><div class="sel-wrap"><select class="sel"><option value="">—</option><option>RVG</option><option>Tarifa Hora</option><option>Valor Fijo</option></select></div></div>
+                  <div class="field"><label class="label">Fecha Firma</label><input type="date" class="inp"></div>
+                  <div class="field"><label class="label">Fecha Vencimiento</label><input type="date" class="inp"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 4.2: Normativos -->
+          <div class="sc">
+            <div class="sc-head">
+              <div class="sc-head-left">
+                <div class="sc-icon"><span class="material-symbols-outlined">verified</span></div>
+                <div>
+                  <div class="sc-title">Carpeta 5 · Normativos y Cursos Obligatorios</div>
+                  <div class="sc-sub">La fecha de vencimiento determina el estado automáticamente</div>
+                </div>
+              </div>
+            </div>
+            <div class="sc-body">
+              <div class="norm-grid">
+                <div class="norm-card">
+                  <p class="norm-name">BLS</p>
+                  <input type="date" class="inp">
+                  <div class="norm-row"><span class="badge vigente"><span class="dot"></span>Vigente</span></div>
+                </div>
+                <div class="norm-card">
+                  <p class="norm-name">ACLS</p>
+                  <input type="date" class="inp">
+                  <div class="norm-row"><span class="badge vence"><span class="dot"></span>Por Vencer</span></div>
+                </div>
+                <div class="norm-card">
+                  <p class="norm-name">PALS</p>
+                  <input type="date" class="inp">
+                  <div class="norm-row"><span style="font-size:0.7rem;color:var(--muted)">Sin fecha</span></div>
+                </div>
+                <div class="norm-card">
+                  <p class="norm-name">NALS</p>
+                  <input type="date" class="inp">
+                  <div class="norm-row"><span class="badge vencido"><span class="dot"></span>Vencido</span></div>
+                </div>
+                <div class="norm-card">
+                  <p class="norm-name">Violencia Sexual</p>
+                  <input type="date" class="inp">
+                  <div class="norm-row"><span style="font-size:0.7rem;color:var(--muted)">Sin fecha</span></div>
+                </div>
+                <div class="norm-card">
+                  <p class="norm-name">Ataques Agentes Químicos</p>
+                  <input type="date" class="inp">
+                  <div class="norm-row"><span style="font-size:0.7rem;color:var(--muted)">Sin fecha</span></div>
+                </div>
+                <div class="norm-card">
+                  <p class="norm-name">Dengue</p>
+                  <input type="date" class="inp">
+                  <div class="norm-row"><span style="font-size:0.7rem;color:var(--muted)">Sin fecha</span></div>
+                </div>
+                <div class="norm-card">
+                  <p class="norm-name">Sedación</p>
+                  <input type="date" class="inp">
+                  <div class="norm-row"><span style="font-size:0.7rem;color:var(--muted)">Sin fecha</span></div>
+                </div>
+                <div class="norm-card">
+                  <p class="norm-name">Radioprotección</p>
+                  <input type="date" class="inp">
+                  <div class="norm-row"><span style="font-size:0.7rem;color:var(--muted)">Sin fecha</span></div>
+                </div>
+                <div class="norm-card">
+                  <p class="norm-name">Manejo del Dolor</p>
+                  <input type="date" class="inp">
+                  <div class="norm-row"><span style="font-size:0.7rem;color:var(--muted)">Sin fecha</span></div>
+                </div>
+                <div class="norm-card">
+                  <p class="norm-name">IAMII</p>
+                  <input type="date" class="inp">
+                  <div class="norm-row"><span style="font-size:0.7rem;color:var(--muted)">Sin fecha</span></div>
+                </div>
+                <div class="norm-card">
+                  <p class="norm-name">Gestión del Duelo</p>
+                  <input type="date" class="inp">
+                  <div class="norm-row"><span style="font-size:0.7rem;color:var(--muted)">Sin fecha</span></div>
+                </div>
+              </div>
+              <div class="divider">
+                <p class="sub-title">Estado Fijo (sin fecha de vencimiento)</p>
+                <div class="g4">
+                  <div class="field"><label class="label">Res. Aut. Ejercicio/Plaza Rural</label><div class="sel-wrap"><select class="sel ok"><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select></div></div>
+                  <div class="field"><label class="label">Resolución Anestesiólogo</label><div class="sel-wrap"><select class="sel na"><option>N.A.</option><option>OK</option><option>PENDIENTE</option></select></div></div>
+                  <div class="field"><label class="label">Tarjeta RETHUS</label><div class="sel-wrap"><select class="sel ok"><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select></div></div>
+                  <div class="field"><label class="label">Consulta RETHUS</label><div class="sel-wrap"><select class="sel ok"><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select></div></div>
+                  <div class="field"><label class="label">Cursos últimos 3 años</label><div class="sel-wrap"><select class="sel pending"><option>PENDIENTE</option><option>OK</option><option>N.A.</option></select></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 4.3: Inducciones y Accesos -->
+          <div class="sc">
+            <div class="sc-head">
+              <div class="sc-head-left">
+                <div class="sc-icon"><span class="material-symbols-outlined">badge</span></div>
+                <div>
+                  <div class="sc-title">Inducciones, Accesos y Pólizas</div>
+                  <div class="sc-sub">Cursos de ingreso, acceso a sistemas y cobertura de pólizas</div>
+                </div>
+              </div>
+            </div>
+            <div class="sc-body">
+              <p class="sub-title">Inducciones al Sistema</p>
+              <div class="g3 mb">
+                <div class="field"><label class="label">Inducción Médica FSFB</label><div class="sel-wrap"><select class="sel ok"><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select></div></div>
+                <div class="field"><label class="label">Inducción Médica CHSM</label><div class="sel-wrap"><select class="sel pending"><option>PENDIENTE</option><option>OK</option><option>N.A.</option></select></div></div>
+                <div class="field"><label class="label">Inducción General CHSM</label><div class="sel-wrap"><select class="sel"><option value="">— Estado —</option><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select></div></div>
+                <div class="field"><label class="label">Inducción HIS ISIS</label><div class="sel-wrap"><select class="sel"><option value="">— Estado —</option><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select></div></div>
+                <div class="field"><label class="label">Perfil del Cargo</label><div class="sel-wrap"><select class="sel"><option value="">— Estado —</option><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select></div></div>
+                <div class="field"><label class="label">Entrenamiento</label><div class="sel-wrap"><select class="sel"><option value="">— Estado —</option><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select></div></div>
+              </div>
+              <div class="divider">
+                <p class="sub-title">Accesos, Equipos y Sistemas</p>
+                <div class="g4 mb">
+                  <div class="field"><label class="label">Estado Código</label><div class="sel-wrap"><select class="sel ok"><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select></div></div>
+                  <div class="field"><label class="label">Código SMM</label><input class="inp" placeholder="SMM00000"></div>
+                  <div class="field"><label class="label">Estado Carnet</label><div class="sel-wrap"><select class="sel pending"><option>PENDIENTE</option><option>OK</option><option>N.A.</option></select></div></div>
+                  <div class="field"><label class="label">Tarjeta de Acceso</label><div class="sel-wrap"><select class="sel"><option value="">— Estado —</option><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select></div></div>
+                  <div class="field"><label class="label">Estado Bata</label><div class="sel-wrap"><select class="sel"><option value="">— Estado —</option><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select></div></div>
+                  <div class="field"><label class="label">Entrega Almera</label><div class="sel-wrap"><select class="sel"><option value="">— Estado —</option><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select></div></div>
+                  <div class="field"><label class="label">Entrega RUAF</label><div class="sel-wrap"><select class="sel"><option value="">— Estado —</option><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select></div></div>
+                  <div class="field"><label class="label">MIPRES</label><div class="sel-wrap"><select class="sel"><option value="">— Estado —</option><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select></div></div>
+                  <div class="field"><label class="label">Correo Corporativo</label><div class="sel-wrap"><select class="sel"><option value="">— Estado —</option><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select></div></div>
+                  <div class="field"><label class="label">Carta de Turnos</label><div class="sel-wrap"><select class="sel"><option value="">— Estado —</option><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select></div></div>
+                </div>
+              </div>
+              <div class="divider">
+                <p class="sub-title">Pólizas</p>
+                <div class="g3">
+                  <div class="field"><label class="label">Póliza Resp. Civil <span class="req">*</span></label><div class="sel-wrap"><select class="sel ok"><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select></div></div>
+                  <div class="field"><label class="label">Fecha Venc. Póliza RC</label><input type="date" class="inp"></div>
+                  <div class="field"><label class="label">Póliza de Complicaciones</label><div class="sel-wrap"><select class="sel"><option value="">— Estado —</option><option>OK</option><option>PENDIENTE</option><option>N.A.</option></select></div></div>
+                  <div class="field"><label class="label">Años en el Hospital</label><input class="inp" placeholder="Número de años" type="number" min="0"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /tab4 -->
+
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             TAB 5 — Revisión y Confirmar
+        ════════════════════════════════════════════════════════════════════ -->
+        <div class="tab-panel" id="tab5">
+
+          <div class="hero">
+            <div class="hero-left">
+              <div class="hero-icon"><span class="material-symbols-outlined">task_alt</span></div>
+              <div>
+                <div class="hero-title">Revisión y Confirmar <span style="color:var(--muted);font-weight:400">— Paso 5</span></div>
+                <div class="hero-sub">Verifique que todos los módulos estén completos antes de guardar.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Progreso global -->
+          <div class="sc">
+            <div class="sc-body">
+              <div class="prog-wrap">
+                <div class="prog-circle">
+                  <svg width="72" height="72"><circle cx="36" cy="36" r="30" fill="none" stroke="rgba(197,198,210,0.3)" stroke-width="6"/><circle cx="36" cy="36" r="30" fill="none" stroke="#1a4ed7" stroke-width="6" stroke-dasharray="188.4" stroke-dashoffset="90" stroke-linecap="round"/></svg>
+                  <div class="prog-pct">52%</div>
+                </div>
+                <div class="prog-info">
+                  <div class="prog-label">Completitud del Expediente Médico</div>
+                  <div class="prog-sub">Faltan campos requeridos en 3 módulos</div>
+                  <div class="prog-chips">
+                    <span class="prog-chip ok">✓ Datos del Médico</span>
+                    <span class="prog-chip ok">✓ HV y Prerrogativas</span>
+                    <span class="prog-chip missing">⚠ Académica</span>
+                    <span class="prog-chip missing">⚠ Contratación</span>
+                    <span class="prog-chip missing">⚠ Normativos</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Review cards -->
+          <p style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-left:4px">Resumen por módulo</p>
+
+          <div class="review-card">
+            <div class="review-head">
+              <span class="material-symbols-outlined">person</span>
+              <span class="review-title">Datos del Médico</span>
+              <div class="mini-bar-wrap"><div class="mini-bar-fill" style="width:85%;background:#0A7E6E"></div></div>
+              <span style="font-size:0.75rem;font-weight:700;color:#0A7E6E;min-width:30px;text-align:right">85%</span>
+              <span class="badge vigente" style="margin-left:8px"><span class="dot"></span>Completo</span>
+            </div>
+            <div class="review-body">
+              <div class="review-row"><span class="review-key">Tipo Doc.</span><span class="review-val">C.C.</span></div>
+              <div class="review-row"><span class="review-key">Documento</span><span class="review-val">1045234112</span></div>
+              <div class="review-row"><span class="review-key">Nombre</span><span class="review-val">Carlos Martínez</span></div>
+              <div class="review-row"><span class="review-key">Categoría</span><span class="review-val">H — Hospitalarios</span></div>
+              <div class="review-row"><span class="review-key">Correo</span><span class="review-val ok">OK</span></div>
+              <div class="review-row"><span class="review-key">Foto</span><span class="review-val pending">PENDIENTE</span></div>
+            </div>
+          </div>
+
+          <div class="review-card">
+            <div class="review-head">
+              <span class="material-symbols-outlined">folder</span>
+              <span class="review-title">Carpeta: HV y Prerrogativas</span>
+              <div class="mini-bar-wrap"><div class="mini-bar-fill" style="width:60%;background:#1a4ed7"></div></div>
+              <span style="font-size:0.75rem;font-weight:700;color:#1a4ed7;min-width:30px;text-align:right">60%</span>
+              <span class="badge vence" style="margin-left:8px"><span class="dot"></span>Incompleto</span>
+            </div>
+            <div class="review-body">
+              <div class="review-row"><span class="review-key">Form. Sol. Ingreso</span><span class="review-val ok">OK</span></div>
+              <div class="review-row"><span class="review-key">Carta Aspirante</span><span class="review-val ok">OK</span></div>
+              <div class="review-row"><span class="review-key">Estado Prerrogativas</span><span class="review-val pending">PENDIENTE</span></div>
+              <div class="review-row"><span class="review-key">Carta Auth. CME</span><span class="review-val missing">Sin completar</span></div>
+            </div>
+          </div>
+
+          <div class="review-card">
+            <div class="review-head">
+              <span class="material-symbols-outlined">school</span>
+              <span class="review-title">Académica y Habilitación</span>
+              <div class="mini-bar-wrap"><div class="mini-bar-fill" style="width:40%;background:#1a4ed7"></div></div>
+              <span style="font-size:0.75rem;font-weight:700;color:#1a4ed7;min-width:30px;text-align:right">40%</span>
+              <span class="badge vence" style="margin-left:8px"><span class="dot"></span>Incompleto</span>
+            </div>
+            <div class="review-body">
+              <div class="review-row"><span class="review-key">Diploma Médico</span><span class="review-val ok">OK</span></div>
+              <div class="review-row"><span class="review-key">Especialidad 1</span><span class="review-val pending">PENDIENTE</span></div>
+              <div class="review-row"><span class="review-key">Verif. Credenciales</span><span class="review-val missing">Sin completar</span></div>
+              <div class="review-row"><span class="review-key">Tarjeta Prof.</span><span class="review-val ok">OK</span></div>
+            </div>
+          </div>
+
+          <div class="review-card">
+            <div class="review-head">
+              <span class="material-symbols-outlined">description</span>
+              <span class="review-title">Contratación, Normativos y Accesos</span>
+              <div class="mini-bar-wrap"><div class="mini-bar-fill" style="width:30%;background:#94a3b8"></div></div>
+              <span style="font-size:0.75rem;font-weight:700;color:#94a3b8;min-width:30px;text-align:right">30%</span>
+              <span class="badge vencido" style="margin-left:8px"><span class="dot"></span>Sin datos</span>
+            </div>
+            <div class="review-body">
+              <div class="review-row"><span class="review-key">Tipo Vinculación</span><span class="review-val missing">Sin completar</span></div>
+              <div class="review-row"><span class="review-key">BLS</span><span class="review-val ok">Vigente</span></div>
+              <div class="review-row"><span class="review-key">ACLS</span><span class="review-val pending">Por Vencer</span></div>
+              <div class="review-row"><span class="review-key">Código SMM</span><span class="review-val missing">Sin completar</span></div>
+            </div>
+          </div>
+
+          <div style="text-align:center;padding:1.5rem 0 0.5rem">
+            <div class="banner info" style="display:inline-flex;max-width:520px">
+              <span class="material-symbols-outlined">info</span>
+              <p>Puede guardar el registro en cualquier momento. Los campos marcados como requeridos deben completarse para que el expediente quede válido.</p>
+            </div>
+          </div>
+
+        </div><!-- /tab5 -->
+
+      </div><!-- /form-content -->
+
+      <!-- FOOTER -->
+      <div class="form-footer">
+        <button class="btn-tonal" onclick="prevTab()"><span class="material-symbols-outlined">arrow_back</span> Anterior</button>
+        <div style="font-size:0.75rem;color:var(--muted)">Paso <strong id="stepLabel">1</strong> de 5</div>
+        <button class="btn-primary" onclick="nextTab()">Siguiente <span class="material-symbols-outlined">arrow_forward</span></button>
+      </div>
+
+    </div><!-- /form-wrap -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+let current = 1;
+const total = 5;
+const icons = ['person','folder_open','school','description','task_alt'];
+
+function goTab(n) {
+  // Hide all panels
+  for (let i = 1; i <= total; i++) {
+    document.getElementById('tab' + i).classList.remove('active');
+    const circle = document.getElementById('sc' + i);
+    const stepItem = document.querySelector('[data-tab="' + i + '"]');
+    if (i < n) {
+      circle.className = 'step-circle done';
+      circle.innerHTML = '<span class="material-symbols-outlined">check</span>';
+      stepItem.className = 'step-item done';
+    } else if (i === n) {
+      circle.className = 'step-circle active';
+      circle.innerHTML = '<span class="material-symbols-outlined">' + icons[i-1] + '</span>';
+      stepItem.className = 'step-item active';
+    } else {
+      circle.className = 'step-circle pending';
+      circle.innerHTML = i;
+      stepItem.className = 'step-item';
+    }
+    // Connectors
+    if (i < total) {
+      const conn = document.getElementById('conn' + i);
+      if (conn) conn.className = 'step-connector' + (i < n ? ' done' : '');
+    }
+  }
+  document.getElementById('tab' + n).classList.add('active');
+  document.getElementById('stepLabel').textContent = n;
+  document.getElementById('stepProgress').style.width = ((n / total) * 100) + '%';
+  current = n;
+
+  // Scroll content to top
+  document.querySelector('.form-content').scrollTop = 0;
+}
+
+function nextTab() { if (current < total) goTab(current + 1); }
+function prevTab() { if (current > 1) goTab(current - 1); }
+</script>
+</body>
+</html>

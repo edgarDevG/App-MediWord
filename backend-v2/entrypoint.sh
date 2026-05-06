@@ -26,8 +26,17 @@ done
 echo "[entrypoint] Creando esquema de base de datos..."
 python -c "from database import engine; from model import Base; Base.metadata.create_all(bind=engine); print('Esquema OK')"
 
-echo "[entrypoint] Sincronizando estado de Alembic..."
-python -m alembic stamp head
+echo "[entrypoint] Sincronizando migraciones..."
+# DB nueva (sin historial alembic) → stamp head (create_all ya aplicó todo)
+# DB existente con versión anterior → upgrade head aplica migraciones pendientes
+ALEMBIC_CURRENT=$(python -m alembic current 2>&1)
+if echo "$ALEMBIC_CURRENT" | grep -qE "[a-f0-9]{8,}"; then
+    echo "Revision detectada — aplicando migraciones pendientes..."
+    python -m alembic upgrade head
+else
+    echo "DB nueva — estableciendo revision inicial..."
+    python -m alembic stamp head
+fi
 
 echo "[entrypoint] Creando usuario admin si no existe..."
 python create_admin.py

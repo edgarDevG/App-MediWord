@@ -93,8 +93,6 @@ function ActionMenu({ doc, nombre, estado, profileRoute, editRoute, onEstadoActi
       action: () => navigate(profileRoute(doc)) },
     { icon: 'edit',              label: 'Editar carpetas',      accent: false,
       action: () => navigate(editRoute(doc)) },
-    { icon: 'folder_open',       label: 'Carpetas HV',          accent: false,
-      action: () => navigate(`/medicos/${doc}/carpetas`) },
     { divider: true },
     { icon: 'assignment_return', label: 'Marcar renuncia',      color: '#92400E',
       disabled: !esActivo, tip: disabledTip,

@@ -219,6 +219,12 @@ export default function MainLayout({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
 
+  useEffect(() => {
+    if (location.pathname.match(/\/medicos\/.+\/perfil/)) {
+      setCollapsed(true);
+    }
+  }, [location.pathname]);
+
   const isActive = (path) =>
     path === '/'
       ? location.pathname === '/'

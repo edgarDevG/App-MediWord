@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axiosInstance from '../../api/axiosInstance';
 
+
 /* ── Helpers ── */
 const toDate = (v) => {
   if (!v) return '';
@@ -9,31 +10,51 @@ const toDate = (v) => {
   return String(v).slice(0, 10);
 };
 
+
 /* ── Opciones ── */
-const OPTSINO    = [{ value: '', label: 'Seleccionar' }, { value: 'SI', label: 'Sí' }, { value: 'NO', label: 'No' }, { value: 'PENDIENTE', label: 'Pendiente' }];
-const OPTSINONA  = [{ value: '', label: 'Seleccionar' }, { value: 'SI', label: 'Sí' }, { value: 'NO', label: 'No' }, { value: 'NA', label: 'N/A' }];
-const OPTESTADO  = [{ value: '', label: 'Seleccionar' }, { value: 'ACTIVO', label: 'Activo' }, { value: 'VENCIDO', label: 'Vencido' }, { value: 'PENDIENTE', label: 'Pendiente' }, { value: 'NA', label: 'N/A' }];
-const OPTCONTRATO= [{ value: '', label: 'Seleccionar' }, { value: 'LABORAL', label: 'Laboral' }, { value: 'PRESTACION', label: 'Prestación de Servicios' }, { value: 'OFERTA', label: 'Oferta Mercantil' }, { value: 'NA', label: 'N/A' }];
+const OPTSINO    = [{ value: '', label: 'Seleccionar' }, { value: 'SI', label: 'Sí' }, { value: 'N/A', label: 'N/a' }, { value: 'PENDIENTE', label: 'Pendiente' }];
+const OPTSINONA  = [{ value: '', label: 'Seleccionar' }, { value: 'SI', label: 'Sí' }, { value: 'NO', label: 'No' }, { value: 'NA', label: 'N/a' }];
+const OPTESTADO  = [{ value: '', label: 'Seleccionar' }, { value: 'ACTIVO', label: 'Activo' },  { value: 'NA', label: 'N/A' }];
+const CONTRATOCONDICIONES = [{ value: '', label: 'Seleccionar' }, { value: 'SALARIO BASE', label: 'Salario Base' }, { value: 'SALARIO BASE + JORNADAS ADICIONALES', label: 'Salario Base + Jornadas Adicionales' }, { value: 'SALARIO BASE + JORNADAS ADICIONALES + PRODUCTIVIDAD', label: 'Salario Base + Jornadas Adicionales + Productividad' }, { value: 'SALARIO BASE + PRODUCTIVIDAD', label: 'Salario Base + Productividad' }, {value: 'SALARIO BASE + DISPNIBILIDAD', label: 'Salario Base + Disponibilidad'}, {value: 'SALARIO BASE + DISPNIBILIDAD + PRODUCTIVIDAD', label: 'Salario Base + Disponibilidad + Productividad'  },{value: 'SALARIO BASE + BONIFICACION', label: 'Salario Base + Bonificación'}, { value: 'NA', label: 'N/A' }];
+const TCONTRATO= [{ value: '', label: 'Seleccionar' }, { value: 'INDIFINIDO', label: 'Indefinido' }, { value: 'TERMINO FIJO', label: 'Término Fijo' }, { value: 'TEMPORAL', label: 'Temporal' }, { value: 'NA', label: 'N/A' }];
+const MCONTRATO= [{ value: '', label: 'Seleccionar' }, { value: 'RVG', label: 'RVG' }, { value: 'TARIJA HORA', label: 'Tarifa Hora' }, { value: 'VALOR FIJO', label: 'Valor Fijo' }, { value: 'RVG + MIN GARANTZADO', label: 'RVG + Mínimo Garantizado' }, { value: 'RVG + TARIFARIO', label: 'RVG + Tarifario' }, { value: 'NA', label: 'N/A' }];
+const OPTCONTRATO= [{ value: '', label: 'Seleccionar' }, { value: 'LABORAL', label: 'Laboral' }, { value: 'OFERTA MERCANTIL', label: 'Oferta Mercantil' }, { value: 'LABORAL/OFERTA MERCANTIL', label: 'Laboral / Oferta Mercantil' }, { value: 'NA', label: 'N/A' }];
+
 
 /* ── Cursos normativos ── */
 const CURSOS = [
-  { key: 'bls',                   label: 'BLS'                        },
-  { key: 'acls',                  label: 'ACLS'                       },
-  { key: 'pals',                  label: 'PALS'                       },
-  { key: 'nals',                  label: 'NALS'                       },
-  { key: 'violenciasexual',       label: 'Violencia Sexual'           },
-  { key: 'ataquesagentesquimicos',label: 'Agentes Químicos'           },
-  { key: 'dengue',                label: 'Dengue'                     },
-  { key: 'sedacion',              label: 'Sedación'                   },
-  { key: 'cuidadodonanteins',     label: 'Gestión Operativa Donante'  },
-  { key: 'radioproteccion',       label: 'Radioprotección'            },
-  { key: 'manejodolor',           label: 'Manejo del Dolor'           },
-  { key: 'iamii',                 label: 'IAMII'                      },
-  { key: 'gestionduelo',          label: 'Gestión del Duelo'          },
-  { key: 'curso3anos',            label: 'Curso 3 Años'               },
+  { key: 'bls',                   label: 'BLS',                        icon: 'favorite'            },
+  { key: 'acls',                  label: 'ACLS',                       icon: 'monitor_heart'       },
+  { key: 'pals',                  label: 'PALS',                       icon: 'child_care'          },
+  { key: 'nals',                  label: 'NALS',                       icon: 'baby_changing_station'},
+  { key: 'violenciasexual',       label: 'Violencia Sexual',           icon: 'shield_person'       },
+  { key: 'ataquesagentesquimicos',label: 'Agentes Químicos',           icon: 'science'             },
+  { key: 'dengue',                label: 'Dengue',                     icon: 'bug_report'          },
+  { key: 'sedacion',              label: 'Sedación',                   icon: 'medication'          },
+  { key: 'cuidadodonanteins',     label: 'Gest. Donación',             icon: 'volunteer_activism'  },
+  { key: 'radioproteccion',       label: 'Radioprotección',            icon: 'radar'               },
+  { key: 'manejodolor',           label: 'Manejo del Dolor',           icon: 'healing'             },
+  { key: 'iamii',                 label: 'IAMII',                      icon: 'cardiology'          },
+  { key: 'gestionduelo',          label: 'Gestión del Duelo',          icon: 'sentiment_sad'       },
+  { key: 'curso3anos',            label: 'Curso 3 Años',               icon: 'history_edu'         },
 ];
 
+const ESTADO_BADGE = {
+  VIGENTE:    { bg: 'rgba(22,163,74,0.12)',  color: '#15803d', icon: 'check_circle'  },
+  'Por vencer':{ bg: 'rgba(234,179,8,0.12)', color: '#a16207', icon: 'schedule'      },
+  VENCIDO:    { bg: 'rgba(220,38,38,0.12)',  color: '#b91c1c', icon: 'cancel'        },
+};
+
+function getEstadoCurso(fecha) {
+  if (!fecha) return null;
+  const diff = (new Date(fecha) - new Date()) / 86400000;
+  if (diff < 0)   return 'VENCIDO';
+  if (diff <= 60) return 'Por vencer';
+  return 'VIGENTE';
+}
+
 const vKey = (key) => key === 'curso3anos' ? 'vigenciacurso3anos' : `vencimiento${key}`;
+
 
 /* ── Estados iniciales ── */
 const buildInitNormativos = () => {
@@ -52,6 +73,7 @@ const buildInitNormativos = () => {
   return init;
 };
 
+
 const buildInitContratacion = () => ({
   tipovinculacion: '', estadocontratolaboral: '', jornadalaboralcontrato: '',
   tipocontrato: '', fechafirmacontratacion: null, condicionescontratacion: '',
@@ -67,6 +89,7 @@ const buildInitContratacion = () => ({
   polizrespcivil: '', vencimientopolizrespcivil: null,
   polizacomplicacionescont: '', anosenelhospitalcont: '',
 });
+
 
 /* ══════════════════════════════════════════════════════════════
    SUBCOMPONENTES UI
@@ -87,6 +110,7 @@ function SectionCard({ title, icon, children, defaultOpen = true }) {
   );
 }
 
+
 function SimpleSelect({ label, value, onChange, options, disabled, hint }) {
   return (
     <div className="form-group">
@@ -99,6 +123,7 @@ function SimpleSelect({ label, value, onChange, options, disabled, hint }) {
   );
 }
 
+
 function SimpleInput({ label, value, onChange, placeholder, type = 'text' }) {
   return (
     <div className="form-group">
@@ -107,6 +132,7 @@ function SimpleInput({ label, value, onChange, placeholder, type = 'text' }) {
     </div>
   );
 }
+
 
 function CampoFechaNullable({ label, fieldKey, value, onChangeFn }) {
   const esNA = value === null;
@@ -127,38 +153,67 @@ function CampoFechaNullable({ label, fieldKey, value, onChangeFn }) {
   );
 }
 
-function ToggleCurso({ label, keyName, aplica, norma, vencimiento, onChange }) {
+/* ── CursoCard — diseño unificado con FormFSFB ── */
+function CursoCard({ curso, aplica, vencimiento, onChange }) {
+  const estado = aplica ? getEstadoCurso(vencimiento) : null;
+  const badge  = estado ? ESTADO_BADGE[estado] : null;
   return (
-    <div style={{ background: aplica ? 'rgba(26,78,215,0.04)' : 'rgba(148,163,184,0.06)', border:`1.5px solid ${aplica ? 'rgba(26,78,215,0.18)' : 'rgba(148,163,184,0.18)'}`, borderRadius:10, padding:'10px 14px', transition:'all 200ms' }}>
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: aplica ? 10 : 0 }}>
-        <span style={{ fontSize:'0.8125rem', fontWeight:600, color: aplica ? 'var(--color-primary,#1a4ed7)' : '#64748b', transition:'color 200ms' }}>{label}</span>
-        <button type="button" onClick={() => onChange(`aplica${keyName}`, !aplica)}
-          style={{ display:'flex', alignItems:'center', gap:6, padding:'3px 10px 3px 6px', borderRadius:9999, border:'none', cursor:'pointer', background: aplica ? 'rgba(26,78,215,0.10)' : 'rgba(148,163,184,0.12)', transition:'all 180ms' }}>
-          <div style={{ width:28, height:16, borderRadius:8, background: aplica ? 'var(--color-primary,#1a4ed7)' : '#cbd5e1', position:'relative', transition:'background 200ms', flexShrink:0 }}>
-            <div style={{ position:'absolute', top:2, left: aplica ? 14 : 2, width:12, height:12, borderRadius:'50%', background:'white', transition:'left 180ms cubic-bezier(0.16,1,0.3,1)', boxShadow:'0 1px 3px rgba(0,0,0,0.2)' }} />
+    <div style={{
+      background: aplica ? 'rgba(10,92,153,0.04)' : '#f8fafc',
+      borderRadius: 12,
+      border: `1.5px solid ${aplica ? 'var(--color-primary,#0A5C99)' : '#e2e8f0'}`,
+      padding: 12,
+      transition: 'all 200ms',
+      display: 'flex', flexDirection: 'column', gap: 8,
+    }}>
+      {/* Fila 1: icono + nombre (flex:1) | toggle (sin competir con badge) */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 15, color: aplica ? 'var(--color-primary,#0A5C99)' : '#94a3b8', fontVariationSettings: "'FILL' 1", flexShrink: 0 }}>
+            {curso.icon}
+          </span>
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: aplica ? '#0f172a' : '#64748b', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {curso.label}
+          </span>
+        </div>
+        <button type="button" onClick={() => onChange(`aplica${curso.key}`, !aplica)} style={{
+          display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0,
+          padding: '2px 8px 2px 4px', borderRadius: 9999,
+          border: 'none', cursor: 'pointer',
+          background: aplica ? 'rgba(10,92,153,0.10)' : 'rgba(148,163,184,0.12)',
+          transition: 'all 180ms',
+          fontSize: '0.65rem', fontWeight: 700,
+          color: aplica ? 'var(--color-primary,#0A5C99)' : '#94a3b8',
+        }}>
+          <div style={{ width: 22, height: 12, borderRadius: 6, background: aplica ? 'var(--color-primary,#0A5C99)' : '#cbd5e1', position: 'relative', transition: 'background 200ms', flexShrink: 0 }}>
+            <div style={{ position: 'absolute', top: 2, left: aplica ? 12 : 2, width: 8, height: 8, borderRadius: '50%', background: 'white', transition: 'left 180ms cubic-bezier(0.16,1,0.3,1)' }} />
           </div>
-          <span style={{ fontSize:'0.6875rem', fontWeight:700, color: aplica ? 'var(--color-primary,#1a4ed7)' : '#94a3b8' }}>{aplica ? 'Aplica' : 'N/A'}</span>
+          {aplica ? 'Aplica' : 'N/A'}
         </button>
       </div>
+
+      {/* Fila 2: badge de estado en su propia línea (modelo FormFSFB) */}
+      {badge && (
+        <span style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 8px', borderRadius: 9999, background: badge.bg, color: badge.color, fontSize: '0.65rem', fontWeight: 700 }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 10, fontVariationSettings: "'FILL' 1" }}>{badge.icon}</span>
+          {estado}
+        </span>
+      )}
+
+      {/* Fila 3: input de fecha */}
       {aplica && (
-        <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-          <div style={{ flex:'1 1 120px' }}>
-            <label style={{ fontSize:'0.6875rem', fontWeight:600, color:'#64748b', display:'block', marginBottom:4 }}>Norma</label>
-            <input type="text" className="form-input" style={{ fontSize:'0.8125rem', padding:'6px 10px' }}
-              value={norma ?? ''} placeholder="Ej. Res. 123/2023"
-              onChange={e => onChange(`norma${keyName}`, e.target.value)} />
-          </div>
-          <div style={{ flex:'1 1 140px' }}>
-            <label style={{ fontSize:'0.6875rem', fontWeight:600, color:'#64748b', display:'block', marginBottom:4 }}>Vencimiento</label>
-            <input type="date" className="form-input" style={{ fontSize:'0.8125rem', padding:'6px 10px' }}
-              value={vencimiento ?? ''}
-              onChange={e => onChange(vKey(keyName), e.target.value || null)} />
-          </div>
+        <div>
+          <label style={{ fontSize: '0.65rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 4 }}>Vencimiento</label>
+          <input type="date" className="form-input"
+            style={{ height: 32, fontSize: '0.75rem', padding: '0 8px', width: '100%' }}
+            value={vencimiento ?? ''}
+            onChange={e => onChange(vKey(curso.key), e.target.value || null)} />
         </div>
       )}
     </div>
   );
 }
+
 
 /* ══════════════════════════════════════════════════════════════
    COMPONENTE PRINCIPAL — Tab4: Contratación y Normativos
@@ -169,6 +224,7 @@ export default function Tab4Institucional({ medicoDoc, onNext, onPrev, markCompl
   const [loading,      setLoading]      = useState(true);
   const [saving,       setSaving]       = useState(false);
   const [error,        setError]        = useState(null);
+
 
   /* ── Carga ── */
   useEffect(() => {
@@ -229,7 +285,7 @@ export default function Tab4Institucional({ medicoDoc, onNext, onPrev, markCompl
           induccionmedicahsm:   dAcc.induccion_medica_fsfb ?? '',
           induccionmedicachsm:  dAcc.induccion_medica_chsm ?? '',
           inducciongeneralchsm: dAcc.induccion_general_chsm ?? '',
-          induccionhisisis:     dAcc.induccion_his_isis     ?? '',
+          induccionhisisis:     dAcc.induccion_his_isis    ?? '',
           perfilcargo:          dAcc.perfil_cargo           ?? '',
           entrenamiento:        dAcc.entrenamiento          ?? '',
           estadocodigo:         dAcc.estado_codigo          ?? '',
@@ -396,19 +452,19 @@ export default function Tab4Institucional({ medicoDoc, onNext, onPrev, markCompl
             </div>
             <div style={{ flex:'1 1 200px' }}>
               <SimpleSelect label="Tipo contrato" value={contratacion.tipocontrato}
-                onChange={e => chgCont('tipocontrato', e.target.value)} options={OPTCONTRATO} />
+                onChange={e => chgCont('tipocontrato', e.target.value)} options={TCONTRATO} />
             </div>
             <div style={{ flex:'1 1 180px' }}>
               <CampoFechaNullable label="Fecha firma contratación"
                 fieldKey="fechafirmacontratacion" value={contratacion.fechafirmacontratacion} onChangeFn={chgCont} />
             </div>
             <div style={{ flex:'1 1 240px' }}>
-              <SimpleInput label="Condiciones contratación" value={contratacion.condicionescontratacion}
-                onChange={e => chgCont('condicionescontratacion', e.target.value)} />
+              <SimpleSelect label="Condiciones contratación" value={contratacion.condicionescontratacion}
+                onChange={e => chgCont('condicionescontratacion', e.target.value)} options={CONTRATOCONDICIONES}  />
             </div>
             <div style={{ flex:'1 1 180px' }}>
-              <SimpleInput label="Modalidad honorarios" value={contratacion.modalidadhorario}
-                onChange={e => chgCont('modalidadhorario', e.target.value)} />
+              <SimpleSelect label="Modalidad honorarios" value={contratacion.modalidadhorario}
+                onChange={e => chgCont('modalidadhorario', e.target.value)} options={MCONTRATO}/>
             </div>
           </div>
 
@@ -473,23 +529,23 @@ export default function Tab4Institucional({ medicoDoc, onNext, onPrev, markCompl
             </div>
           </div>
 
-          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
-            <p style={{ fontSize:'0.75rem', fontWeight:700, color:'#64748b', letterSpacing:'0.06em' }}>CURSOS OBLIGATORIOS — NORMA Y VENCIMIENTO</p>
-            <div style={{ padding:'2px 8px', borderRadius:9999, background:'rgba(26,78,215,0.08)', fontSize:'0.6875rem', fontWeight:700, color:'var(--color-primary,#1a4ed7)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+            <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.06em' }}>CURSOS OBLIGATORIOS — NORMA Y VENCIMIENTO</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 9999, background: 'rgba(10,92,153,0.08)', fontSize: '0.6875rem', fontWeight: 700, color: 'var(--color-primary,#0A5C99)' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 12, fontVariationSettings: "'FILL' 1" }}>toggle_on</span>
               Activa los que aplican
             </div>
           </div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 12 }}>
             {CURSOS.map(c => (
-              <ToggleCurso key={c.key} keyName={c.key} label={c.label}
+              <CursoCard key={c.key} curso={c}
                 aplica={!!normativos[`aplica${c.key}`]}
-                norma={normativos[`norma${c.key}`]}
                 vencimiento={normativos[vKey(c.key)]}
                 onChange={chgNorm} />
             ))}
           </div>
 
-          <p style={{ fontSize:'0.75rem', fontWeight:700, color:'#64748b', letterSpacing:'0.06em', margin:'20px 0 12px' }}>PÓLIZAS</p>
+          <p style={{ fontSize:'0.75rem', fontWeight:700, color:'#64748b', letterSpacing:'0.06em', margin:'24px 0 12px' }}>PÓLIZAS</p>
           <div style={{ display:'flex', flexWrap:'wrap', gap:'var(--space-4)' }}>
             <div style={{ flex:'1 1 200px' }}>
               <SimpleSelect label="Póliza resp. civil" value={normativos.polizaresponsabilidadcivil}
@@ -564,7 +620,7 @@ export default function Tab4Institucional({ medicoDoc, onNext, onPrev, markCompl
             </div>
             <div style={{ flex:'1 1 160px' }}>
               <SimpleSelect label="Estado bata" value={contratacion.estadobata}
-                onChange={e => chgCont('estadobata', e.target.value)} options={OPTESTADO} />
+                onChange={e => chgCont('estadobata', e.target.value)} options={OPTSINO} />
             </div>
             <div style={{ flex:'1 1 140px' }}>
               <SimpleSelect label="Entrega ALMERA" value={contratacion.entregaalmera}

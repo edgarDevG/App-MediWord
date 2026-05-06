@@ -8,7 +8,7 @@ import axiosInstance from '../../api/axiosInstance';
      GET/PUT/POST /medicos/{doc}/prerrogativas
    ══════════════════════════════════════════════════════════════ */
 
-const OPTSINO   = [{ value: '', label: 'Seleccionar' }, { value: 'SI', label: 'Sí' }, { value: 'NO', label: 'No' }, { value: 'PENDIENTE', label: 'Pendiente' }];
+const OPTSINO   = [{ value: '', label: 'Seleccionar' }, { value: 'SI', label: 'Sí' }, { value: 'N/A', label: 'N/a' }, { value: 'PENDIENTE', label: 'Pendiente' }];
 const OPTESTPRE = [
   { value: '', label: 'Seleccionar' },
   { value: 'VIGENTE',  label: 'Vigente'   },
@@ -18,15 +18,14 @@ const OPTESTPRE = [
 ];
 
 const CAMPOS_INGRESO_FECHA = [
-  { docKey: 'formsolingreso',       fechaKey: 'fechaformsolingreso',    label: 'Form. solicitud ingreso'      },
-  { docKey: 'formcapeducacion',     fechaKey: 'fechaformcapeducacion',  label: 'Form. capacitación educación' },
-  { docKey: 'cartaprescoorddpto',   fechaKey: 'fechacartaprescoorddpto',label: 'Carta coord. departamento'    },
-  { docKey: 'cartaprescoordseccion',fechaKey: 'fechacartaprescoordsecc',label: 'Carta coord. sección'         },
-  { docKey: 'cartaaspirante',       fechaKey: 'fechacartaaspirante',    label: 'Carta aspirante'              },
-  { docKey: 'cartarecomendacion1',  fechaKey: 'fecharecomendacion1',    label: 'Carta recomendación 1'        },
-  { docKey: 'cartarecomendacion2',  fechaKey: 'fecharecomendacion2',    label: 'Carta recomendación 2'        },
-  { docKey: 'cartapresdm',          fechaKey: 'fechapresdm',            label: 'Carta presentación DM'        },
-  // Auth. credenciales y Auth. ingreso CME se gestionan en la sección Prerrogativas
+  { docKey: 'formsolingreso',       fechaKey: 'fechaformsolingreso',    label: 'Formulario Solicitud Ingreso'      },
+  { docKey: 'formcapeducacion',     fechaKey: 'fechaformcapeducacion',  label: 'Formulario Capacitación Educación' },
+  { docKey: 'cartaprescoorddpto',   fechaKey: 'fechacartaprescoorddpto',label: 'Carta Coord. Departamento'    },
+  { docKey: 'cartaprescoordseccion',fechaKey: 'fechacartaprescoordsecc',label: 'Carta Coord. Sección'         },
+  { docKey: 'cartaaspirante',       fechaKey: 'fechacartaaspirante',    label: 'Carta Aspirante'              },
+  { docKey: 'cartarecomendacion1',  fechaKey: 'fecharecomendacion1',    label: 'Carta Recomendación 1'        },
+  { docKey: 'cartarecomendacion2',  fechaKey: 'fecharecomendacion2',    label: 'Carta Recomendación 2'        },
+  { docKey: 'cartapresdm',          fechaKey: 'fechapresdm',            label: 'Carta Presentación DM'        },
 ];
 
 const toDate = (v) => {
@@ -68,29 +67,48 @@ function SectionCard({ title, icon, children, defaultOpen = true }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div style={{
-      background: 'var(--color-surface, #fff)', border: '1px solid rgba(26,78,215,0.09)',
-      borderRadius: 12, marginBottom: 16, overflow: 'hidden',
-      boxShadow: '0 1px 6px rgba(26,78,215,0.05)',
+      background: '#ffffff', border: '1px solid rgba(197,198,210,0.4)',
+      borderRadius: 'var(--radius-xl)', marginBottom: 'var(--space-6)', overflow: 'hidden',
     }}>
-      <button type="button" onClick={() => setOpen(o => !o)} style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        width: '100%', padding: '14px 20px', background: 'none', border: 'none',
-        cursor: 'pointer', borderBottom: open ? '1px solid rgba(26,78,215,0.07)' : 'none',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--color-primary, #1a4ed7)', fontVariationSettings: "'FILL' 1" }}>{icon}</span>
-          <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-on-surface, #1e293b)', letterSpacing: '0.03em', textTransform: 'uppercase' }}>{title}</span>
+      <div 
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem', background: '#f8fafc', cursor: 'pointer', borderBottom: open ? '1px solid rgba(197,198,210,0.4)' : 'none' }}
+        onClick={() => setOpen(!open)}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ width: 32, height: 32, borderRadius: '8px', background: 'rgba(26, 78, 215, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--color-primary)' }}>{icon}</span>
+          </div>
+          <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-primary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{title}</h4>
         </div>
-        <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#94a3b8', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 200ms' }}>expand_more</span>
-      </button>
-      {open && <div style={{ padding: 20 }}>{children}</div>}
+        <span className="material-symbols-outlined" style={{ color: '#94a3b8', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 200ms' }}>expand_more</span>
+      </div>
+      {open && <div style={{ padding: '1.5rem' }}>{children}</div>}
+    </div>
+  );
+}
+
+function SubGroup({ title, children }) {
+  return (
+    <div style={{ 
+      border: '1px solid rgba(148,163,184,0.2)', 
+      borderRadius: 'var(--radius-lg)', 
+      padding: '1.25rem', 
+      marginBottom: '1rem',
+      background: '#fafafa'
+    }}>
+      <h5 style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', letterSpacing: '0.05em', marginBottom: '1rem', textTransform: 'uppercase' }}>
+        {title}
+      </h5>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+        {children}
+      </div>
     </div>
   );
 }
 
 function SimpleSelect({ label, value, onChange, options }) {
   return (
-    <div className="form-group">
+    <div className="form-group" style={{ flex: '1 1 200px' }}>
       {label && <label className="form-label">{label}</label>}
       <select className="form-select" value={value ?? ''} onChange={onChange}>
         {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -101,7 +119,7 @@ function SimpleSelect({ label, value, onChange, options }) {
 
 function SimpleInput({ label, value, onChange, placeholder }) {
   return (
-    <div className="form-group">
+    <div className="form-group" style={{ flex: '1 1 200px' }}>
       {label && <label className="form-label">{label}</label>}
       <input type="text" className="form-input" value={value ?? ''} onChange={onChange} placeholder={placeholder} />
     </div>
@@ -111,17 +129,17 @@ function SimpleInput({ label, value, onChange, placeholder }) {
 function CampoFechaNullable({ label, fieldKey, value, onChangeFn }) {
   const esNA = value === null;
   return (
-    <div className="form-group">
+    <div className="form-group" style={{ flex: '1 1 160px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
         {label && <label className="form-label" style={{ marginBottom: 0 }}>{label}</label>}
         <button type="button"
           onClick={() => onChangeFn(fieldKey, esNA ? '' : null)}
-          style={{ fontSize: '0.6875rem', fontWeight: 700, padding: '1px 8px', borderRadius: 9999, border: 'none', cursor: 'pointer', background: esNA ? 'rgba(148,163,184,0.20)' : 'rgba(26,78,215,0.08)', color: esNA ? '#64748b' : 'var(--color-primary, #1a4ed7)', transition: 'all 160ms' }}>
-          {esNA ? 'Agregar fecha' : 'N/A'}
+          style={{ fontSize: '0.6875rem', fontWeight: 600, padding: '2px 8px', borderRadius: 6, border: 'none', cursor: 'pointer', background: esNA ? 'rgba(148,163,184,0.15)' : 'rgba(26,78,215,0.1)', color: esNA ? '#64748b' : 'var(--color-primary)', transition: 'all 160ms' }}>
+          {esNA ? 'Añadir' : 'Quitar'}
         </button>
       </div>
       {esNA
-        ? <div style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(148,163,184,0.08)', border: '1px dashed rgba(148,163,184,0.3)', fontSize: '0.8125rem', color: '#94a3b8', textAlign: 'center' }}>No aplica — fecha nula</div>
+        ? <div style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(241,245,249,0.5)', border: '1px dashed #cbd5e1', fontSize: '0.8125rem', color: '#94a3b8', textAlign: 'center' }}>N/A</div>
         : <input type="date" className="form-input" value={value ?? ''} onChange={e => onChangeFn(fieldKey, e.target.value || null)} />
       }
     </div>
@@ -197,6 +215,7 @@ export default function Tab2Habilitacion({ medicoDoc, onNext, onPrev, markComple
           fechacartaauthingresocme:       toDate(dPre.fecha_carta_aut_cme)   || null,
           notificacioningresoprofesional: dPre.notif_ingreso_profesional     ?? '',
           certentregamodelomedico:        dPre.cert_entrega_modelo_medico    ?? '',
+          cartareceptdocmodelomedico:     dPre.carta_recepcion_docs          ?? '', // Ojo: verifiqué el init original
           declaracionconflictointereses:  dPre.declaracion_conflicto         ?? '',
         }));
       } catch (e) {
@@ -287,7 +306,7 @@ export default function Tab2Habilitacion({ medicoDoc, onNext, onPrev, markComple
   if (loading) return (
     <div style={{ padding: '3rem 2.5rem' }}>
       {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="skeleton" style={{ height: 72, borderRadius: 12, marginBottom: 12 }} />
+        <div key={i} className="skeleton" style={{ height: 72, borderRadius: 12, marginBottom: 12, background: '#e2e8f0' }} />
       ))}
     </div>
   );
@@ -299,7 +318,7 @@ export default function Tab2Habilitacion({ medicoDoc, onNext, onPrev, markComple
 
         <div style={{ marginBottom: '1.5rem' }}>
           <h2 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--color-primary)', letterSpacing: '-0.01em' }}>
-            Carpeta HV y Prerrogativas
+            Documentos de ingreso y Prerrogativas
           </h2>
           <p style={{ fontSize: '0.875rem', color: 'var(--color-on-surface-variant)', marginTop: 4 }}>
             Documentos de ingreso al cuerpo médico y estado de prerrogativas institucionales.
@@ -315,144 +334,87 @@ export default function Tab2Habilitacion({ medicoDoc, onNext, onPrev, markComple
 
         {/* ═══ SECCIÓN 1 — DOCUMENTOS DE INGRESO ═══ */}
         <SectionCard title="Documentos de Ingreso" icon="folder_open" defaultOpen={true}>
-          <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.06em', marginBottom: 14 }}>
-            ESTADO Y FECHAS — Las fechas sin información quedan como N/A (null)
-          </p>
-
-          {CAMPOS_INGRESO_FECHA.map(row => (
-            <div key={row.docKey} style={{
-              display: 'grid', gridTemplateColumns: '1fr 140px 180px', gap: 12,
-              alignItems: 'end', padding: '8px 0', borderBottom: '1px solid rgba(148,163,184,0.10)',
-            }}>
-              <span style={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--color-on-surface, #1e293b)', paddingBottom: 4 }}>
-                {row.label}
-              </span>
-              <SimpleSelect value={hv[row.docKey] ?? ''}
-                onChange={e => chgHv(row.docKey, e.target.value)} options={OPTSINO} />
-              <CampoFechaNullable fieldKey={row.fechaKey}
-                value={hv[row.fechaKey]} onChangeFn={chgHv} />
+          
+          <div style={{ background: 'var(--color-surface-container-lowest)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-border)', overflow: 'hidden' }}>
+            <div style={{ padding: '12px 20px', background: 'rgba(248, 250, 252, 0.5)', borderBottom: '1px solid var(--color-border)' }}>
+              <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', margin: 0 }}>
+                LISTADO DE DOCUMENTOS (Formatos y Cartas)
+              </p>
             </div>
-          ))}
-
-          <div style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap', gap: 16 }}>
-            {[
-              { k: 'cartainstitucionalidad', l: 'Carta institucionalidad'  },
-              { k: 'cartacodconducta',       l: 'Carta cód. conducta'      },
-            ].map(item => (
-              <div key={item.k} style={{ flex: '1 1 220px' }}>
-                <SimpleSelect label={item.l} value={hv[item.k] ?? ''}
-                  onChange={e => chgHv(item.k, e.target.value)} options={OPTSINO} />
+            
+            {CAMPOS_INGRESO_FECHA.map((row, idx) => (
+              <div key={row.docKey} style={{
+                display: 'grid', gridTemplateColumns: '1fr 180px 200px', gap: '20px',
+                alignItems: 'center', padding: '12px 20px', 
+                background: idx % 2 === 0 ? '#ffffff' : '#f8fafc',
+                borderBottom: idx === CAMPOS_INGRESO_FECHA.length - 1 ? 'none' : '1px solid rgba(148,163,184,0.1)',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#cbd5e1' }}>description</span>
+                  <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-on-surface)' }}>
+                    {row.label}
+                  </span>
+                </div>
+                <div style={{ marginTop: -16 }}>
+                  <SimpleSelect value={hv[row.docKey] ?? ''} onChange={e => chgHv(row.docKey, e.target.value)} options={OPTSINO} />
+                </div>
+                <div style={{ marginTop: -16 }}>
+                  <CampoFechaNullable fieldKey={row.fechaKey} value={hv[row.fechaKey]} onChangeFn={chgHv} />
+                </div>
               </div>
             ))}
-            <div style={{ flex: '1 1 300px' }}>
-              <SimpleInput label="Otros documentos relacionados"
-                value={hv.otrosdocumentosrelacionados}
-                onChange={e => chgHv('otrosdocumentosrelacionados', e.target.value)}
-                placeholder="Notas adicionales..." />
-            </div>
+          </div>
+
+          <div style={{ marginTop: '1.5rem' }}>
+            <SubGroup title="Otros Documentos de Ingreso">
+              <SimpleSelect label="Carta institucionalidad" value={hv.cartainstitucionalidad ?? ''} onChange={e => chgHv('cartainstitucionalidad', e.target.value)} options={OPTSINO} />
+              <SimpleSelect label="Carta cód. conducta" value={hv.cartacodconducta ?? ''} onChange={e => chgHv('cartacodconducta', e.target.value)} options={OPTSINO} />
+              <div style={{ flex: '2 1 300px' }}>
+                <SimpleInput label="Otros documentos relacionados" value={hv.otrosdocumentosrelacionados} onChange={e => chgHv('otrosdocumentosrelacionados', e.target.value)} placeholder="Notas adicionales o descripciones..." />
+              </div>
+            </SubGroup>
           </div>
         </SectionCard>
 
         {/* ═══ SECCIÓN 2 — PRERROGATIVAS ═══ */}
-        <SectionCard title="Prerrogativas" icon="verified_user" defaultOpen={false}>
+        <SectionCard title="Prerrogativas Institucionales" icon="verified_user" defaultOpen={true}>
+          
+          <SubGroup title="Estado General">
+            <SimpleSelect label="Estado prerrogativas" value={pre.estadoprerrogativas ?? ''} onChange={e => chgPre('estadoprerrogativas', e.target.value)} options={OPTESTPRE} />
+            <CampoFechaNullable label="Fecha aprobación definitiva" fieldKey="fechaaprovdefinitiva" value={pre.fechaaprovdefinitiva} onChangeFn={chgPre} />
+          </SubGroup>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginBottom: 8 }}>
-            <div style={{ flex: '1 1 200px' }}>
-              <SimpleSelect label="Estado prerrogativas" value={pre.estadoprerrogativas ?? ''}
-                onChange={e => chgPre('estadoprerrogativas', e.target.value)} options={OPTESTPRE} />
-            </div>
-            <div style={{ flex: '1 1 180px' }}>
-              <CampoFechaNullable label="Fecha aprobación definitiva"
-                fieldKey="fechaaprovdefinitiva" value={pre.fechaaprovdefinitiva} onChangeFn={chgPre} />
-            </div>
-          </div>
+          <SubGroup title="Prerrogativas Temporales (PT)">
+            <SimpleSelect label="Solicitud PT" value={pre.prertemporalessolicitud ?? ''} onChange={e => chgPre('prertemporalessolicitud', e.target.value)} options={OPTSINO} />
+            <CampoFechaNullable label="Fecha Solicitud" fieldKey="fechaprertemporalessolicitud" value={pre.fechaprertemporalessolicitud} onChangeFn={chgPre} />
+            
+            <SimpleSelect label="Respuesta PT" value={pre.prertemporalesrespuesta ?? ''} onChange={e => chgPre('prertemporalesrespuesta', e.target.value)} options={OPTSINO} />
+            <CampoFechaNullable label="Fecha Respuesta" fieldKey="fechaprertemporalesrespuesta" value={pre.fechaprertemporalesrespuesta} onChangeFn={chgPre} />
+            
+            <CampoFechaNullable label="Fecha Inicio PT" fieldKey="fechaprertemporalesinicio" value={pre.fechaprertemporalesinicio} onChangeFn={chgPre} />
+            <CampoFechaNullable label="Fecha Fin PT" fieldKey="fechaprertemporalesfin" value={pre.fechaprertemporalesfin} onChangeFn={chgPre} />
+            
+            <SimpleInput label="Notificación Coord. PT" value={pre.prertemporalesnoticord ?? ''} onChange={e => chgPre('prertemporalesnoticord', e.target.value)} placeholder="Detalles notificación..." />
+            
+            <div style={{ width: '100%', height: '1px', background: 'rgba(148,163,184,0.2)', margin: '0.5rem 0' }} />
+            
+            <SimpleSelect label="Solicitud ampliación PT" value={pre.amplprertemporalessolicitud ?? ''} onChange={e => chgPre('amplprertemporalessolicitud', e.target.value)} options={OPTSINO} />
+            <SimpleSelect label="Respuesta ampliación PT" value={pre.amplprertemporalesrespuesta ?? ''} onChange={e => chgPre('amplprertemporalesrespuesta', e.target.value)} options={OPTSINO} />
+          </SubGroup>
 
-          <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.06em', margin: '16px 0 10px' }}>
-            PRERROGATIVAS TEMPORALES
-          </p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
-            <div style={{ flex: '1 1 180px' }}>
-              <SimpleSelect label="Solicitud PT" value={pre.prertemporalessolicitud ?? ''}
-                onChange={e => chgPre('prertemporalessolicitud', e.target.value)} options={OPTSINO} />
-            </div>
-            <div style={{ flex: '1 1 160px' }}>
-              <CampoFechaNullable label="Fecha solicitud PT"
-                fieldKey="fechaprertemporalessolicitud" value={pre.fechaprertemporalessolicitud} onChangeFn={chgPre} />
-            </div>
-            <div style={{ flex: '1 1 180px' }}>
-              <SimpleSelect label="Respuesta PT" value={pre.prertemporalesrespuesta ?? ''}
-                onChange={e => chgPre('prertemporalesrespuesta', e.target.value)} options={OPTSINO} />
-            </div>
-            <div style={{ flex: '1 1 160px' }}>
-              <CampoFechaNullable label="Fecha respuesta PT"
-                fieldKey="fechaprertemporalesrespuesta" value={pre.fechaprertemporalesrespuesta} onChangeFn={chgPre} />
-            </div>
-            <div style={{ flex: '1 1 160px' }}>
-              <CampoFechaNullable label="Inicio PT"
-                fieldKey="fechaprertemporalesinicio" value={pre.fechaprertemporalesinicio} onChangeFn={chgPre} />
-            </div>
-            <div style={{ flex: '1 1 160px' }}>
-              <CampoFechaNullable label="Fin PT"
-                fieldKey="fechaprertemporalesfin" value={pre.fechaprertemporalesfin} onChangeFn={chgPre} />
-            </div>
-            <div style={{ flex: '1 1 220px' }}>
-              <SimpleInput label="Notif. coord. PT"
-                value={pre.prertemporalesnoticord ?? ''}
-                onChange={e => chgPre('prertemporalesnoticord', e.target.value)} />
-            </div>
-          </div>
+          <SubGroup title="Autorizaciones, Notificaciones y Certificados">
+            <SimpleSelect label="Aut. credenciales" value={pre.cartaauthcredenciales ?? ''} onChange={e => chgPre('cartaauthcredenciales', e.target.value)} options={OPTSINO} />
+            <CampoFechaNullable label="Fecha aut. credenciales" fieldKey="fechacartaauthcredenciales" value={pre.fechacartaauthcredenciales} onChangeFn={chgPre} />
+            
+            <SimpleSelect label="Aut. ingreso CME" value={pre.cartaauthingresocme ?? ''} onChange={e => chgPre('cartaauthingresocme', e.target.value)} options={OPTSINO} />
+            <CampoFechaNullable label="Fecha aut. ingreso CME" fieldKey="fechacartaauthingresocme" value={pre.fechacartaauthingresocme} onChangeFn={chgPre} />
+            
+            <SimpleSelect label="Notif. ingreso profesional" value={pre.notificacioningresoprofesional ?? ''} onChange={e => chgPre('notificacioningresoprofesional', e.target.value)} options={OPTSINO} />
+            <SimpleSelect label="Cert. entrega modelo médico" value={pre.certentregamodelomedico ?? ''} onChange={e => chgPre('certentregamodelomedico', e.target.value)} options={OPTSINO} />
+            <SimpleSelect label="Carta recept. doc. modelo" value={pre.cartareceptdocmodelomedico ?? ''} onChange={e => chgPre('cartareceptdocmodelomedico', e.target.value)} options={OPTSINO} />
+            <SimpleSelect label="Decl. conflicto intereses" value={pre.declaracionconflictointereses ?? ''} onChange={e => chgPre('declaracionconflictointereses', e.target.value)} options={OPTSINO} />
+          </SubGroup>
 
-          <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.06em', margin: '16px 0 10px' }}>
-            AMPLIACIÓN PRERROGATIVAS TEMPORALES
-          </p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
-            <div style={{ flex: '1 1 220px' }}>
-              <SimpleSelect label="Solicitud ampliación PT" value={pre.amplprertemporalessolicitud ?? ''}
-                onChange={e => chgPre('amplprertemporalessolicitud', e.target.value)} options={OPTSINO} />
-            </div>
-            <div style={{ flex: '1 1 220px' }}>
-              <SimpleSelect label="Respuesta ampliación PT" value={pre.amplprertemporalesrespuesta ?? ''}
-                onChange={e => chgPre('amplprertemporalesrespuesta', e.target.value)} options={OPTSINO} />
-            </div>
-          </div>
-
-          <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.06em', margin: '16px 0 10px' }}>
-            AUTORIZACIONES Y CERTIFICADOS
-          </p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
-            <div style={{ flex: '1 1 200px' }}>
-              <SimpleSelect label="Auth. credenciales" value={pre.cartaauthcredenciales ?? ''}
-                onChange={e => chgPre('cartaauthcredenciales', e.target.value)} options={OPTSINO} />
-            </div>
-            <div style={{ flex: '1 1 170px' }}>
-              <CampoFechaNullable label="Fecha auth. credenciales"
-                fieldKey="fechacartaauthcredenciales" value={pre.fechacartaauthcredenciales} onChangeFn={chgPre} />
-            </div>
-            <div style={{ flex: '1 1 200px' }}>
-              <SimpleSelect label="Auth. ingreso CME" value={pre.cartaauthingresocme ?? ''}
-                onChange={e => chgPre('cartaauthingresocme', e.target.value)} options={OPTSINO} />
-            </div>
-            <div style={{ flex: '1 1 170px' }}>
-              <CampoFechaNullable label="Fecha auth. ingreso CME"
-                fieldKey="fechacartaauthingresocme" value={pre.fechacartaauthingresocme} onChangeFn={chgPre} />
-            </div>
-            <div style={{ flex: '1 1 220px' }}>
-              <SimpleSelect label="Notif. ingreso profesional" value={pre.notificacioningresoprofesional ?? ''}
-                onChange={e => chgPre('notificacioningresoprofesional', e.target.value)} options={OPTSINO} />
-            </div>
-            <div style={{ flex: '1 1 220px' }}>
-              <SimpleSelect label="Cert. entrega modelo médico" value={pre.certentregamodelomedico ?? ''}
-                onChange={e => chgPre('certentregamodelomedico', e.target.value)} options={OPTSINO} />
-            </div>
-            <div style={{ flex: '1 1 220px' }}>
-              <SimpleSelect label="Carta recept. doc. modelo médico" value={pre.cartareceptdocmodelomedico ?? ''}
-                onChange={e => chgPre('cartareceptdocmodelomedico', e.target.value)} options={OPTSINO} />
-            </div>
-            <div style={{ flex: '1 1 220px' }}>
-              <SimpleSelect label="Decl. conflicto de intereses" value={pre.declaracionconflictointereses ?? ''}
-                onChange={e => chgPre('declaracionconflictointereses', e.target.value)} options={OPTSINO} />
-            </div>
-          </div>
         </SectionCard>
 
       </div>

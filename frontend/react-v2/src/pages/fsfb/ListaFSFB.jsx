@@ -8,29 +8,77 @@ import MedicoTable from '../../components/shared/MedicoTable';
    Estilo unificado con ListaMedicos (avatares + KPI strip)
    ══════════════════════════════════════════════════════════════ */
 
-function KpiCard({ label, value, variant, icon }) {
-  const themes = {
-    teal:    { bg: 'rgba(10,126,110,0.07)', accent: '#0A7E6E', val: '#00103e' },
-    primary: { bg: 'rgba(26,78,215,0.07)',  accent: '#1a4ed7', val: '#00103e' },
-    warning: { bg: 'rgba(180,83,9,0.08)',   accent: '#b45309', val: '#92400e' },
-    neutral: { bg: 'rgba(71,85,105,0.07)',  accent: '#475569', val: '#334155' },
-  };
-  const t = themes[variant] ?? themes.teal;
+const KPI_THEMES = {
+  slate:   { title: '#64748b', bar: '#cbd5e1', value: '#334155', ghost: '#0f172a' },
+  emerald: { title: '#059669', bar: '#34d399', value: '#059669', ghost: '#10b981' },
+  amber:   { title: '#d97706', bar: '#fbbf24', value: '#d97706', ghost: '#f59e0b' },
+};
+
+function KpiCard({ label, valor, sub, variant = 'slate', icon }) {
+  const [hovered, setHovered] = useState(false);
+  const t = KPI_THEMES[variant] ?? KPI_THEMES.slate;
   return (
-    <div style={{
-      background: t.bg, borderRadius: 14, padding: '18px 20px',
-      border: `1px solid ${t.accent}20`,
-      display: 'flex', flexDirection: 'column', gap: 6,
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+    <div
+      style={{
+        position: 'relative', overflow: 'hidden',
+        background: 'rgba(255,255,255,0.4)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        border: '1px solid rgba(255,255,255,0.3)',
+        borderRadius: '2rem',
+        padding: '1.5rem',
+        boxShadow: hovered
+          ? '0 20px 25px -5px rgba(0,0,0,0.10), 0 8px 10px -6px rgba(0,0,0,0.10)'
+          : '0 4px 20px -5px rgba(0,0,0,0.02)',
+        display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+        height: 192,
+        transition: 'all 500ms',
+        cursor: 'default',
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {/* Sección superior */}
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <h3 style={{
+          color: t.title, fontWeight: 700, fontSize: '0.625rem',
+          textTransform: 'uppercase', letterSpacing: '0.1em',
+          margin: '0 0 6px',
+        }}>
           {label}
-        </p>
-        {icon && <span className="material-symbols-outlined" style={{ fontSize: 18, color: t.accent, opacity: 0.7 }}>{icon}</span>}
+        </h3>
+        <div style={{ width: 32, height: 4, borderRadius: 9999, background: t.bar, marginBottom: 12 }} />
+        {sub && (
+          <p style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 500, margin: 0 }}>
+            {sub}
+          </p>
+        )}
       </div>
-      <p style={{ fontSize: '2rem', fontWeight: 800, color: t.val, lineHeight: 1, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em' }}>
-        {value ?? '—'}
-      </p>
+
+      {/* Sección inferior */}
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <p style={{
+          fontSize: '2.75rem', lineHeight: 1, fontWeight: 700,
+          letterSpacing: '-0.04em', color: t.value,
+          fontVariantNumeric: 'tabular-nums', margin: 0,
+        }}>
+          {valor ?? '—'}
+        </p>
+      </div>
+
+      {/* Ghost icon */}
+      {icon && (
+        <span className="material-symbols-outlined" style={{
+          position: 'absolute', right: '-5%', bottom: '-10%',
+          fontSize: 128, lineHeight: 1,
+          color: t.ghost,
+          opacity: hovered ? 0.1 : 0.06,
+          fontVariationSettings: "'FILL' 0",
+          transform: hovered ? 'rotate(0deg) scale(1.05)' : 'rotate(-5deg)',
+          pointerEvents: 'none', userSelect: 'none',
+          transition: 'all 0.4s ease',
+        }}>{icon}</span>
+      )}
     </div>
   );
 }
@@ -63,16 +111,16 @@ export default function ListaFSFB() {
 
       {/* ── KPI Strip ── */}
       {!kpiLoad && kpis && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 16, marginBottom: 28 }}>
-          <KpiCard label="Médicos FSFB"   value={kpis.totales?.fsfb ?? kpis.fsfb}       variant="teal"    icon="business" />
-          <KpiCard label="Activos"        value={kpis.totales?.activos ?? kpis.activos}  variant="primary" icon="verified_user" />
-          <KpiCard label="Alertas venc."  value={kpis.totales?.alertas ?? kpis.alertas}  variant="warning" icon="priority_high" />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '2rem' }}>
+          <KpiCard label="Médicos FSFB"  valor={kpis.totales?.fsfb_total}          variant="slate"   icon="business"      sub="Personal externo FSFB" />
+          <KpiCard label="Activos"       valor={kpis.totales?.fsfb_activos}        variant="emerald" icon="verified_user" sub="Planta operativa" />
+          <KpiCard label="Alertas venc." valor={kpis.totales?.alertas_vencimiento} variant="amber"   icon="warning"      sub="Docs requeridos" />
         </div>
       )}
 
       {/* ── Tabla ── */}
       <MedicoTable
-        apiParams={{ tipo_listado: 'fsfb_externo' }}
+        apiParams={{ tipo_listado: 'fsfb_externo', estado: 'ACTIVO' }}
         titulo="Listado médicos FSFB"
         subtitulo="Personal externo Fundación Santa Fe"
         emptyIcon="business"

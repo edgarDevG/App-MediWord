@@ -5,9 +5,7 @@ import ProtectedRoute          from '../components/Auth/ProtectedRoute';
 import Login                   from '../pages/auth/Login';
 import NoAutorizado            from '../pages/auth/NoAutorizado';
 import Dashboard               from '../pages/dashboard/Dashboard';
-import ListaMedicos            from '../pages/medicos/ListaMedicos';
 import FormMedico              from '../pages/medicos/FormMedico';
-import PerfilMedicoPage        from '../pages/medicos/PerfilMedicoPage';
 import PerfilMedico            from '../pages/medicos/PerfilMedico';
 import ListaFSFB               from '../pages/fsfb/ListaFSFB';
 import FormFSFB                from '../pages/fsfb/FormFSFB';
@@ -39,11 +37,6 @@ export default function AppRoutes() {
           } />
 
           {/* Cuerpo Médico — todos los roles operativos */}
-          <Route path="/medicos" element={
-            <ProtectedRoute roles={ROLES_OPERATIVOS}>
-              <MainLayout><ListaMedicos /></MainLayout>
-            </ProtectedRoute>
-          } />
           <Route path="/medicos/nuevo" element={
             <ProtectedRoute roles={ROLES_OPERATIVOS}>
               <MainLayout><FormMedico /></MainLayout>
@@ -59,12 +52,6 @@ export default function AppRoutes() {
               <MainLayout><PerfilMedico /></MainLayout>
             </ProtectedRoute>
           } />
-          <Route path="/medicos/:doc/carpetas" element={
-            <ProtectedRoute roles={ROLES_OPERATIVOS}>
-              <MainLayout><PerfilMedicoPage /></MainLayout>
-            </ProtectedRoute>
-          } />
-
           {/* Médicos FSFB — todos los roles operativos */}
           <Route path="/medicos-fsfb" element={
             <ProtectedRoute roles={ROLES_OPERATIVOS}>

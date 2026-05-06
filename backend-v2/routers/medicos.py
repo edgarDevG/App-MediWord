@@ -188,12 +188,10 @@ def patch_medico_estado(
         if not data.fechaTerminacion:
             raise HTTPException(400, "La fecha de terminación es obligatoria para registrar una renuncia.")
         medico.fecha_terminacion = data.fechaTerminacion
-        medico.tipo_listado = "renuncia"
 
     # REGLA 3: Inactivo requiere fecha_inactivacion (default: hoy)
     elif nuevo == "INACTIVO":
         medico.fecha_inactivacion = data.fechaInactivacion or date_type.today()
-        medico.tipo_listado = "inactivo"
         # Campos opcionales de contacto al inactivar
         if data.direccionCorrespondencia or data.direccionConsultorio:
             contacto = db.query(MedicoContacto).filter(MedicoContacto.medico_id == medico.id).first()
@@ -218,7 +216,6 @@ def patch_medico_estado(
             raise HTTPException(400, "El formulario de autorización de datos (Ley 1581) debe estar marcado como True para registrar una finalización.")
         medico.fecha_finalizacion_contrato = data.fechaFinalizacionContrato
         medico.formulario_autorizacion_datos = True
-        medico.tipo_listado = "finalizacion"
 
     estado_anterior = medico.estado
     medico.estado = nuevo

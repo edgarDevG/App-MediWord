@@ -37,8 +37,11 @@ const INIT_TAB1 = {
   tipo_documento: '', documento_identidad: '', lugar_expedicion: '',
   primer_nombre: '', segundo_nombre: '', primer_apellido: '', segundo_apellido: '',
   fecha_nacimiento: '', lugar_nacimiento: '', genero: '', estado_civil: '',
+  tiene_hijos: '', idiomas: [], otro_idioma: '', lenguaje_senas: false,
   correo_electronico: '', celular: '', telefono: '', direccion_residencia: '',
-  categoria: '', condicion_laboral: '', fecha_ingreso: '', activo: true,
+  correo_corporativo: '', direccion_consultorio: '',
+  categoria: '', cargo: '', fecha_ingreso: '', activo: true,
+  directorio_metrica_id: '',
   dept_coordinacion_id: '', dept_direccion_medica_id: '', seccion_id: '', especialidad: '',
   contacto_emergencia: '', parentesco: '', tel_emergencia: '', correo_alterno: '',
 };
@@ -73,7 +76,8 @@ const mappers = {
   condicionesLab:   (row) => ({ value: row.condicion, label: row.condicion }),
   departamentos:    (row) => ({ value: row.id,        label: row.nombre }),
   secciones:        (row) => ({ value: row.id,        label: row.nombre }),
-  especialidades:   (row) => ({ value: row.nombre,    label: row.nombre }),
+  especialidades:    (row) => ({ value: row.nombre,  label: row.nombre }),
+  directorioMetrica: (row) => ({ value: row.codigo,  label: `${row.codigo} – ${row.descripcion}` }),
 };
 
 function applyMapper(data, mapFn, fallback = []) {
@@ -165,57 +169,144 @@ function SectionCard({ title, icon, children }) {
 }
 
 /* ── Stepper ── */
+/* ── Stepper Mejorado ── */
+/* ── Stepper Mejorado (Flotante / Sticky) ── */
+/* ── Stepper Mejorado (Flotante / Sticky) - CORREGIDO ── */
 function StepperBar({ currentStep, completedSteps, onStepClick }) {
   const pct = Math.round((completedSteps.length / STEPS.length) * 100);
+  
   return (
-    <div className="stepper-bar fm-stepper">
-      <div className="stepper-steps">
+    <div style={{
+      /* Efecto flotante (Sticky) */
+      position: 'sticky',
+      top: '0rem', 
+      zIndex: 100, 
+      
+      /* Efecto visual de cristal (Glassmorphism) */
+      background: 'rgba(255, 255, 255, 0.85)',
+      backdropFilter: 'blur(12px)',
+      WebkitBackdropFilter: 'blur(12px)',
+      
+      border: '1px solid rgba(197,198,210,0.5)',
+    
+      /* CORRECCIÓN: Mayor padding superior (2.5rem en lugar de 1.5rem) para darle espacio al pill */
+      padding: '2.5rem 2rem 1.5rem 2rem',
+      marginBottom: '2rem',
+      boxShadow: '0 10px 30px rgba(0, 0, 0, 0.05)',
+      overflow: 'hidden'
+    }}>
+      
+      {/* Barra de progreso sutil superior */}
+      <div style={{
+        position: 'absolute', top: 0, left: 0, height: '4px', width: '100%',
+        background: 'var(--color-surface-container-highest, #e2e8f0)'
+      }}>
+        <div style={{
+          height: '100%', width: `${pct}%`,
+          background: 'var(--color-primary)',
+          transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+        }} />
+      </div>
+
+      {/* Porcentaje flotante a la derecha - CORRECCIÓN de posición */}
+      <div style={{
+        position: 'absolute',
+        top: '0.75rem', /* Lo pegamos un poco más a la barra superior */
+        right: '1.5rem',
+        display: 'flex', alignItems: 'center', gap: '6px',
+        background: 'rgba(14, 155, 138, 0.1)',
+        padding: '4px 10px',
+        borderRadius: '20px',
+        zIndex: 10
+      }}>
+        <span className="material-symbols-outlined" style={{ fontSize: '16px', color: '#0E9B8A' }}>monitoring</span>
+        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0E9B8A' }}>{pct}% Completado</span>
+      </div>
+
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between',
+        position: 'relative',
+        zIndex: 1
+      }}>
         {STEPS.map((step, idx) => {
           const isDone   = completedSteps.includes(step.id);
           const isActive = currentStep === step.id;
           const canClick = isDone || completedSteps.includes(step.id - 1) || step.id === 1;
+          
           return (
             <div key={step.id} style={{
-              display: 'flex', alignItems: 'center',
+              display: 'flex', 
+              alignItems: 'center',
               flex: idx < STEPS.length - 1 ? 1 : 'none',
             }}>
-              <div
-                className={`step-item fm-step-item${isActive ? ' fm-step-active' : ''}${isDone ? ' fm-step-done' : ''}`}
+              
+              {/* Contenedor del Paso */}
+              <div 
                 onClick={() => canClick && onStepClick(step.id)}
-                style={{ cursor: canClick ? 'pointer' : 'default' }}
-                title={canClick ? `Ir a: ${step.label}` : step.label}
-                aria-current={isActive ? 'step' : undefined}
+                style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center',
+                  gap: '8px',
+                  cursor: canClick ? 'pointer' : 'default',
+                  position: 'relative',
+                  width: '120px', 
+                  opacity: (isDone || isActive) ? 1 : 0.6,
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => { if(canClick && !isActive) e.currentTarget.style.transform = 'translateY(-2px)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)' }}
               >
-                <div className={`step-circle fm-step-circle ${isDone ? 'done' : isActive ? 'active' : 'pending'}`}>
-                  {isActive && <div className="fm-pulse-ring" />}
-                  {isDone
-                    ? <span className="material-symbols-outlined sm filled">check</span>
-                    : isActive
-                    ? <span className="material-symbols-outlined sm">{step.icon}</span>
-                    : <span style={{ fontSize: '0.8125rem', fontWeight: 600 }}>{step.id}</span>
-                  }
+                {/* Círculo */}
+                <div style={{
+                  width: '44px', height: '44px',
+                  borderRadius: '50%',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: isActive ? 'var(--color-primary)' : isDone ? '#0E9B8A' : '#f1f5f9',
+                  color: (isActive || isDone) ? '#ffffff' : '#64748b',
+                  border: isActive ? '4px solid rgba(26, 78, 215, 0.15)' : isDone ? 'none' : '1px solid #cbd5e1',
+                  boxShadow: isActive ? '0 4px 10px rgba(26, 78, 215, 0.3)' : 'none',
+                  transition: 'all 0.3s ease',
+                  zIndex: 2
+                }}>
+                  {isDone && !isActive ? (
+                    <span className="material-symbols-outlined" style={{ fontSize: '20px', fontWeight: 600 }}>check</span>
+                  ) : (
+                    <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>{step.icon}</span>
+                  )}
                 </div>
-                <span className={`step-label${isActive ? ' active' : ''}`}>{step.label}</span>
+
+                {/* Texto del paso */}
+                <span style={{ 
+                  fontSize: '0.75rem', 
+                  fontWeight: isActive ? 700 : 500, 
+                  color: isActive ? 'var(--color-primary)' : isDone ? '#0E9B8A' : '#64748b',
+                  textAlign: 'center',
+                  lineHeight: '1.2'
+                }}>
+                  {step.label}
+                </span>
               </div>
+
+              {/* Conector Lineal */}
               {idx < STEPS.length - 1 && (
-                <div className={`step-connector fm-connector${isDone ? ' done' : ''}`}
-                  style={{ marginBottom: 20 }} />
+                <div style={{ 
+                  flex: 1, 
+                  height: '2px', 
+                  background: isDone ? '#0E9B8A' : '#e2e8f0',
+                  margin: '0 -20px',
+                  transform: 'translateY(-12px)', 
+                  transition: 'background 0.3s ease',
+                  zIndex: 0
+                }} />
               )}
             </div>
           );
         })}
       </div>
-      <div className="stepper-progress fm-progress-wrap">
-        <div className="progress-bar fm-progress-bar">
-          <div className="progress-fill fm-progress-fill" style={{ width: `${pct}%` }}>
-            <div className="fm-progress-shimmer" />
-          </div>
-        </div>
-        <div className="progress-meta">
-          <span style={{ color: 'var(--color-secondary)', fontWeight: 700 }}>{pct}%</span>
-          <span style={{ color: '#94a3b8' }}>completado</span>
-        </div>
-      </div>
+
     </div>
   );
 }
@@ -246,7 +337,8 @@ export default function FormMedico() {
   const [rawDeptCoord,    setRawDeptCoord]    = useState([]);
   const [rawDeptDM,       setRawDeptDM]       = useState([]);
   const [rawSecciones,    setRawSecciones]    = useState([]);
-  const [rawEspecialidades, setRawEspecialidades] = useState([]);
+  const [rawEspecialidades,    setRawEspecialidades]    = useState([]);
+  const [rawDirectorioMetrica, setRawDirectorioMetrica] = useState([]);
   const [loadingMaestras, setLoadingMaestras] = useState(true);
   const [maestrasListas,  setMaestrasListas]  = useState(false);
 
@@ -262,7 +354,8 @@ export default function FormMedico() {
   const optDeptCoord      = useMemo(() => applyMapper(rawDeptCoord,      mappers.departamentos),   [rawDeptCoord]);
   const optDeptDM         = useMemo(() => applyMapper(rawDeptDM,         mappers.departamentos),   [rawDeptDM]);
   const optSecciones      = useMemo(() => applyMapper(rawSecciones,      mappers.secciones),       [rawSecciones]);
-  const optEspecialidades = useMemo(() => applyMapper(rawEspecialidades, mappers.especialidades),  [rawEspecialidades]);
+  const optEspecialidades    = useMemo(() => applyMapper(rawEspecialidades,    mappers.especialidades),    [rawEspecialidades]);
+  const optDirectorioMetrica = useMemo(() => applyMapper(rawDirectorioMetrica, mappers.directorioMetrica), [rawDirectorioMetrica]);
 
   const markCompleted = (n) =>
     setCompletedSteps(prev => [...new Set([...prev, n])]);
@@ -283,7 +376,7 @@ export default function FormMedico() {
     const load = async () => {
       setLoadingMaestras(true);
       try {
-        const [rExp, rNac, rCat, rCond, rDCoord, rDDM, rSec, rEsp] = await Promise.allSettled([
+        const [rExp, rNac, rCat, rCond, rDCoord, rDDM, rSec, rEsp, rDirMet] = await Promise.allSettled([
           axiosInstance.get('/maestras/ciudades',                          { skipToast: true }),
           axiosInstance.get('/maestras/ciudades',                          { skipToast: true }),
           axiosInstance.get('/maestras/categorias-metricas',               { skipToast: true }),
@@ -292,15 +385,17 @@ export default function FormMedico() {
           axiosInstance.get('/maestras/departamentos/?tipo=dm',            { skipToast: true }),
           axiosInstance.get('/maestras/secciones/',                        { skipToast: true }),
           axiosInstance.get('/maestras/especialidades/',                   { skipToast: true }),
+          axiosInstance.get('/maestras/directorio-metrica/',               { skipToast: true }),
         ]);
-        if (rExp.status    === 'fulfilled') setRawExpedicion(rExp.value.data       ?? []);
-        if (rNac.status    === 'fulfilled') setRawNacimiento(rNac.value.data       ?? []);
-        if (rCat.status    === 'fulfilled') setRawCategorias(rCat.value.data       ?? []);
-        if (rCond.status   === 'fulfilled') setRawCondiciones(rCond.value.data     ?? []);
-        if (rDCoord.status === 'fulfilled') setRawDeptCoord(rDCoord.value.data     ?? []);
-        if (rDDM.status    === 'fulfilled') setRawDeptDM(rDDM.value.data           ?? []);
-        if (rSec.status    === 'fulfilled') setRawSecciones(rSec.value.data        ?? []);
-        if (rEsp.status    === 'fulfilled') setRawEspecialidades(rEsp.value.data   ?? []);
+        if (rExp.status    === 'fulfilled') setRawExpedicion(rExp.value.data             ?? []);
+        if (rNac.status    === 'fulfilled') setRawNacimiento(rNac.value.data             ?? []);
+        if (rCat.status    === 'fulfilled') setRawCategorias(rCat.value.data             ?? []);
+        if (rCond.status   === 'fulfilled') setRawCondiciones(rCond.value.data           ?? []);
+        if (rDCoord.status === 'fulfilled') setRawDeptCoord(rDCoord.value.data           ?? []);
+        if (rDDM.status    === 'fulfilled') setRawDeptDM(rDDM.value.data                 ?? []);
+        if (rSec.status    === 'fulfilled') setRawSecciones(rSec.value.data              ?? []);
+        if (rEsp.status    === 'fulfilled') setRawEspecialidades(rEsp.value.data         ?? []);
+        if (rDirMet.status === 'fulfilled') setRawDirectorioMetrica(rDirMet.value.data   ?? []);
       } catch (e) {
         console.error('[FormMedico v9] maestras error inesperado:', e);
       } finally {
@@ -341,7 +436,8 @@ export default function FormMedico() {
         setTab1({
           documento_identidad: med.documento_identidad ?? documento,
           categoria:                med.categoria                ?? '',
-          condicion_laboral:        '',
+          cargo:                    med.cargo                    ?? '',
+          directorio_metrica_id:    med.directorio_metrica_id    ?? '',
           fecha_ingreso:            toDateStr(med.fecha_ingreso),
           dept_coordinacion_id:     med.dept_coordinacion_id     ?? '',
           dept_direccion_medica_id: med.dept_direccion_medica_id ?? '',
@@ -351,6 +447,10 @@ export default function FormMedico() {
           activo:              med.estado === 'INACTIVO' ? false : (med.activo ?? true),
           // FIX 3c: estado_civil viene de contacto, no de medico
           estado_civil:        cont.estado_civil ?? '',
+          tiene_hijos:         cont.tiene_hijos  ?? '',
+          idiomas:             Array.isArray(cont.idiomas) ? cont.idiomas : [],
+          otro_idioma:         cont.otro_idioma  ?? '',
+          lenguaje_senas:      cont.maneja_lengua_senas ?? false,
           primer_nombre:    primerNombre,
           segundo_nombre:   segundoNombre,
           primer_apellido:  primerApellido,
@@ -360,14 +460,16 @@ export default function FormMedico() {
           fecha_nacimiento: toDateStr(hv.fecha_nacimiento ?? hv.fechanacimiento),
           lugar_nacimiento: hv.lugar_nacimiento ?? hv.lugarnacimiento ?? '',
           genero:           hv.sexo             ?? hv.genero          ?? '',
-          correo_electronico:   cont.correo                    ?? cont.correo_electronico           ?? '',
-          celular:              cont.celular                   ?? '',
-          telefono:             cont.telefono                  ?? '',
-          direccion_residencia: cont.direccion_correspondencia ?? cont.direccioncorrespondencia      ?? '',
-          contacto_emergencia:  cont.contacto_emergencia       ?? '',
-          parentesco:           cont.parentesco                ?? '',
-          tel_emergencia:       cont.tel_emergencia            ?? '',
-          correo_alterno:       cont.correo_alterno            ?? '',
+          correo_electronico:    cont.correo                    ?? cont.correo_electronico           ?? '',
+          celular:               cont.celular                   ?? '',
+          telefono:              cont.telefono                  ?? '',
+          direccion_residencia:  cont.direccion_correspondencia ?? cont.direccioncorrespondencia      ?? '',
+          correo_corporativo:    cont.correo_corporativo        ?? '',
+          direccion_consultorio: cont.direccion_consultorio     ?? '',
+          contacto_emergencia:   cont.contacto_emergencia       ?? '',
+          parentesco:            cont.parentesco                ?? '',
+          tel_emergencia:        cont.tel_emergencia            ?? '',
+          correo_alterno:        cont.correo_alterno            ?? '',
         });
         setMedicoDoc(med.documento_identidad ?? documento);
         markCompleted(1);
@@ -379,6 +481,14 @@ export default function FormMedico() {
     };
     loadMedico();
   }, [isEdit, maestrasListas, documento]); // eslint-disable-line
+
+  const handleIdiomaToggle = (idioma) => {
+    setTab1(prev => {
+      const arr = prev.idiomas ?? [];
+      return { ...prev, idiomas: arr.includes(idioma) ? arr.filter(i => i !== idioma) : [...arr, idioma] };
+    });
+    setTab1Dirty(true);
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -414,13 +524,15 @@ export default function FormMedico() {
         tab1.primer_apellido, tab1.segundo_apellido].filter(Boolean).join(' ').trim();
 
       // FIX 4: medicoPayload solo contiene campos de la tabla medicos
-      // condicion_laboral y estado_civil NO van aquí
+      // estado_civil NO va aquí (va en contacto)
       const medicoPayload = {
         primer_nombre:            tab1.primer_nombre,
         segundo_nombre:           tab1.segundo_nombre           || null,
         primer_apellido:          tab1.primer_apellido,
         segundo_apellido:         tab1.segundo_apellido         || null,
         categoria:                tab1.categoria                || null,
+        cargo:                    tab1.cargo                    || null,
+        directorio_metrica_id:    tab1.directorio_metrica_id    || null,
         fecha_ingreso:            tab1.fecha_ingreso            || null,
         estado:                   tab1.activo ? 'ACTIVO' : 'INACTIVO',
         dept_coordinacion_id:     tab1.dept_coordinacion_id     || null,
@@ -451,15 +563,21 @@ export default function FormMedico() {
 
       // FIX 5: contactoPayload incluye estado_civil (tabla contacto sí lo tiene)
       const contactoPayload = {
-        correo:                    tab1.correo_electronico  || null,
-        celular:                   tab1.celular             || null,
-        telefono:                  tab1.telefono            || null,
+        correo:                    tab1.correo_electronico   || null,
+        correo_corporativo:        tab1.correo_corporativo   || null,
+        celular:                   tab1.celular              || null,
+        telefono:                  tab1.telefono             || null,
         direccion_correspondencia: tab1.direccion_residencia || null,
-        estado_civil:              tab1.estado_civil        || null,
-        contacto_emergencia:       tab1.contacto_emergencia || null,
-        parentesco:                tab1.parentesco          || null,
-        tel_emergencia:            tab1.tel_emergencia      || null,
-        correo_alterno:            tab1.correo_alterno      || null,
+        direccion_consultorio:     tab1.direccion_consultorio || null,
+        estado_civil:              tab1.estado_civil         || null,
+        tiene_hijos:               tab1.tiene_hijos          || null,
+        idiomas:                   tab1.idiomas?.length ? tab1.idiomas : null,
+        otro_idioma:               tab1.otro_idioma          || null,
+        maneja_lengua_senas:       tab1.lenguaje_senas       ?? null,
+        contacto_emergencia:       tab1.contacto_emergencia  || null,
+        parentesco:                tab1.parentesco           || null,
+        tel_emergencia:            tab1.tel_emergencia       || null,
+        correo_alterno:            tab1.correo_alterno       || null,
       };
       try { await upsert(API.contacto(savedDoc), API.contacto(savedDoc), contactoPayload, savedDoc); }
       catch (contErr) { console.warn('[FormMedico v9] datos_contacto:', contErr); }
@@ -531,7 +649,7 @@ export default function FormMedico() {
                 <div>
                   <h2 className="fm-hero-title">
                     {isEdit ? 'Editar médico' : 'Nuevo médico'}
-                    <span className="fm-hero-subtitle"> — Datos del Médico</span>
+                    <span className="fm-hero-subtitle"> — Datos Generales </span>
                   </h2>
                   <p className="fm-hero-desc">
                     Información personal e institucional básica del médico adscrito.
@@ -636,6 +754,42 @@ export default function FormMedico() {
                 value={tab1.genero} onChange={handleChange} options={OPT_GENERO} />
               <CampoSelect label="Estado civil" name="estado_civil"
                 value={tab1.estado_civil} onChange={handleChange} options={OPT_EST_CIVIL} />
+
+              <CampoSelect label="¿Tiene hijos?" name="tiene_hijos"
+                value={tab1.tiene_hijos} onChange={handleChange}
+                options={[{ value: 'S', label: 'Sí' }, { value: 'N', label: 'No' }]} />
+
+              <div className="form-group fm-field" style={{ gridColumn: 'span 2' }}>
+                <label className="form-label">Idiomas que maneja</label>
+                <div className="fm-idiomas-group">
+                  {['Inglés', 'Francés', 'Italiano', 'Alemán', 'Portugués'].map(idioma => (
+                    <button key={idioma} type="button"
+                      onClick={() => handleIdiomaToggle(idioma)}
+                      className={`fm-idioma-chip${(tab1.idiomas ?? []).includes(idioma) ? ' fm-idioma-chip-on' : ''}`}>
+                      {idioma}
+                    </button>
+                  ))}
+                </div>
+                <input name="otro_idioma" className="form-input fm-input"
+                  style={{ marginTop: 8 }}
+                  value={tab1.otro_idioma ?? ''} onChange={handleChange}
+                  placeholder="Otro idioma…" />
+              </div>
+
+              <div className="form-group fm-field">
+                <label className="form-label">Lenguaje de señas</label>
+                <button type="button"
+                  onClick={() => { setTab1(prev => ({ ...prev, lenguaje_senas: !prev.lenguaje_senas })); setTab1Dirty(true); }}
+                  className={`fm-toggle-btn ${tab1.lenguaje_senas ? 'fm-toggle-active' : 'fm-toggle-inactive'}`}>
+                  <div className="fm-toggle-track">
+                    <div className="fm-toggle-thumb" />
+                    <span className="fm-toggle-icon material-symbols-outlined">
+                      {tab1.lenguaje_senas ? 'check_circle' : 'cancel'}
+                    </span>
+                  </div>
+                  <span className="fm-toggle-label">{tab1.lenguaje_senas ? 'Sí' : 'No'}</span>
+                </button>
+              </div>
             </div>
           </SectionCard>
 
@@ -648,16 +802,30 @@ export default function FormMedico() {
                   error={errors.correo_electronico}
                   placeholder="medico@serena.com.co" autoComplete="email" />
               </div>
-              <Campo label="Celular" name="celular" type="tel"
-                value={tab1.celular} onChange={handleChange}
-                error={errors.celular} placeholder="Ej: 3001234567" />
-              <Campo label="Teléfono fijo" name="telefono" type="tel"
-                value={tab1.telefono} onChange={handleChange}
-                placeholder="Ej: 6057654321" />
-              <div style={{ gridColumn: 'span 4' }}>
+              <div style={{ gridColumn: 'span 2' }}>
+                <Campo label="Correo corporativo" name="correo_corporativo" type="email"
+                  value={tab1.correo_corporativo} onChange={handleChange}
+                  placeholder="medico@chsm.com" autoComplete="email" />
+              </div>
+              <div style={{ gridColumn: 'span 2' }}>
+                <Campo label="Celular" name="celular" type="tel"
+                  value={tab1.celular} onChange={handleChange}
+                  error={errors.celular} placeholder="Ej: 3001234567" />
+              </div>
+              <div style={{ gridColumn: 'span 2' }}>
+                <Campo label="Teléfono fijo" name="telefono" type="tel"
+                  value={tab1.telefono} onChange={handleChange}
+                  placeholder="Ej: 6057654321" />
+              </div>
+              <div style={{ gridColumn: 'span 2' }}>
                 <Campo label="Dirección de residencia" name="direccion_residencia"
                   value={tab1.direccion_residencia} onChange={handleChange}
                   placeholder="Ej: Cra 12 # 34-56, Cartagena" />
+              </div>
+              <div style={{ gridColumn: 'span 2' }}>
+                <Campo label="Dirección de consultorio" name="direccion_consultorio"
+                  value={tab1.direccion_consultorio} onChange={handleChange}
+                  placeholder="Ej: Cra 15 # 12-30, Piso 3" />
               </div>
             </div>
           </SectionCard>
@@ -677,10 +845,13 @@ export default function FormMedico() {
                   </span>
                 )}
               </div>
-              <CampoSelect label="Condición laboral" name="condicion_laboral"
-                value={tab1.condicion_laboral} onChange={handleChange}
-                options={optCondiciones} disabled={loadingMaestras}
-                placeholder="Seleccionar condición…" />
+              <Campo label="Cargo" name="cargo"
+                value={tab1.cargo} onChange={handleChange}
+                placeholder="Ej: Jefe de Urgencias" />
+              <CampoSelect label="Directorio de Métrica" name="directorio_metrica_id"
+                value={tab1.directorio_metrica_id} onChange={handleChange}
+                options={optDirectorioMetrica} disabled={loadingMaestras}
+                placeholder="Seleccionar directorio…" />
               <Campo label="Fecha de ingreso" name="fecha_ingreso"
                 type="date" value={tab1.fecha_ingreso} onChange={handleChange} />
               <CampoSelect label="Dpto. Coordinación" name="dept_coordinacion_id"
@@ -1091,6 +1262,35 @@ export default function FormMedico() {
           color: var(--color-error, #ba1a1a);
           margin-top: 5px;
           animation: fm-fade-in 0.2s ease both;
+        }
+
+        /* ── Idiomas chips ── */
+        .fm-idiomas-group {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+          margin-bottom: 0;
+        }
+        .fm-idioma-chip {
+          padding: 4px 14px;
+          border-radius: 9999px;
+          font-size: 0.8rem;
+          font-weight: 600;
+          border: 1.5px solid rgba(197,198,210,0.6);
+          background: var(--color-background, #f8f9fb);
+          color: var(--color-on-surface-variant, #444650);
+          cursor: pointer;
+          transition: border-color 160ms, background 160ms, color 160ms;
+        }
+        .fm-idioma-chip:hover {
+          border-color: rgba(26,78,215,0.4);
+          background: rgba(26,78,215,0.05);
+          color: var(--color-secondary, #1a4ed7);
+        }
+        .fm-idioma-chip-on {
+          border-color: var(--color-secondary, #1a4ed7);
+          background: rgba(26,78,215,0.1);
+          color: var(--color-secondary, #1a4ed7);
         }
 
         /* ── Category badge ── */

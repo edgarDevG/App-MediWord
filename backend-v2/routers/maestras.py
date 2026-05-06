@@ -4,8 +4,8 @@ Router: /api/v1/maestras — Tablas maestras (publicas dentro de sesión)
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from database import get_db
-from model import Categoria, Departamento, Seccion, EspecialidadMetrica, Ciudad, CondicionLaboral
-from schemas import CategoriaOut, DepartamentoOut, SeccionOut, EspecialidadMetricaOut, CiudadOut, CondicionLaboralOut
+from model import Categoria, Departamento, Seccion, EspecialidadMetrica, Ciudad, CondicionLaboral, DirectorioMetrica
+from schemas import CategoriaOut, DepartamentoOut, SeccionOut, EspecialidadMetricaOut, CiudadOut, CondicionLaboralOut, DirectorioMetricaOut
 
 router = APIRouter(prefix="/maestras", tags=["Maestras"])
 
@@ -41,3 +41,8 @@ def list_ciudades(db: Session = Depends(get_db)):
 @router.get("/condiciones-laborales/", response_model=list[CondicionLaboralOut])
 def list_condiciones(db: Session = Depends(get_db)):
     return db.query(CondicionLaboral).order_by(CondicionLaboral.condicion).all()
+
+
+@router.get("/directorio-metrica/", response_model=list[DirectorioMetricaOut])
+def list_directorio_metrica(db: Session = Depends(get_db)):
+    return db.query(DirectorioMetrica).filter(DirectorioMetrica.activo == True).order_by(DirectorioMetrica.codigo).all()

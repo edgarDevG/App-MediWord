@@ -61,6 +61,14 @@ class CondicionLaboralOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class DirectorioMetricaOut(BaseModel):
+    id: int
+    codigo: str
+    descripcion: str
+    activo: bool
+    model_config = {"from_attributes": True}
+
+
 # ═══════════════════════════════════════════════════════════════
 # MEDICO — Datos Generales (Tab 1)
 # ═══════════════════════════════════════════════════════════════
@@ -96,6 +104,8 @@ class MedicoUpdate(BaseModel):
     primer_apellido: Optional[str] = None
     segundo_apellido: Optional[str] = None
     categoria: Optional[str] = None
+    cargo: Optional[str] = None
+    directorio_metrica_id: Optional[int] = None
     dept_coordinacion_id: Optional[str] = None
     dept_direccion_medica_id: Optional[str] = None
     seccion_id: Optional[str] = None
@@ -136,6 +146,8 @@ class MedicoOut(BaseModel):
     primer_apellido: Optional[str] = None
     segundo_apellido: Optional[str] = None
     categoria: Optional[str] = None
+    cargo: Optional[str] = None
+    directorio_metrica_id: Optional[int] = None
     dept_coordinacion_id: Optional[str] = None
     dept_direccion_medica_id: Optional[str] = None
     seccion_id: Optional[str] = None
@@ -212,6 +224,7 @@ class DatosHVOut(DatosHVUpdate):
 
 class ContactoUpdate(BaseModel):
     correo: Optional[str] = None
+    correo_corporativo: Optional[str] = None
     celular: Optional[str] = None
     telefono: Optional[str] = None
     direccion_correspondencia: Optional[str] = None
@@ -221,6 +234,7 @@ class ContactoUpdate(BaseModel):
     tiene_hijos: Optional[bool] = None
     maneja_lengua_senas: Optional[bool] = None
     idiomas: Optional[Any] = None
+    otro_idioma: Optional[str] = None
 
 
 class ContactoOut(ContactoUpdate):

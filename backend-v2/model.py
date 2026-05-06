@@ -50,6 +50,14 @@ class CondicionLaboral(Base):
     condicion = Column(String(100), primary_key=True)
 
 
+class DirectorioMetrica(Base):
+    __tablename__ = "m_directorio_metrica"
+    id          = Column(Integer, primary_key=True, autoincrement=True)
+    codigo      = Column(String(20), unique=True, nullable=False)
+    descripcion = Column(String(200), nullable=False)
+    activo      = Column(Boolean, nullable=False, default=True)
+
+
 # ═══════════════════════════════════════════════════════════════
 # 1. MEDICOS — tabla maestra
 # ═══════════════════════════════════════════════════════════════
@@ -65,6 +73,8 @@ class Medico(Base):
     primer_apellido         = Column(String(100))
     segundo_apellido        = Column(String(100))
     categoria               = Column(String(5), ForeignKey("categorias.code"))
+    cargo                   = Column(String(150))
+    directorio_metrica_id   = Column(Integer, ForeignKey("m_directorio_metrica.id"))
     dept_coordinacion_id    = Column(String(10), ForeignKey("departamentos.id"))
     dept_direccion_medica_id = Column(String(10), ForeignKey("departamentos.id"))
     seccion_id              = Column(String(10), ForeignKey("secciones.id"))
@@ -142,6 +152,7 @@ class MedicoContacto(Base):
 
     medico_id                = Column(BigInteger, ForeignKey("medicos.id", ondelete="SET NULL"), primary_key=True)
     correo                   = Column(String(200), unique=True)
+    correo_corporativo       = Column(String(200))
     celular                  = Column(String(30))
     telefono                 = Column(String(30))
     direccion_correspondencia = Column(Text)
@@ -151,6 +162,7 @@ class MedicoContacto(Base):
     tiene_hijos              = Column(Boolean)
     maneja_lengua_senas      = Column(Boolean)
     idiomas                  = Column(JSON)                   # ['Inglés','Francés',...]
+    otro_idioma              = Column(String(100))
 
     medico = relationship("Medico", back_populates="contacto")
 

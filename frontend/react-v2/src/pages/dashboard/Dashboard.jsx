@@ -68,76 +68,83 @@ function BadgeEstado({ estado }) {
   );
 }
 
+/* ── KPI Themes ───────────────────────────────────────────────── */
+const KPI_THEMES = {
+  slate:   { title: '#64748b', bar: '#cbd5e1', value: '#334155', ghost: '#0f172a' },
+  emerald: { title: '#059669', bar: '#34d399', value: '#059669', ghost: '#10b981' },
+  sky:     { title: '#0284c7', bar: '#38bdf8', value: '#0284c7', ghost: '#0ea5e9' },
+  muted:   { title: '#94a3b8', bar: '#e2e8f0', value: '#94a3b8', ghost: '#94a3b8' },
+  amber:   { title: '#d97706', bar: '#fbbf24', value: '#d97706', ghost: '#f59e0b' },
+  indigo:  { title: '#4f46e5', bar: '#818cf8', value: '#4f46e5', ghost: '#6366f1' },
+};
+
 /* ── KPI Card ─────────────────────────────────────────────────── */
-function KpiCard({ label, valor, sub, accentColor, icon, children, alert }) {
+function KpiCard({ label, valor, sub, variant = 'slate', icon, children }) {
+  const [hovered, setHovered] = useState(false);
+  const t = KPI_THEMES[variant] ?? KPI_THEMES.slate;
   return (
     <div
       style={{
-        background: 'white',
-        borderRadius: 14,
-        padding: '22px 20px 22px 24px',
-        boxShadow: '0 1px 4px rgba(25,28,30,0.07), 0 0 0 1px rgba(197,198,210,0.20)',
-        display: 'flex', flexDirection: 'column', gap: 10,
         position: 'relative', overflow: 'hidden',
-        transition: 'box-shadow 150ms, transform 150ms',
+        background: 'rgba(255,255,255,0.4)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        border: '1px solid rgba(255,255,255,0.3)',
+        borderRadius: '2rem',
+        padding: '1.5rem',
+        boxShadow: hovered
+          ? '0 20px 25px -5px rgba(0,0,0,0.10), 0 8px 10px -6px rgba(0,0,0,0.10)'
+          : '0 4px 20px -5px rgba(0,0,0,0.02)',
+        display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+        height: 192,
+        transition: 'all 500ms',
         cursor: 'default',
       }}
-      onMouseEnter={e => {
-        e.currentTarget.style.boxShadow = '0 8px 24px rgba(25,28,30,0.11)';
-        e.currentTarget.style.transform = 'translateY(-2px)';
-      }}
-      onMouseLeave={e => {
-        e.currentTarget.style.boxShadow = '0 1px 4px rgba(25,28,30,0.07), 0 0 0 1px rgba(197,198,210,0.20)';
-        e.currentTarget.style.transform = 'translateY(0)';
-      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
-      {/* barra vertical izquierda */}
-      <div style={{
-        position: 'absolute', top: 0, left: 0, bottom: 0, width: 4,
-        background: accentColor,
-        borderRadius: '14px 0 0 14px',
-      }} />
-
-      {/* icono */}
-      {icon && (
-        <div style={{
-          position: 'absolute', right: 18, top: 18,
-          width: 44, height: 44, borderRadius: 12,
-          background: `radial-gradient(circle at 60% 40%, ${accentColor}22 0%, ${accentColor}0d 100%)`,
-          border: `1px solid ${accentColor}18`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: accentColor,
+      {/* Sección superior */}
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <h3 style={{
+          color: t.title, fontWeight: 700, fontSize: '0.625rem',
+          textTransform: 'uppercase', letterSpacing: '0.1em',
+          margin: '0 0 6px',
         }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 22 }}>{icon}</span>
-        </div>
-      )}
+          {label}
+        </h3>
+        <div style={{ width: 32, height: 4, borderRadius: 9999, background: t.bar, marginBottom: 12 }} />
+        {sub && (
+          <p style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 500, margin: 0 }}>
+            {sub}
+          </p>
+        )}
+      </div>
 
-      <p style={{
-        fontSize: '0.6875rem', fontWeight: 700, color: '#8694aa',
-        textTransform: 'uppercase', letterSpacing: '0.08em', lineHeight: 1,
-        paddingRight: 56,
-      }}>
-        {label}
-      </p>
+      {/* Sección inferior */}
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        {children ?? (
+          <p style={{
+            fontSize: '2.75rem', lineHeight: 1, fontWeight: 700,
+            letterSpacing: '-0.04em', color: t.value,
+            fontVariantNumeric: 'tabular-nums', margin: 0,
+          }}>
+            {valor ?? '—'}
+          </p>
+        )}
+      </div>
 
-      {children ?? (
-        <>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-            <span style={{
-              fontSize: '2.625rem', fontWeight: 800, lineHeight: 1,
-              color: alert ? '#dc2626' : '#00103e',
-              letterSpacing: '-0.02em',
-              fontVariantNumeric: 'tabular-nums',
-            }}>
-              {safe(valor)}
-            </span>
-          </div>
-          {sub && (
-            <p style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 500, marginTop: -2 }}>
-              {sub}
-            </p>
-          )}
-        </>
+      {/* Ghost icon */}
+      {icon && (
+        <span className="material-symbols-outlined" style={{
+          position: 'absolute', right: '-5%', bottom: '-10%',
+          fontSize: 128, lineHeight: 1,
+          color: t.ghost,
+          opacity: hovered ? 0.1 : 0.06,
+          fontVariationSettings: "'FILL' 0",
+          transform: hovered ? 'rotate(0deg) scale(1.05)' : 'rotate(-5deg)',
+          pointerEvents: 'none', userSelect: 'none',
+          transition: 'all 0.4s ease',
+        }}>{icon}</span>
       )}
     </div>
   );
@@ -223,11 +230,11 @@ function ActionMenu({ doc, onReload, showToast }) {
     setOpen(o => !o);
   };
 
-  const handleChangeStatus = async (nuevoEstado, tipoListado) => {
+  const handleChangeStatus = async (nuevoEstado) => {
     setOpen(false);
     if (!window.confirm(`¿Confirmas cambiar el estado del médico a ${nuevoEstado}?`)) return;
     try {
-      await axiosInstance.patch(`/medicos/${doc}/estado`, { estado: nuevoEstado, tipo_listado: tipoListado });
+      await axiosInstance.patch(`/medicos/${doc}/estado`, { nuevoEstado });
       showToast?.('Estado actualizado correctamente', 'success');
       onReload?.();
     } catch (e) {
@@ -250,13 +257,13 @@ function ActionMenu({ doc, onReload, showToast }) {
         <span className="material-symbols-outlined sm">edit</span> Editar carpetas
       </Link>
       <div style={{ height: 1, background: 'rgba(197,198,210,0.25)', margin: '3px 0' }} />
-      <button style={menuItemStyle('#92400E')} onClick={() => handleChangeStatus('RENUNCIA', 'renuncia')}>
+      <button style={menuItemStyle('#92400E')} onClick={() => handleChangeStatus('RENUNCIA')}>
         <span className="material-symbols-outlined sm">assignment_return</span> Marcar Renuncia
       </button>
-      <button style={menuItemStyle('#991B1B')} onClick={() => handleChangeStatus('FINALIZADO', 'finalizacion')}>
+      <button style={menuItemStyle('#991B1B')} onClick={() => handleChangeStatus('FINALIZADO')}>
         <span className="material-symbols-outlined sm">event_busy</span> Marcar Finalización
       </button>
-      <button style={menuItemStyle('#374151')} onClick={() => handleChangeStatus('INACTIVO', 'inactivo')}>
+      <button style={menuItemStyle('#374151')} onClick={() => handleChangeStatus('INACTIVO')}>
         <span className="material-symbols-outlined sm">person_off</span> Trasladar a Inactivo
       </button>
     </div>,
@@ -352,54 +359,58 @@ export default function Dashboard() {
       {/* KPI Grid */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: 14, marginBottom: 26,
+        gridTemplateColumns: 'repeat(6, 1fr)',
+        gap: '1.5rem', marginBottom: '2rem',
       }}>
         {loadKpi
           ? Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="skeleton" style={{ height: 100, borderRadius: 14 }} />
+              <div key={i} className="skeleton" style={{ height: 192, borderRadius: '2rem' }} />
             ))
           : (<>
               <KpiCard
-                label="Total Médicos" valor={tot.total_medicos}
-                accentColor="#00103e" topColor="#00103e"
-                icon="groups" sub="Cuerpo médico"
+                label="Total Médicos"
+                valor={tot.hsm_total ?? tot.total_medicos}
+                variant="slate" icon="groups"
+                sub="Cuerpo médico global"
               />
               <KpiCard
-                label="Médicos Activos" valor={tot.activos}
-                accentColor="#1a4ed7" topColor="#1a4ed7"
-                icon="verified_user" sub="Planta activa"
+                label="Médicos Activos"
+                valor={tot.hsm_activos ?? tot.activos}
+                variant="emerald" icon="verified_user"
+                sub="Planta operativa"
               />
               <KpiCard
-                label="En Proceso" valor={tot.en_proceso}
-                accentColor="#d97706" topColor="#f59e0b"
-                icon="pending"
+                label="En Proceso"
+                valor={tot.en_proceso}
+                variant="sky" icon="schedule"
+                sub="Vinculación"
               />
               <KpiCard
-                label="Personal Inactivo" valor={tot.inactivos}
-                accentColor="#94a3b8" topColor="#94a3b8"
-                icon="person_off"
+                label="Inactivos"
+                valor={tot.inactivos}
+                variant="muted" icon="cancel"
+                sub="Histórico bajas"
               />
               <KpiCard
-                label="Alertas Venc." valor={alertas || '—'}
-                accentColor="#dc2626" topColor="#ef4444"
-                icon={alertas > 0 ? 'priority_high' : 'check_circle'}
-                alert={alertas > 0}
+                label="Alertas Venc."
+                valor={alertas || '—'}
+                variant="amber" icon="warning"
+                sub="Docs requeridos"
               />
-              {/* Por Categoría */}
-              <KpiCard label="Por Categoría" accentColor="#0e7e6e" topColor="#0e7e6e" icon="category">
+              <KpiCard label="Por Categoría" variant="indigo" icon="layers">
                 {cats.length > 0
                   ? (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 2 }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                       {cats.map((c, i) => {
-                        const col = CAT_COLORS[c.categoria] ?? { bg: '#e2e8f0', color: '#475569' };
+                        const col = CAT_COLORS[c.categoria] ?? { bg: '#e0e7ff', color: '#4f46e5' };
                         return (
                           <span key={i} style={{
                             fontSize: '0.625rem', fontWeight: 700,
-                            background: col.bg, color: col.color,
-                            padding: '3px 8px', borderRadius: 6,
+                            background: col.bg + '80', color: col.color,
+                            padding: '1px 10px', borderRadius: 9999,
+                            border: `1px solid ${col.bg}80`,
                           }}>
-                            {c.categoria} · {c.total}
+                            {c.categoria}: {c.total}
                           </span>
                         );
                       })}
@@ -414,7 +425,7 @@ export default function Dashboard() {
 
       {/* Tabla — componente compartido con avatares y estilos premium */}
       <MedicoTable
-        apiParams={{}}
+        apiParams={{ tipo_listado: 'cuerpo_medico' }}
         titulo="Listado del cuerpo médico"
         subtitulo="Planta HSM · Vista integrada"
         emptyIcon="person_search"

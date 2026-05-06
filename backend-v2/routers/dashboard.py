@@ -16,19 +16,34 @@ router = APIRouter(tags=["Dashboard"])
 @router.get("/dashboard/resumen/")
 def dashboard_resumen(db: Session = Depends(get_db)):
     """Resumen de KPIs para el dashboard."""
-    total = db.query(sa_func.count(Medico.id)).scalar() or 0
-    activos = db.query(sa_func.count(Medico.id)).filter(Medico.estado == "ACTIVO").scalar() or 0
-    en_proceso = db.query(sa_func.count(Medico.id)).filter(Medico.estado == "EN_PROCESO").scalar() or 0
-    inactivos = db.query(sa_func.count(Medico.id)).filter(Medico.estado == "INACTIVO").scalar() or 0
+    # ── Conteos por estado (todos los tipos) ──
+    total       = db.query(sa_func.count(Medico.id)).scalar() or 0
+    activos     = db.query(sa_func.count(Medico.id)).filter(Medico.estado == "ACTIVO").scalar() or 0
+    en_proceso  = db.query(sa_func.count(Medico.id)).filter(Medico.estado == "EN_PROCESO").scalar() or 0
+    inactivos   = db.query(sa_func.count(Medico.id)).filter(Medico.estado == "INACTIVO").scalar() or 0
     finalizados = db.query(sa_func.count(Medico.id)).filter(Medico.estado == "FINALIZADO").scalar() or 0
-    renuncias = db.query(sa_func.count(Medico.id)).filter(Medico.estado == "RENUNCIA").scalar() or 0
+    renuncias   = db.query(sa_func.count(Medico.id)).filter(Medico.estado == "RENUNCIA").scalar() or 0
 
-    # Calcular alertas de vencimiento (próximos 30 días)
+    # ── Conteos por tipo_listado (origen inmutable) ──
+    hsm_total    = db.query(sa_func.count(Medico.id)).filter(
+        Medico.tipo_listado == "cuerpo_medico"
+    ).scalar() or 0
+    hsm_activos  = db.query(sa_func.count(Medico.id)).filter(
+        Medico.tipo_listado == "cuerpo_medico", Medico.estado == "ACTIVO"
+    ).scalar() or 0
+    fsfb_total   = db.query(sa_func.count(Medico.id)).filter(
+        Medico.tipo_listado == "fsfb_externo"
+    ).scalar() or 0
+    fsfb_activos = db.query(sa_func.count(Medico.id)).filter(
+        Medico.tipo_listado == "fsfb_externo", Medico.estado == "ACTIVO"
+    ).scalar() or 0
+
     alertas = _contar_alertas_vencimiento(db, dias_limite=30)
 
-    # Por categoría
+    # Por categoría — solo médicos HSM para el dashboard principal
     por_cat = (
         db.query(Medico.categoria, sa_func.count(Medico.id))
+        .filter(Medico.tipo_listado == "cuerpo_medico")
         .group_by(Medico.categoria)
         .all()
     )
@@ -42,6 +57,10 @@ def dashboard_resumen(db: Session = Depends(get_db)):
             "finalizados": finalizados,
             "renuncias": renuncias,
             "alertas_vencimiento": alertas,
+            "hsm_total": hsm_total,
+            "hsm_activos": hsm_activos,
+            "fsfb_total": fsfb_total,
+            "fsfb_activos": fsfb_activos,
         },
         "por_categoria": [
             {"categoria": cat or "N/D", "total": cnt}

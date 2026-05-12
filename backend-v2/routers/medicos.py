@@ -12,7 +12,11 @@ from model import (
     MedicoDocsHabilitacion, HistorialEstados,
     Seccion, Departamento, User,
 )
-from routers.auth import get_current_user
+from routers.auth import get_current_user, require_roles
+
+_EDITORS     = require_roles("admin", "supervisor", "editor")
+_SUPERVISORS = require_roles("admin", "supervisor")
+_ADMINS      = require_roles("admin")
 from schemas import (
     MedicoCreate, MedicoUpdate, MedicoOut, MedicoListOut,
     EstadoUpdate, HistorialEstadoOut,
@@ -127,7 +131,7 @@ def list_medicos(
 
 
 @router.post("/medicos/", response_model=MedicoOut, status_code=201)
-def create_medico(data: MedicoCreate, db: Session = Depends(get_db)):
+def create_medico(data: MedicoCreate, db: Session = Depends(get_db), _: User = Depends(_EDITORS)):
     existing = db.query(Medico).filter(Medico.documento_identidad == data.documento_identidad).first()
     if existing:
         raise HTTPException(409, "Ya existe un médico con ese documento")
@@ -145,7 +149,7 @@ def get_medico(documento: str, db: Session = Depends(get_db)):
 
 
 @router.put("/medicos/{documento}/", response_model=MedicoOut)
-def update_medico(documento: str, data: MedicoUpdate, db: Session = Depends(get_db)):
+def update_medico(documento: str, data: MedicoUpdate, db: Session = Depends(get_db), _: User = Depends(_EDITORS)):
     medico = get_medico_or_404(documento, db)
     update_data = data.model_dump(exclude_none=True)
 
@@ -170,52 +174,58 @@ def patch_medico_estado(
     documento: str,
     data: EstadoUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(_SUPERVISORS),
 ):
     medico = get_medico_or_404(documento, db)
     nuevo = data.nuevoEstado.upper()
 
-    # REGLA 1: Solo médicos ACTIVOS pueden cambiar de estado
-    if medico.estado != "ACTIVO":
-        raise HTTPException(400, f"El médico ya tiene estado '{medico.estado}'. Solo se puede cambiar el estado de médicos ACTIVOS.")
-
-    estados_validos = {"RENUNCIA", "INACTIVO", "FINALIZADO"}
+    estados_validos = {"RENUNCIA", "INACTIVO", "FINALIZADO", "ACTIVO"}
     if nuevo not in estados_validos:
-        raise HTTPException(400, f"Estado '{nuevo}' no válido. Use: renuncia, inactivo o finalizado.")
+        raise HTTPException(400, f"Estado '{nuevo}' no válido.")
 
-    # REGLA 2: Renuncia requiere fecha_terminacion
-    if nuevo == "RENUNCIA":
-        if not data.fechaTerminacion:
-            raise HTTPException(400, "La fecha de terminación es obligatoria para registrar una renuncia.")
-        medico.fecha_terminacion = data.fechaTerminacion
+    # REACTIVACIÓN: cualquier estado → ACTIVO
+    if nuevo == "ACTIVO":
+        if medico.estado == "ACTIVO":
+            raise HTTPException(400, "El médico ya se encuentra ACTIVO.")
+        if data.fechaIngreso:
+            medico.fecha_ingreso = data.fechaIngreso
 
-    # REGLA 3: Inactivo requiere fecha_inactivacion (default: hoy)
-    elif nuevo == "INACTIVO":
-        medico.fecha_inactivacion = data.fechaInactivacion or date_type.today()
-        # Campos opcionales de contacto al inactivar
-        if data.direccionCorrespondencia or data.direccionConsultorio:
-            contacto = db.query(MedicoContacto).filter(MedicoContacto.medico_id == medico.id).first()
-            if contacto:
-                if data.direccionCorrespondencia:
-                    contacto.direccion_correspondencia = data.direccionCorrespondencia
-                if data.direccionConsultorio:
-                    contacto.direccion_consultorio = data.direccionConsultorio
-            else:
-                nuevoc = MedicoContacto(
-                    medico_id=medico.id,
-                    direccion_correspondencia=data.direccionCorrespondencia,
-                    direccion_consultorio=data.direccionConsultorio,
-                )
-                db.add(nuevoc)
+    else:
+        # Para dar de baja: solo médicos ACTIVOS pueden cambiar de estado
+        if medico.estado != "ACTIVO":
+            raise HTTPException(400, f"El médico ya tiene estado '{medico.estado}'.")
 
-    # REGLA 4: Finalización requiere fecha y formulario autorizado
-    elif nuevo == "FINALIZADO":
-        if not data.fechaFinalizacionContrato:
-            raise HTTPException(400, "La fecha de finalización de contrato es obligatoria para registrar una finalización.")
-        if not data.formularioAutorizacionDatos:
-            raise HTTPException(400, "El formulario de autorización de datos (Ley 1581) debe estar marcado como True para registrar una finalización.")
-        medico.fecha_finalizacion_contrato = data.fechaFinalizacionContrato
-        medico.formulario_autorizacion_datos = True
+        # REGLA 2: Renuncia requiere fecha_terminacion
+        if nuevo == "RENUNCIA":
+            if not data.fechaTerminacion:
+                raise HTTPException(400, "La fecha de terminación es obligatoria para registrar una renuncia.")
+            medico.fecha_terminacion = data.fechaTerminacion
+
+        # REGLA 3: Inactivo requiere fecha_inactivacion (default: hoy)
+        elif nuevo == "INACTIVO":
+            medico.fecha_inactivacion = data.fechaInactivacion or date_type.today()
+            if data.direccionCorrespondencia or data.direccionConsultorio:
+                contacto = db.query(MedicoContacto).filter(MedicoContacto.medico_id == medico.id).first()
+                if contacto:
+                    if data.direccionCorrespondencia:
+                        contacto.direccion_correspondencia = data.direccionCorrespondencia
+                    if data.direccionConsultorio:
+                        contacto.direccion_consultorio = data.direccionConsultorio
+                else:
+                    db.add(MedicoContacto(
+                        medico_id=medico.id,
+                        direccion_correspondencia=data.direccionCorrespondencia,
+                        direccion_consultorio=data.direccionConsultorio,
+                    ))
+
+        # REGLA 4: Finalización requiere fecha y formulario autorizado
+        elif nuevo == "FINALIZADO":
+            if not data.fechaFinalizacionContrato:
+                raise HTTPException(400, "La fecha de finalización de contrato es obligatoria.")
+            if not data.formularioAutorizacionDatos:
+                raise HTTPException(400, "El formulario de autorización de datos (Ley 1581) debe estar marcado.")
+            medico.fecha_finalizacion_contrato = data.fechaFinalizacionContrato
+            medico.formulario_autorizacion_datos = True
 
     estado_anterior = medico.estado
     medico.estado = nuevo
@@ -244,6 +254,23 @@ def get_historial_estados(documento: str, db: Session = Depends(get_db)):
         .order_by(HistorialEstados.fecha_cambio.desc())
         .all()
     )
+
+
+@router.delete("/medicos/{documento}", status_code=204)
+def delete_medico(
+    documento: str,
+    db: Session = Depends(get_db),
+    _: User = Depends(_ADMINS),
+):
+    medico = get_medico_or_404(documento, db)
+    # Eliminar sub-registros antes (sin cascade configurado en ORM)
+    for sub in [MedicoDatosHV, MedicoContacto, MedicoPrerrogativas,
+                MedicoDiplomas, MedicoNormativos, MedicoContratacion,
+                MedicoAccesos, MedicoDocsHabilitacion]:
+        db.query(sub).filter(sub.medico_id == medico.id).delete(synchronize_session=False)
+    db.query(HistorialEstados).filter(HistorialEstados.medico_id == medico.id).delete(synchronize_session=False)
+    db.delete(medico)
+    db.commit()
 
 
 # ═══════════════════════════════════════════════════════════════

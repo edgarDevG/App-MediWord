@@ -30,3 +30,13 @@ Thumbs.db
 # ── Archivos sensibles / internos ────────
 mediword_data.sql
 prompt_master.txt
+
+# ── Uploads / archivos subidos ───────────
+backend-v2/uploads/
+
+# ── Backups de edición ───────────────────
+**/*.bak
+**/*.bak2
+
+# ── Carpetas de diseño / mockups ─────────
+perfimedicodiseño/

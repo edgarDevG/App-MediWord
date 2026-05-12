@@ -1,8 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import axiosInstance from '../../api/axiosInstance';
+import FileUploadField from '../../components/shared/FileUploadField';
 
 /* ══════════════════════════════════════════════════════════════
-   Tab3: Académica y Habilitación
+   Tab3 v2: Académica y Habilitación
+   CAMBIOS v2:
+   - 3A: Adjunto soporte verificación (max 1) tras campo soporteverificaciontitulos
+   - 3B: Adjunto soporte en Pregrado y Especialidades cuando verificado = SI
+   - 3C: Adjunto soporte en Otros Estudios cuando verifporcredotrosestudios = SI (max 5)
+   Carpeta: diplomas_verificaciones
    Endpoints:
      /medicos/{doc}/diplomas-verificaciones  (académica)
      /medicos/{doc}/normativos               (hab docs: rethus, tarjeta_prof, examen)
@@ -39,9 +45,8 @@ const INIT_ESPECIALIDAD = {
 /* ── Habilitación docs ── */
 // ELIMINADOS: certificado_especialidad, diploma_pregrado, antecedentes_judiciales
 const DOCS_HABILITACION = [
-  { key: 'rethus',                      label: 'RETHUS',                              icon: 'verified',            required: true  },
+  { key: 'rethus',                      label: 'Tarjeta RETHUS',                      icon: 'verified',            required: true  },
   { key: 'tarjeta_profesional',         label: 'Tarjeta Profesional',                 icon: 'badge',               required: true  },
-  { key: 'poliza_responsabilidad',      label: 'Póliza de Responsabilidad Civil',     icon: 'security',            required: true  },
   { key: 'examen_medico',               label: 'Examen Médico Ocupacional',           icon: 'medical_information', required: true  },
   { key: 'antecedentes_disciplinarios', label: 'Cert. Antecedentes Disciplinarios',   icon: 'gavel',               required: false },
   { key: 'contrato_prestacion',         label: 'Contrato / Prestación de Servicios',  icon: 'description',         required: false },
@@ -90,7 +95,7 @@ function CampoSelect({ label, name, value, onChange, options = [], placeholder =
 }
 
 /* ── DocPanel habilitación ── */
-function DocPanel({ doc, data, onChange, onToggle }) {
+function DocPanel({ doc, data, onChange, onToggle, medicoDoc }) {
   const vigencia  = data.fecha_vencimiento ? diasParaVencer(data.fecha_vencimiento) : null;
   const isAlerta  = vigencia !== null && vigencia <= 15;
   return (
@@ -177,6 +182,17 @@ function DocPanel({ doc, data, onChange, onToggle }) {
                   onChange={e => onChange(doc.key, 'observaciones', e.target.value)} />
               </div>
             </div>
+          </div>
+          {/* Adjunto por documento de habilitación */}
+          <div style={{ marginTop: 'var(--space-4)' }}>
+            <FileUploadField
+              carpeta="habilitacion"
+              maxArchivos={2}
+              medicoDoc={medicoDoc}
+              campoRef={doc.key}
+              compact
+              label={`Adjuntar ${doc.label}`}
+            />
           </div>
         </div>
       )}
@@ -482,6 +498,16 @@ export default function Tab3Especialidades({ onPrev, onNext, medicoDoc, markComp
             <div style={{ flex:'1 1 240px' }}><CampoSelect label="Soporte de verificación" name="soporteverificaciontitulos" value={data.soporteverificaciontitulos} onChange={handleChange} options={OPT_VERIF} /></div>
             <div style={{ flex:'1 1 200px' }}><Campo label="Fecha verificación títulos" name="fechaverificaciontitulos" type="date" value={data.fechaverificaciontitulos} onChange={handleChange} /></div>
           </div>
+          {/* 3A: Adjunto soporte verificación */}
+          <div style={{ marginTop:'var(--space-4)' }}>
+            <FileUploadField
+              carpeta="diplomas_verificaciones"
+              maxArchivos={1}
+              medicoDoc={medicoDoc}
+              campoRef="soporteverificaciontitulos"
+              label="Adjuntar soporte de verificación"
+            />
+          </div>
 
           <SeccionEspecialidad titulo="Pregrado" icono="school"
             subtitulo={data.tituloprofesional || 'Información de pregrado'}
@@ -502,6 +528,18 @@ export default function Tab3Especialidades({ onPrev, onNext, medicoDoc, markComp
             <div style={{ flex:'1 1 160px' }}><Campo label="País universidad" name="paisuniversidadtituloprofesional" value={data.paisuniversidadtituloprofesional} onChange={handleChange} /></div>
             <div style={{ flex:'1 1 200px' }}><CampoSelect label="Acta convalidación" name="actaconvalidacionprofesional" value={data.actaconvalidacionprofesional} onChange={handleChange} options={OPT_VERIF} /></div>
             <div style={{ flex:'1 1 200px' }}><CampoSelect label="Verificación por credencial" name="verifporcredtituloprofesional" value={data.verifporcredtituloprofesional} onChange={handleChange} options={OPT_VERIF} /></div>
+            {/* 3B: adjunto pregrado */}
+            {data.verifporcredtituloprofesional === 'SI' && (
+              <div style={{ flex:'1 1 100%', marginTop: 4 }}>
+                <FileUploadField
+                  carpeta="diplomas_verificaciones"
+                  maxArchivos={1}
+                  medicoDoc={medicoDoc}
+                  campoRef="verifporcredtituloprofesional"
+                  label="Soporte verificación pregrado"
+                />
+              </div>
+            )}
           </SeccionEspecialidad>
 
           {especialidades.map((esp, index) => (
@@ -522,6 +560,18 @@ export default function Tab3Especialidades({ onPrev, onNext, medicoDoc, markComp
               <div style={{ flex:'1 1 160px' }}><Campo label="País universidad" name={`pais-${index}`} value={esp.pais} onChange={(e) => handleEspecialidadChange(index, 'pais', e.target.value)} /></div>
               <div style={{ flex:'1 1 200px' }}><CampoSelect label="Acta convalidación" name={`convalidacion-${index}`} value={esp.convalidacion} onChange={(e) => handleEspecialidadChange(index, 'convalidacion', e.target.value)} options={OPT_VERIF} /></div>
               <div style={{ flex:'1 1 200px' }}><CampoSelect label="Verificación por credencial" name={`verificado-${index}`} value={esp.verificado} onChange={(e) => handleEspecialidadChange(index, 'verificado', e.target.value)} options={OPT_VERIF} /></div>
+              {/* 3B: adjunto especialidad */}
+              {esp.verificado === 'SI' && (
+                <div style={{ flex:'1 1 100%', marginTop: 4 }}>
+                  <FileUploadField
+                    carpeta="diplomas_verificaciones"
+                    maxArchivos={1}
+                    medicoDoc={medicoDoc}
+                    campoRef={`especialidad_${index}_verificado`}
+                    label="Soporte verificación especialidad"
+                  />
+                </div>
+              )}
             </SeccionEspecialidad>
           ))}
 
@@ -546,6 +596,18 @@ export default function Tab3Especialidades({ onPrev, onNext, medicoDoc, markComp
             </div>
             <div style={{ flex:'1 1 200px' }}><CampoSelect label="Verificación otros estudios" name="verifporcredotrosestudios" value={data.verifporcredotrosestudios} onChange={handleChange} options={OPT_VERIF} /></div>
             <div style={{ flex:'1 1 200px' }}><CampoSelect label="Cert. entrenamiento avanzado" name="certentrenamavanzado" value={data.certentrenamavanzado} onChange={handleChange} options={OPT_VERIF} /></div>
+            {/* 3C: adjunto otros estudios */}
+            {data.verifporcredotrosestudios === 'SI' && (
+              <div style={{ flex:'1 1 100%', marginTop: 4 }}>
+                <FileUploadField
+                  carpeta="diplomas_verificaciones"
+                  maxArchivos={5}
+                  medicoDoc={medicoDoc}
+                  campoRef="verifporcredotrosestudios"
+                  label="Soportes verificación otros estudios (máx. 5)"
+                />
+              </div>
+            )}
             <div style={{ flex:'1 1 100%' }}>
               <div className="form-group">
                 <label className="form-label" htmlFor="detalleotrosentrenamientosavanzados">Detalle entrenamientos avanzados</label>
@@ -562,7 +624,7 @@ export default function Tab3Especialidades({ onPrev, onNext, medicoDoc, markComp
         <div style={{ display:'flex', flexDirection:'column', gap:'var(--space-3)', marginBottom:'var(--space-8)' }}>
           {DOCS_HABILITACION.map(doc => (
             <DocPanel key={doc.key} doc={doc} data={docs[doc.key]}
-              onChange={handleDocChange} onToggle={handleToggle} />
+              onChange={handleDocChange} onToggle={handleToggle} medicoDoc={medicoDoc} />
           ))}
         </div>
 

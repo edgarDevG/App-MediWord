@@ -80,7 +80,7 @@ class Medico(Base):
     seccion_id              = Column(String(10), ForeignKey("secciones.id"))
     especialidad            = Column(Text)
     estado                  = Column(String(20), default="ACTIVO")  # ACTIVO|INACTIVO|EN_PROCESO|FINALIZADO|RENUNCIA
-    tipo_listado            = Column(String(30))                    # cuerpo_medico|fsfb_externo|inactivo|renuncia|finalizacion
+    tipo_listado            = Column(String(30))                    # cuerpo_medico|fsfb_externo — origen permanente, no cambia con el estado
     fecha_ingreso           = Column(Date)
     anios_cuerpo_medico     = Column(Numeric(5, 2))
     # Campos de cambio de estado
@@ -101,6 +101,7 @@ class Medico(Base):
     accesos             = relationship("MedicoAccesos", back_populates="medico", uselist=False)
     docs_habilitacion   = relationship("MedicoDocsHabilitacion", back_populates="medico", uselist=False)
     historial_estados   = relationship("HistorialEstados", back_populates="medico", order_by="HistorialEstados.fecha_cambio.desc()")
+    archivos            = relationship("ArchivoMedico", back_populates="medico", order_by="ArchivoMedico.fecha_subida.desc()")
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -407,10 +408,56 @@ class AuditLog(Base):
 
 class User(Base):
     __tablename__ = "users"
-    
-    id            = Column(Integer, primary_key=True, index=True)
-    username      = Column(String(100), unique=True, index=True, nullable=False)
+
+    id              = Column(Integer, primary_key=True, index=True)
+    username        = Column(String(100), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
-    rol           = Column(String(50), default="user")          # admin | user
-    activo        = Column(Boolean, default=True)
-    created_at    = Column(DateTime(timezone=True), server_default=func.now())
+    nombre          = Column(String(200), nullable=True)
+    email           = Column(String(255), nullable=True)
+    rol             = Column(String(50), default="viewer")      # admin | supervisor | editor | viewer
+    activo          = Column(Boolean, default=True)
+    created_at      = Column(DateTime(timezone=True), server_default=func.now())
+
+# ═══════════════════════════════════════════════════════════════
+# 12. ARCHIVOS_MEDICO — Repositorio documental por carpeta
+# ═══════════════════════════════════════════════════════════════
+# Carpetas válidas (según marcación oficial HSM):
+#   hoja_vida | ingreso | prerrogativas | diplomas_verificaciones
+#   normativos | cursos_ingreso | educacion_continuada
+#   entrenam_inducciones | act_formacion_continua | contratacion
+#   evaluacion_desempeno | correspond_certificados
+#   vacaciones_ausencias | disciplinarios | varios
+#
+# campo_ref: referencia al campo del formulario que originó el
+#   upload (ej: "fechaformsolingreso"), vacío si se subió manual
+#   desde el explorador de archivos del perfil.
+# ═══════════════════════════════════════════════════════════════
+
+CARPETAS_VALIDAS = {
+    "hoja_vida", "ingreso", "prerrogativas", "diplomas_verificaciones",
+    "normativos", "cursos_ingreso", "educacion_continuada",
+    "entrenam_inducciones", "act_formacion_continua", "contratacion",
+    "evaluacion_desempeno", "correspond_certificados",
+    "vacaciones_ausencias", "disciplinarios", "varios",
+}
+
+class ArchivoMedico(Base):
+    __tablename__ = "archivos_medico"
+
+    id              = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
+    medico_id       = Column(BigInteger, ForeignKey("medicos.id", ondelete="CASCADE"), nullable=False, index=True)
+    carpeta         = Column(String(60),  nullable=False, index=True)   # una de CARPETAS_VALIDAS
+    subcarpeta      = Column(String(100), nullable=True)                # ej: "Vencidos", "Laboral", "Oferta Mercantil"
+    tipo_doc        = Column(String(150), nullable=True)                # ej: "Cédula", "BLS", "Oferta Mercantil"
+    campo_ref       = Column(String(100), nullable=True)                # campo del formulario que originó el upload
+    nombre_original = Column(String(255), nullable=False)               # nombre del archivo tal como lo subió el usuario
+    nombre_almacenado = Column(String(255), nullable=False)             # nombre en disco (uuid-safe)
+    ruta_relativa   = Column(String(500),  nullable=False)              # ruta relativa desde MEDIA_ROOT
+    tamano_bytes    = Column(BigInteger,   nullable=True)
+    mime_type       = Column(String(100),  nullable=True, default="application/pdf")
+    subido_por      = Column(String(100),  nullable=True)               # username del usuario que subió
+    fecha_subida    = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    activo          = Column(Boolean, default=True, nullable=False)     # False = eliminado lógico
+
+    medico = relationship("Medico", back_populates="archivos")
+

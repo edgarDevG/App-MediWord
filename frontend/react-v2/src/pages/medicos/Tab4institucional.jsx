@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import axiosInstance from '../../api/axiosInstance';
+import FileUploadField from '../../components/shared/FileUploadField';
 
 
 /* ── Helpers ── */
@@ -36,7 +37,7 @@ const CURSOS = [
   { key: 'manejodolor',           label: 'Manejo del Dolor',           icon: 'healing'             },
   { key: 'iamii',                 label: 'IAMII',                      icon: 'cardiology'          },
   { key: 'gestionduelo',          label: 'Gestión del Duelo',          icon: 'sentiment_sad'       },
-  { key: 'curso3anos',            label: 'Curso 3 Años',               icon: 'history_edu'         },
+  { key: 'curso3anos',            label: 'Póliza RC',                  icon: 'policy'              },
 ];
 
 const ESTADO_BADGE = {
@@ -57,13 +58,17 @@ const vKey = (key) => key === 'curso3anos' ? 'vigenciacurso3anos' : `vencimiento
 
 
 /* ── Estados iniciales ── */
+/* RESOLUCIONES — tratadas como CursoCards con fecha vencimiento */
+const RESOLUCIONES = [
+  { key: 'resolejercicioplaza', label: 'Resol. Ejercicio Plaza',  icon: 'gavel'          },
+  { key: 'resolanastesiologo',  label: 'Resol. Anestesiólogo',    icon: 'medical_services'},
+];
+
 const buildInitNormativos = () => {
   const init = {
-    resolejercicioplaza: '', resolanastesiologo: '',
-    tarjetarethus: '', consultarethus: '', tituloconsultarethus: '',
-    formmanejodolor: '',
-    polizaresponsabilidadcivil: '', vencimientopolizarespcivil: null,
-    polizacomplicaciones: '', anosenelhospital: '',
+    /* resoluciones: aplica + fecha vencimiento */
+    aplicaresolejercicioplaza: false, vencimientoresolejercicioplaza: null,
+    aplicaresolanastesiologo:  false, vencimientoresolanastesiologo:  null,
   };
   CURSOS.forEach(c => {
     init[`aplica${c.key}`]  = false;
@@ -86,8 +91,6 @@ const buildInitContratacion = () => ({
   estadocodigo: '', codigo: '', estadocarnet: '', tarjetaacceso: '', estadobata: '',
   entregaalmera: '', entregaruaf: '', mipres: '', correocorp: '',
   radioexpuesto: '', cartaturnos: '', inspekor: '',
-  polizrespcivil: '', vencimientopolizrespcivil: null,
-  polizacomplicacionescont: '', anosenelhospitalcont: '',
 });
 
 
@@ -154,7 +157,7 @@ function CampoFechaNullable({ label, fieldKey, value, onChangeFn }) {
 }
 
 /* ── CursoCard — diseño unificado con FormFSFB ── */
-function CursoCard({ curso, aplica, vencimiento, onChange }) {
+function CursoCard({ curso, aplica, vencimiento, onChange, medicoDoc }) {
   const estado = aplica ? getEstadoCurso(vencimiento) : null;
   const badge  = estado ? ESTADO_BADGE[estado] : null;
   return (
@@ -210,10 +213,37 @@ function CursoCard({ curso, aplica, vencimiento, onChange }) {
             onChange={e => onChange(vKey(curso.key), e.target.value || null)} />
         </div>
       )}
+      {/* Adjunto cuando aplica */}
+      {aplica && medicoDoc && (
+        <FileUploadField
+          carpeta="normativos"
+          maxArchivos={1}
+          medicoDoc={medicoDoc}
+          campoRef={curso.key}
+          compact
+          label={`Adjuntar ${curso.label}`}
+        />
+      )}
     </div>
   );
 }
 
+
+/* ── VigenciaOferta — badge de estado de la oferta mercantil ── */
+function VigenciaOferta({ fecha }) {
+  if (!fecha) return null;
+  const dias = Math.ceil((new Date(fecha + 'T00:00:00') - new Date()) / (1000 * 60 * 60 * 24));
+  let bg, color, icon, texto;
+  if (dias < 0)    { bg = 'rgba(220,38,38,0.12)';  color = '#b91c1c'; icon = 'cancel';       texto = `Vencida hace ${Math.abs(dias)}d`; }
+  else if (dias <= 30) { bg = 'rgba(234,179,8,0.12)'; color = '#a16207'; icon = 'schedule';      texto = `Vence en ${dias}d`; }
+  else             { bg = 'rgba(22,163,74,0.12)';  color = '#15803d'; icon = 'check_circle'; texto = 'VIGENTE'; }
+  return (
+    <span style={{ display:'inline-flex', alignItems:'center', gap:4, padding:'3px 10px', borderRadius:9999, background:bg, color, fontSize:'0.75rem', fontWeight:700 }}>
+      <span className="material-symbols-outlined" style={{ fontSize:13, fontVariationSettings:"'FILL' 1" }}>{icon}</span>
+      {texto}
+    </span>
+  );
+}
 
 /* ══════════════════════════════════════════════════════════════
    COMPONENTE PRINCIPAL — Tab4: Contratación y Normativos
@@ -244,14 +274,10 @@ export default function Tab4Institucional({ medicoDoc, onNext, onPrev, markCompl
 
         setNormativos(prev => ({
           ...prev,
-          resolejercicioplaza:      dNorm.res_ejercicio     ?? '',
-          resolanastesiologo:       dNorm.res_anestesiologo ?? '',
-          tarjetarethus:            dNorm.tarjeta_rethus    ?? '',
-          consultarethus:           dNorm.consulta_rethus   ?? '',
-          tituloconsultarethus:     dNorm.titulos_rethus    ?? '',
-          polizaresponsabilidadcivil: dAcc.poliza_resp_civil   ?? '',
-          vencimientopolizarespcivil: toDate(dAcc.fecha_venc_poliza),
-          polizacomplicaciones:       dAcc.poliza_complicaciones ?? '',
+          aplicaresolejercicioplaza: !!dNorm.res_ejercicio_fecha_venc,
+          vencimientoresolejercicioplaza: toDate(dNorm.res_ejercicio_fecha_venc),
+          aplicaresolanastesiologo:  !!dNorm.res_anestesiologo_fecha_venc,
+          vencimientoresolanastesiologo:  toDate(dNorm.res_anestesiologo_fecha_venc),
 
           aplicabls:                !!dNorm.bls_fecha_venc,               vencimientobls:                toDate(dNorm.bls_fecha_venc),
           aplicaacls:               !!dNorm.acls_fecha_venc,              vencimientoacls:               toDate(dNorm.acls_fecha_venc),
@@ -299,9 +325,6 @@ export default function Tab4Institucional({ medicoDoc, onNext, onPrev, markCompl
           correocorp:           dAcc.correo_corporativo     ?? '',
           radioexpuesto:        dAcc.radio_expuesto         ?? '',
           cartaturnos:          dAcc.carta_turnos           ?? '',
-          polizrespcivil:       dAcc.poliza_resp_civil      ?? '',
-          vencimientopolizrespcivil: toDate(dAcc.fecha_venc_poliza),
-          polizacomplicacionescont:  dAcc.poliza_complicaciones ?? '',
         }));
 
       } catch (e) {
@@ -336,11 +359,8 @@ export default function Tab4Institucional({ medicoDoc, onNext, onPrev, markCompl
       const c = contratacion;
 
       const normPayload = {
-        res_ejercicio:        n.resolejercicioplaza     || null,
-        res_anestesiologo:    n.resolanastesiologo      || null,
-        tarjeta_rethus:       n.tarjetarethus           || null,
-        consulta_rethus:      n.consultarethus          || null,
-        titulos_rethus:       n.tituloconsultarethus    || null,
+        res_ejercicio_fecha_venc:     n.aplicaresolejercicioplaza ? (n.vencimientoresolejercicioplaza || null) : null,
+        res_anestesiologo_fecha_venc: n.aplicaresolanastesiologo  ? (n.vencimientoresolanastesiologo  || null) : null,
         bls_fecha_venc:       n.vencimientobls          || null,
         acls_fecha_venc:      n.vencimientoacls         || null,
         pals_fecha_venc:      n.vencimientopals         || null,
@@ -353,6 +373,7 @@ export default function Tab4Institucional({ medicoDoc, onNext, onPrev, markCompl
         radioproteccion_fecha:       n.vencimientoradioproteccion       || null,
         iamii_fecha:                 n.vencimientoiamii                 || null,
         gestion_duelo_fecha:         n.vencimientogestionduelo          || null,
+        vigenciacurso3anos:          n.aplicacurso3anos ? (n.vigenciacurso3anos || null) : null,
       };
 
       const accesosPayload = {
@@ -373,9 +394,6 @@ export default function Tab4Institucional({ medicoDoc, onNext, onPrev, markCompl
         correo_corporativo:     c.correocorp          || null,
         radio_expuesto:         c.radioexpuesto       || null,
         carta_turnos:           c.cartaturnos         || null,
-        poliza_resp_civil:      c.polizrespcivil      || n.polizaresponsabilidadcivil || null,
-        fecha_venc_poliza:      c.vencimientopolizrespcivil || n.vencimientopolizarespcivil || null,
-        poliza_complicaciones:  c.polizacomplicacionescont  || n.polizacomplicaciones       || null,
       };
 
       const contratacionPayload = {
@@ -467,6 +485,16 @@ export default function Tab4Institucional({ medicoDoc, onNext, onPrev, markCompl
                 onChange={e => chgCont('modalidadhorario', e.target.value)} options={MCONTRATO}/>
             </div>
           </div>
+          {/* Adjuntos vínculo contractual — máx. 5 */}
+          <div style={{ marginTop: 4, marginBottom: 20 }}>
+            <FileUploadField
+              carpeta="contratacion"
+              maxArchivos={5}
+              medicoDoc={medicoDoc}
+              campoRef="vinculo_contractual"
+              label="Documentos vínculo contractual (máx. 5 PDF)"
+            />
+          </div>
 
           <p style={{ fontSize:'0.75rem', fontWeight:700, color:'#64748b', letterSpacing:'0.06em', marginBottom:12 }}>OFERTA MERCANTIL</p>
           <div style={{ display:'flex', flexWrap:'wrap', gap:'var(--space-4)' }}>
@@ -491,43 +519,46 @@ export default function Tab4Institucional({ medicoDoc, onNext, onPrev, markCompl
               <CampoFechaNullable label="Fecha acep. pre-legal"
                 fieldKey="fechafirmaacepprelegal" value={contratacion.fechafirmaacepprelegal} onChangeFn={chgCont} />
             </div>
-            <div style={{ flex:'1 1 260px' }}>
-              <SimpleInput label="Condiciones especiales oferta" value={contratacion.ofertacondicionesespeciales}
-                onChange={e => chgCont('ofertacondicionesespeciales', e.target.value)} />
+          </div>
+
+          {/* Vigencia card oferta mercantil */}
+          {contratacion.fechavencimientoofertamercantil && (
+            <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:8, padding:'8px 14px', borderRadius:10, background:'rgba(26,78,215,0.04)', border:'1px solid rgba(26,78,215,0.10)' }}>
+              <span className="material-symbols-outlined" style={{ fontSize:17, color:'var(--color-secondary)' }}>event_available</span>
+              <span style={{ fontSize:'0.8125rem', color:'#475569', fontWeight:500 }}>Vigencia oferta mercantil:</span>
+              <VigenciaOferta fecha={contratacion.fechavencimientoofertamercantil} />
             </div>
+          )}
+
+          {/* Adjunto oferta mercantil */}
+          <div style={{ marginTop:14 }}>
+            <FileUploadField
+              carpeta="contratacion"
+              maxArchivos={1}
+              medicoDoc={medicoDoc}
+              campoRef="oferta_mercantil"
+              label="Documento oferta mercantil (PDF)"
+            />
           </div>
         </SectionCard>
 
         {/* ═══ SECCIÓN 2 — NORMATIVOS Y CURSOS ═══ */}
         <SectionCard title="Normativos y Cursos" icon="policy" defaultOpen={false}>
 
-          <p style={{ fontSize:'0.75rem', fontWeight:700, color:'#64748b', letterSpacing:'0.06em', marginBottom:12 }}>RESOLUCIONES Y RETHUS</p>
-          <div style={{ display:'flex', flexWrap:'wrap', gap:'var(--space-4)', marginBottom:24 }}>
-            <div style={{ flex:'1 1 200px' }}>
-              <SimpleSelect label="Resol. ejercicio plaza" value={normativos.resolejercicioplaza}
-                onChange={e => chgNorm('resolejercicioplaza', e.target.value)} options={OPTSINONA} />
-            </div>
-            <div style={{ flex:'1 1 200px' }}>
-              <SimpleSelect label="Resol. anestesiólogo" value={normativos.resolanastesiologo}
-                onChange={e => chgNorm('resolanastesiologo', e.target.value)} options={OPTSINONA} />
-            </div>
-            <div style={{ flex:'1 1 180px' }}>
-              <SimpleSelect label="Tarjeta RETHUS" value={normativos.tarjetarethus}
-                onChange={e => chgNorm('tarjetarethus', e.target.value)} options={OPTSINO} />
-            </div>
-            <div style={{ flex:'1 1 180px' }}>
-              <SimpleSelect label="Consulta RETHUS" value={normativos.consultarethus}
-                onChange={e => chgNorm('consultarethus', e.target.value)} options={OPTSINO} />
-            </div>
-            <div style={{ flex:'1 1 260px' }}>
-              <SimpleInput label="Título consulta RETHUS" value={normativos.tituloconsultarethus}
-                onChange={e => chgNorm('tituloconsultarethus', e.target.value)} placeholder="Texto del título consultado" />
-            </div>
-            <div style={{ flex:'1 1 180px' }}>
-              <SimpleSelect label="Form. manejo del dolor" value={normativos.formmanejodolor}
-                onChange={e => chgNorm('formmanejodolor', e.target.value)} options={OPTSINONA} />
-            </div>
+          <p style={{ fontSize:'0.75rem', fontWeight:700, color:'#64748b', letterSpacing:'0.06em', marginBottom:12 }}>RESOLUCIONES</p>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(190px, 1fr))', gap:12, marginBottom:24 }}>
+            {RESOLUCIONES.map(res => (
+              <CursoCard
+                key={res.key}
+                curso={res}
+                aplica={!!normativos[`aplica${res.key}`]}
+                vencimiento={normativos[`vencimiento${res.key}`]}
+                onChange={(field, val) => chgNorm(field, val)}
+                medicoDoc={medicoDoc}
+              />
+            ))}
           </div>
+
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
             <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.06em' }}>CURSOS OBLIGATORIOS — NORMA Y VENCIMIENTO</p>
@@ -541,31 +572,9 @@ export default function Tab4Institucional({ medicoDoc, onNext, onPrev, markCompl
               <CursoCard key={c.key} curso={c}
                 aplica={!!normativos[`aplica${c.key}`]}
                 vencimiento={normativos[vKey(c.key)]}
-                onChange={chgNorm} />
+                onChange={chgNorm}
+                medicoDoc={medicoDoc} />
             ))}
-          </div>
-
-          <p style={{ fontSize:'0.75rem', fontWeight:700, color:'#64748b', letterSpacing:'0.06em', margin:'24px 0 12px' }}>PÓLIZAS</p>
-          <div style={{ display:'flex', flexWrap:'wrap', gap:'var(--space-4)' }}>
-            <div style={{ flex:'1 1 200px' }}>
-              <SimpleSelect label="Póliza resp. civil" value={normativos.polizaresponsabilidadcivil}
-                onChange={e => chgNorm('polizaresponsabilidadcivil', e.target.value)} options={OPTSINONA} />
-            </div>
-            <div style={{ flex:'1 1 180px' }}>
-              <div className="form-group">
-                <label className="form-label">Vencimiento póliza</label>
-                <input type="date" className="form-input" value={normativos.vencimientopolizarespcivil ?? ''}
-                  onChange={e => chgNorm('vencimientopolizarespcivil', e.target.value || null)} />
-              </div>
-            </div>
-            <div style={{ flex:'1 1 200px' }}>
-              <SimpleSelect label="Póliza complicaciones" value={normativos.polizacomplicaciones}
-                onChange={e => chgNorm('polizacomplicaciones', e.target.value)} options={OPTSINONA} />
-            </div>
-            <div style={{ flex:'1 1 160px' }}>
-              <SimpleInput label="Años en el hospital" value={normativos.anosenelhospital}
-                onChange={e => chgNorm('anosenelhospital', e.target.value)} placeholder="Ej. 3" />
-            </div>
           </div>
         </SectionCard>
 
@@ -579,11 +588,11 @@ export default function Tab4Institucional({ medicoDoc, onNext, onPrev, markCompl
                 onChange={e => chgCont('induccionmedicahsm', e.target.value)} options={OPTSINO} />
             </div>
             <div style={{ flex:'1 1 200px' }}>
-              <SimpleSelect label="Inducción médica CHSM" value={contratacion.induccionmedicachsm}
+              <SimpleSelect label="Inducción médica HSM" value={contratacion.induccionmedicachsm}
                 onChange={e => chgCont('induccionmedicachsm', e.target.value)} options={OPTSINO} />
             </div>
             <div style={{ flex:'1 1 200px' }}>
-              <SimpleSelect label="Inducción general CHSM" value={contratacion.inducciongeneralchsm}
+              <SimpleSelect label="Inducción general HSM" value={contratacion.inducciongeneralchsm}
                 onChange={e => chgCont('inducciongeneralchsm', e.target.value)} options={OPTSINO} />
             </div>
             <div style={{ flex:'1 1 200px' }}>
@@ -601,7 +610,7 @@ export default function Tab4Institucional({ medicoDoc, onNext, onPrev, markCompl
           </div>
 
           <p style={{ fontSize:'0.75rem', fontWeight:700, color:'#64748b', letterSpacing:'0.06em', marginBottom:12 }}>EQUIPOS Y ACCESOS</p>
-          <div style={{ display:'flex', flexWrap:'wrap', gap:'var(--space-4)', marginBottom:20 }}>
+          <div style={{ display: 'flex', flexWrap: 'Wrap', gap:'var(--space-4)', marginBottom:20 }}>
             <div style={{ flex:'1 1 160px' }}>
               <SimpleSelect label="Estado código" value={contratacion.estadocodigo}
                 onChange={e => chgCont('estadocodigo', e.target.value)} options={OPTESTADO} />
@@ -634,39 +643,18 @@ export default function Tab4Institucional({ medicoDoc, onNext, onPrev, markCompl
               <SimpleSelect label="MIPRES" value={contratacion.mipres}
                 onChange={e => chgCont('mipres', e.target.value)} options={OPTSINO} />
             </div>
-            <div style={{ flex:'1 1 160px' }}>
-              <SimpleSelect label="Correo corporativo" value={contratacion.correocorp}
-                onChange={e => chgCont('correocorp', e.target.value)} options={OPTSINO} />
-            </div>
+            
             <div style={{ flex:'1 1 160px' }}>
               <SimpleSelect label="Radio expuesto" value={contratacion.radioexpuesto}
                 onChange={e => chgCont('radioexpuesto', e.target.value)} options={OPTSINONA} />
             </div>
-            <div style={{ flex:'1 1 160px' }}>
-              <SimpleSelect label="Carta turnos" value={contratacion.cartaturnos}
-                onChange={e => chgCont('cartaturnos', e.target.value)} options={OPTSINO} />
-            </div>
+           
             <div style={{ flex:'1 1 160px' }}>
               <SimpleSelect label="INSPEKOR" value={contratacion.inspekor}
                 onChange={e => chgCont('inspekor', e.target.value)} options={OPTSINONA} />
             </div>
           </div>
 
-          <p style={{ fontSize:'0.75rem', fontWeight:700, color:'#64748b', letterSpacing:'0.06em', marginBottom:12 }}>PÓLIZAS (ACCESOS)</p>
-          <div style={{ display:'flex', flexWrap:'wrap', gap:'var(--space-4)' }}>
-            <div style={{ flex:'1 1 200px' }}>
-              <SimpleSelect label="Póliza resp. civil" value={contratacion.polizrespcivil}
-                onChange={e => chgCont('polizrespcivil', e.target.value)} options={OPTSINONA} />
-            </div>
-            <div style={{ flex:'1 1 180px' }}>
-              <CampoFechaNullable label="Vencimiento póliza"
-                fieldKey="vencimientopolizrespcivil" value={contratacion.vencimientopolizrespcivil} onChangeFn={chgCont} />
-            </div>
-            <div style={{ flex:'1 1 200px' }}>
-              <SimpleSelect label="Póliza complicaciones" value={contratacion.polizacomplicacionescont}
-                onChange={e => chgCont('polizacomplicacionescont', e.target.value)} options={OPTSINONA} />
-            </div>
-          </div>
         </SectionCard>
 
       </div>

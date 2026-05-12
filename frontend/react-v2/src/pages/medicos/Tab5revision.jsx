@@ -142,7 +142,7 @@ export default function Tab5Revision({ medicoDoc, tab1Data, onPrev, completedSte
       /* await axiosInstance.post(`/medicos/${medicoDoc}/finalizar`) */
       markCompleted(5);
       setGuardadoOk(true);
-      setTimeout(() => navigate('/medicos', { state: { toast: 'Médico guardado correctamente' } }), 1800);
+      setTimeout(() => navigate(`/medicos/${medicoDoc}/perfil`), 1800);
     } catch (e) {
       const msg = e.response?.data?.detail ?? 'Error al confirmar.';
       setSaveError(Array.isArray(msg) ? msg.map(m => m.msg ?? JSON.stringify(m)).join(' · ') : msg);

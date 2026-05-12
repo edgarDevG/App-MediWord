@@ -7,19 +7,22 @@ import './FormMedico.css';
 /* ══════════════════════════════════════════════════════════════
    CONSTANTES
 ══════════════════════════════════════════════════════════════ */
+/* Espejo exacto del array CURSOS de Tab4institucional */
 const CURSOS = [
-  { key: 'bls',     label: 'BLS',           icon: 'favorite',              campo: 'bls_fecha_venc'         },
-  { key: 'acls',    label: 'ACLS',          icon: 'monitor_heart',         campo: 'acls_fecha_venc'        },
-  { key: 'pals',    label: 'PALS',          icon: 'child_care',            campo: 'pals_fecha_venc'        },
-  { key: 'nals',    label: 'NALS',          icon: 'baby_changing_station', campo: 'nals_fecha_venc'        },
-  { key: 'radio',   label: 'Radioprotec.',  icon: 'radar',                 campo: 'radioproteccion_fecha'  },
-  { key: 'violen',  label: 'Viol. Sexual',  icon: 'shield_person',         campo: 'violencia_sexual_fecha' },
-  { key: 'quimico', label: 'Ag. Químicos',  icon: 'science',               campo: 'ataques_quimicos_fecha' },
-  { key: 'dengue',  label: 'Dengue',        icon: 'bug_report',            campo: 'dengue_fecha'           },
-  { key: 'sedacion',label: 'Sedación',      icon: 'medication',            campo: 'sedacion_fecha'         },
-  { key: 'dolor',   label: 'Man. Dolor',    icon: 'healing',               campo: 'manejo_dolor_fecha'     },
-  { key: 'iamii',   label: 'IAMII',         icon: 'cardiology',            campo: 'iamii_fecha'            },
-  { key: 'duelo',   label: 'Gest. Duelo',   icon: 'sentiment_sad',         campo: 'gestion_duelo_fecha'    },
+  { key: 'bls',                    label: 'BLS',             icon: 'favorite',              campo: 'bls_fecha_venc'             },
+  { key: 'acls',                   label: 'ACLS',            icon: 'monitor_heart',         campo: 'acls_fecha_venc'            },
+  { key: 'pals',                   label: 'PALS',            icon: 'child_care',            campo: 'pals_fecha_venc'            },
+  { key: 'nals',                   label: 'NALS',            icon: 'baby_changing_station', campo: 'nals_fecha_venc'            },
+  { key: 'violenciasexual',        label: 'Viol. Sexual',    icon: 'shield_person',         campo: 'violencia_sexual_fecha'     },
+  { key: 'ataquesagentesquimicos', label: 'Ag. Químicos',    icon: 'science',               campo: 'ataques_quimicos_fecha'     },
+  { key: 'dengue',                 label: 'Dengue',          icon: 'bug_report',            campo: 'dengue_fecha'               },
+  { key: 'sedacion',               label: 'Sedación',        icon: 'medication',            campo: 'sedacion_fecha'             },
+  { key: 'cuidadodonanteins',      label: 'Gest. Donación',  icon: 'volunteer_activism',    campo: 'cuidado_donante_fecha'      },
+  { key: 'radioproteccion',        label: 'Radioprotec.',    icon: 'radar',                 campo: 'radioproteccion_fecha'      },
+  { key: 'manejodolor',            label: 'Man. Dolor',      icon: 'healing',               campo: 'manejo_dolor_fecha'         },
+  { key: 'iamii',                  label: 'IAMII',           icon: 'cardiology',            campo: 'iamii_fecha'                },
+  { key: 'gestionduelo',           label: 'Gest. Duelo',     icon: 'sentiment_sad',         campo: 'gestion_duelo_fecha'        },
+  { key: 'curso3anos',             label: 'Póliza RC',       icon: 'policy',                campo: 'vigenciacurso3anos'         },
 ];
 
 const E = {
@@ -128,7 +131,7 @@ function MiniStat({ value, label, color, bg }) {
       onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)'; }}
       onMouseLeave={e => { e.currentTarget.style.transform = ''; }}
     >
-      <p style={{ fontSize: '1.2rem', fontWeight: 800, color, margin: 0, lineHeight: 1 }}>{value}</p>
+      <p style={{ fontSize: '1rem', fontWeight: 800, color, margin: 0, lineHeight: 1 }}>{value}</p>
       <p style={{ fontSize: '0.6rem', color, fontWeight: 600, margin: '3px 0 0', opacity: 0.9, lineHeight: 1 }}>{label}</p>
     </div>
   );
@@ -175,18 +178,20 @@ export default function PerfilMedico() {
   const [norm,     setNorm]     = useState(null);
   const [acc,      setAcc]      = useState(null);
   const [contrato, setContrato] = useState(null);
+  const [docsHab,  setDocsHab]  = useState(null);   // docs-habilitacion (Tab3 DocPanel)
   const [loading,  setLoading]  = useState(true);
 
   useEffect(() => {
     if (!doc) return;
     (async () => {
-      const [rMed, rCont, rHv, rNorm, rAcc, rContr] = await Promise.allSettled([
-        axiosInstance.get(`/medicos/${doc}`,               { skipToast: true }),
-        axiosInstance.get(`/medicos/${doc}/contacto/`,     { skipToast: true }),
-        axiosInstance.get(`/medicos/${doc}/documentos-hv/`,{ skipToast: true }),
-        axiosInstance.get(`/medicos/${doc}/normativos/`,   { skipToast: true }),
-        axiosInstance.get(`/medicos/${doc}/accesos/`,      { skipToast: true }),
-        axiosInstance.get(`/medicos/${doc}/contratacion/`, { skipToast: true }),
+      const [rMed, rCont, rHv, rNorm, rAcc, rContr, rDocs] = await Promise.allSettled([
+        axiosInstance.get(`/medicos/${doc}/`,                { skipToast: true }),
+        axiosInstance.get(`/medicos/${doc}/contacto/`,       { skipToast: true }),
+        axiosInstance.get(`/medicos/${doc}/documentos-hv/`,  { skipToast: true }),
+        axiosInstance.get(`/medicos/${doc}/normativos/`,     { skipToast: true }),
+        axiosInstance.get(`/medicos/${doc}/accesos/`,        { skipToast: true }),
+        axiosInstance.get(`/medicos/${doc}/contratacion/`,   { skipToast: true }),
+        axiosInstance.get(`/medicos/${doc}/docs-habilitacion/`, { skipToast: true }),
       ]);
       if (rMed.status   === 'fulfilled') setMed(rMed.value.data);
       if (rCont.status  === 'fulfilled') setCont(rCont.value.data);
@@ -194,17 +199,22 @@ export default function PerfilMedico() {
       if (rNorm.status  === 'fulfilled') setNorm(rNorm.value.data);
       if (rAcc.status   === 'fulfilled') setAcc(rAcc.value.data);
       if (rContr.status === 'fulfilled') setContrato(rContr.value.data);
+      if (rDocs.status  === 'fulfilled') setDocsHab(rDocs.value.data);
       setLoading(false);
     })();
   }, [doc]);
 
   /* ── Datos derivados ── */
-  const nombre = med
+  const _partes = med
     ? [med.primer_nombre, med.segundo_nombre, med.primer_apellido, med.segundo_apellido].filter(Boolean).join(' ')
-    : '—';
-  const activo   = med?.estado === 'ACTIVO' || med?.activo !== false;
-  const avatarCl = getAvatarColor(med?.categoria, nombre);
-  const init     = getInitials(nombre);
+    : '';
+  const nombre = (med?.nombre_medico?.trim() || _partes || (med ? `Doc. ${med.documento_identidad}` : '—'));
+  const activo    = med?.estado === 'ACTIVO' || med?.activo !== false;
+  const avatarCl  = getAvatarColor(med?.categoria, nombre);
+  const init      = getInitials(nombre);
+  const editRoute = med?.tipo_listado === 'fsfb_externo'
+    ? `/medicos-fsfb/${doc}/editar`
+    : `/medicos/${doc}/editar`;
 
   const cursosConEstado = useMemo(() => CURSOS.map(c => ({
     ...c,
@@ -218,12 +228,11 @@ export default function PerfilMedico() {
   const pct = Math.round((vigentes / CURSOS.length) * 100);
   const pctColor = pct >= 80 ? '#0A7E6E' : pct >= 50 ? '#b45309' : '#ba1a1a';
 
-  const rethusCfg = (() => {
-    const v = norm?.tarjeta_rethus;
-    if (v === 'SI')  return E.vigente;
-    if (v)           return E.por_vencer;
-    return E.sin_registro;
-  })();
+  /* RETHUS: estado real basado en fecha_vencimiento del DocPanel de Tab3 */
+  const rethusDoc     = docsHab?.rethus;
+  const rethusFecha   = rethusDoc?.fecha_vencimiento ?? null;
+  const rethusEstado  = rethusDoc?.tiene_documento || rethusFecha ? calcEstado(rethusFecha) : 'sin_registro';
+  const rethusCfg     = E[rethusEstado];
 
   /* ── Loading ── */
   if (loading) return (
@@ -236,21 +245,22 @@ export default function PerfilMedico() {
   );
 
   return (
-    <div style={{ display: 'flex', minHeight: 'calc(100vh - 56px)', background: '#EEF1F5' }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', minHeight: '100%', background: '#EEF1F5', margin: '0 -32px' }}>
 
       {/* ════════════════════════════════════════════════════
           SIDEBAR IZQUIERDO
           ════════════════════════════════════════════════════ */}
-      <aside style={{
-        width: 280, flexShrink: 0,
+      <aside className="perfil-aside" style={{
+        width: 260, flexShrink: 0,
         background: '#fff',
         borderRight: '1px solid rgba(10,37,64,0.08)',
         display: 'flex', flexDirection: 'column',
-        position: 'sticky', top: 0, maxHeight: 'calc(100vh - 56px)', overflowY: 'auto',
-        padding: '1.5rem 1.25rem 1.25rem',
-        gap: '1rem',
-        scrollbarWidth: 'thin',
-        scrollbarColor: '#d1d5db transparent',
+        position: 'sticky', top: 0,
+        height: 'calc(100dvh - 70px)',
+        overflowY: 'auto',
+        scrollbarWidth: 'none',
+        padding: '1.25rem 1rem',
+        gap: '0.75rem',
       }}>
 
         {/* ── Avatar + Identidad ── */}
@@ -259,11 +269,11 @@ export default function PerfilMedico() {
         {/* ── Avatar circular */}
           <div style={{ position: 'relative' }}>
             <div style={{
-              width: 72, height: 72, borderRadius: '50%',
+              width: 60, height: 60, borderRadius: '50%',
               background: avatarCl.bg,
               border: `2.5px solid ${avatarCl.color}40`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '1.75rem', fontWeight: 800, color: avatarCl.color,
+              fontSize: '1.5rem', fontWeight: 800, color: avatarCl.color,
               letterSpacing: '-0.03em', lineHeight: 1,
               boxShadow: `0 4px 16px ${avatarCl.color}25`,
             }}>
@@ -281,7 +291,7 @@ export default function PerfilMedico() {
 
           {/* Nombre y rol */}
           <div>
-            <h2 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0A2540', margin: '0 0 3px', lineHeight: 1.3 }}>
+            <h2 style={{ fontSize: '0.875rem', fontWeight: 700, color: '#0A2540', margin: '0 0 3px', lineHeight: 1.3 }}>
               {nombre || 'Sin nombre'}
             </h2>
             <p style={{ fontSize: '0.75rem', color: '#64748b', margin: 0, lineHeight: 1.4 }}>
@@ -318,8 +328,6 @@ export default function PerfilMedico() {
           <InfoRow icon="handshake"       label="Vinculación" value={contrato?.tipo_vinculacion} />
           <InfoRow icon="mail"            label="Correo"      value={cont?.correo} truncate />
           <InfoRow icon="smartphone"      label="Celular"     value={cont?.celular} />
-          <InfoRow icon="phone"           label="Teléfono"    value={cont?.telefono} />
-          <InfoRow icon="location_on"     label="Dirección"   value={cont?.direccion_correspondencia} truncate />
         </div>
 
         <div style={{ height: 1, background: 'linear-gradient(90deg, transparent, rgba(10,37,64,0.1), transparent)', flexShrink: 0 }} />
@@ -347,12 +355,11 @@ export default function PerfilMedico() {
           </div>
         </div>
 
-        <div style={{ flex: 1 }} />
-
         {/* ── Botón editar ── */}
         <button
-          onClick={() => navigate(`/medicos/${doc}/editar`)}
+          onClick={() => navigate(editRoute)}
           style={{
+            marginTop: 'auto',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
             width: '100%', padding: '11px 0',
             background: 'linear-gradient(135deg, #0A7E6E 0%, #086557 100%)', 
@@ -372,7 +379,7 @@ export default function PerfilMedico() {
       {/* ════════════════════════════════════════════════════
           CONTENIDO PRINCIPAL
           ════════════════════════════════════════════════════ */}
-      <main style={{ flex: 1, padding: '1.5rem 1.75rem', overflowY: 'auto', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '1.25rem', scrollBehavior: 'smooth' }}>
+      <main style={{ flex: 1, padding: '1.5rem 1.75rem', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
         {/* ── Header ── */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
@@ -400,7 +407,21 @@ export default function PerfilMedico() {
           {/* Acciones */}
           <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
             <button
-              onClick={() => navigate(`/medicos/${doc}/editar`)}
+              onClick={() => navigate(`/medicos/${doc}/expediente`)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 7, padding: '10px 20px',
+                background: '#fff', border: '1.5px solid rgba(10,37,64,0.15)', borderRadius: 10,
+                fontSize: '0.875rem', fontWeight: 600, color: '#0A2540', cursor: 'pointer',
+                transition: 'all 200ms', whiteSpace: 'nowrap',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.borderColor = 'rgba(10,37,64,0.3)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = 'rgba(10,37,64,0.15)'; }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#0A5C99' }}>folder_open</span>
+              Expediente
+            </button>
+            <button
+              onClick={() => navigate(editRoute)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 7, padding: '10px 20px',
                 background: '#0A7E6E', border: 'none', borderRadius: 10,
@@ -433,19 +454,27 @@ export default function PerfilMedico() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(135px, 1fr))', gap: 8, marginBottom: 12 }}>
             {cursosConEstado.map(c => <CursoCard key={c.key} curso={c} />)}
 
-            {/* RETHUS */}
-            <div style={{ padding: '11px 12px', background: rethusCfg.bg, borderRadius: 10, border: `1px solid ${rethusCfg.border}`, display: 'flex', flexDirection: 'column', gap: 5 }}>
+            {/* RETHUS — datos desde docs-habilitacion (Tab3 DocPanel) */}
+            <div style={{ padding: '11px 12px', background: rethusCfg.bg, borderRadius: 10, border: `1px solid ${rethusCfg.border}`, display: 'flex', flexDirection: 'column', gap: 5, transition: 'transform 150ms, box-shadow 150ms' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(10,37,64,0.12)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 16, color: rethusCfg.color, fontVariationSettings: "'FILL' 1" }}>verified</span>
-                <span style={{ fontSize: '0.775rem', fontWeight: 700, color: '#0f172a' }}>RETHUS</span>
+                <span style={{ fontSize: '0.775rem', fontWeight: 700, color: '#0f172a' }}>Tarjeta RETHUS</span>
               </div>
               <span style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 3, padding: '3px 8px', borderRadius: 12, background: 'rgba(255,255,255,0.8)', color: rethusCfg.color, fontSize: '0.625rem', fontWeight: 700, border: `1px solid ${rethusCfg.border}` }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 11, fontVariationSettings: "'FILL' 1" }}>{rethusCfg.icon}</span>
-                {norm?.tarjeta_rethus === 'SI' ? 'Registrado' : norm?.tarjeta_rethus ? norm.tarjeta_rethus : 'Sin datos'}
+                {rethusCfg.label}
               </span>
-              {norm?.consulta_rethus && (
+              {rethusDoc?.numero_documento_hv && (
                 <p style={{ fontSize: '0.65rem', color: '#64748b', margin: 0 }}>
-                  Consulta: {norm.consulta_rethus}
+                  N°: {rethusDoc.numero_documento_hv}
+                </p>
+              )}
+              {rethusFecha && (
+                <p style={{ fontSize: '0.65rem', color: '#64748b', margin: 0 }}>
+                  Venc: {fmtDate(toDate(rethusFecha))}
                 </p>
               )}
             </div>
@@ -544,14 +573,11 @@ export default function PerfilMedico() {
       </main>
 
       <style>{`
-        @keyframes spin { 
-          from { transform: rotate(0deg); } 
-          to { transform: rotate(360deg); } 
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
         }
-        aside::-webkit-scrollbar { width: 6px; }
-        aside::-webkit-scrollbar-track { background: transparent; }
-        aside::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        aside::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .perfil-aside::-webkit-scrollbar { display: none; }
       `}</style>
     </div>
   );

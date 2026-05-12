@@ -34,18 +34,17 @@ function KpiCard({ label, valor, sub, variant = 'rose', icon }) {
     <div
       style={{
         position: 'relative', overflow: 'hidden',
-        background: 'rgba(255,255,255,0.4)',
+        background: 'rgba(255,255,255,0.92)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
-        border: '1px solid rgba(255,255,255,0.3)',
-        borderRadius: '2rem',
-        padding: '1.5rem',
+        border: '1px solid rgba(226,232,240,0.8)',
+        borderRadius: '1.25rem',
+        padding: '1rem 1.25rem',
         boxShadow: hovered
-          ? '0 20px 25px -5px rgba(0,0,0,0.10), 0 8px 10px -6px rgba(0,0,0,0.10)'
-          : '0 4px 20px -5px rgba(0,0,0,0.02)',
-        display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-        height: 192,
-        transition: 'all 500ms',
+          ? '0 8px 20px rgba(0,0,0,0.08)'
+          : '0 2px 8px rgba(0,16,62,0.04)',
+        display: 'flex', flexDirection: 'column', gap: 8,
+        transition: 'all 300ms',
         cursor: 'default',
       }}
       onMouseEnter={() => setHovered(true)}
@@ -63,8 +62,8 @@ function KpiCard({ label, valor, sub, variant = 'rose', icon }) {
       </div>
       <div style={{ position: 'relative', zIndex: 1 }}>
         <p style={{
-          fontSize: '2.75rem', lineHeight: 1, fontWeight: 700,
-          letterSpacing: '-0.04em', color: t.value,
+          fontSize: '2rem', lineHeight: 1, fontWeight: 700,
+          letterSpacing: '-0.03em', color: t.value,
           fontVariantNumeric: 'tabular-nums', margin: 0,
         }}>
           {valor ?? '—'}
@@ -72,9 +71,9 @@ function KpiCard({ label, valor, sub, variant = 'rose', icon }) {
       </div>
       {icon && (
         <span className="material-symbols-outlined" style={{
-          position: 'absolute', right: '-5%', bottom: '-10%',
-          fontSize: 128, lineHeight: 1,
-          color: t.ghost, opacity: hovered ? 0.1 : 0.06,
+          position: 'absolute', right: '-4%', bottom: '-12%',
+          fontSize: 72, lineHeight: 1,
+          color: t.ghost, opacity: hovered ? 0.09 : 0.05,
           fontVariationSettings: "'FILL' 0",
           transform: hovered ? 'rotate(0deg) scale(1.05)' : 'rotate(-5deg)',
           pointerEvents: 'none', userSelect: 'none',

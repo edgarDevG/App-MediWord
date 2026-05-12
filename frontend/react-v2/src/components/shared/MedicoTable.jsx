@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../../api/axiosInstance';
+import { useAuth } from '../../context/AuthContext';
 import DoctorAvatar, { CAT_COLORS, getAvatarColor } from './DoctorAvatar';
 
 /* ══════════════════════════════════════════════════════════════
@@ -51,9 +52,160 @@ export function EstadoBadge({ estado }) {
   );
 }
 
+/* ── Configuración de acciones de estado ─────────────────── */
+const ACCION_CFG = {
+  renuncia:   { title: 'Marcar Renuncia',        icon: 'assignment_return', color: '#92400E', bg: '#FEF3C7', nuevoEstado: 'RENUNCIA',   fechaLabel: 'Fecha de terminación',              fechaRequired: true,  showAuth: false },
+  inactivo:   { title: 'Trasladar a Inactivo',   icon: 'person_off',        color: '#374151', bg: '#F3F4F6', nuevoEstado: 'INACTIVO',   fechaLabel: 'Fecha de inactivación',             fechaRequired: false, showAuth: false },
+  finalizado: { title: 'Marcar Finalización',    icon: 'event_busy',        color: '#991B1B', bg: '#FEE2E2', nuevoEstado: 'FINALIZADO', fechaLabel: 'Fecha de finalización de contrato', fechaRequired: true,  showAuth: true  },
+  reactivar:  { title: 'Reactivar Médico',       icon: 'person_check',      color: '#065f46', bg: '#d1fae5', nuevoEstado: 'ACTIVO',     fechaLabel: 'Nueva fecha de ingreso',            fechaRequired: false, showAuth: false },
+  reingreso:  { title: 'Registrar Reingreso',    icon: 'person_add',        color: '#065f46', bg: '#d1fae5', nuevoEstado: 'ACTIVO',     fechaLabel: 'Nueva fecha de ingreso',            fechaRequired: true,  showAuth: false },
+  eliminar:   { title: 'Eliminar Registro',      icon: 'delete_forever',    color: '#7f1d1d', bg: '#fef2f2', isDeletion: true },
+};
+
+/* ── Modal de gestión de estado ──────────────────────────── */
+function GestionModal({ accion, doc, nombre, estadoActual, onClose, onDone }) {
+  const cfg    = ACCION_CFG[accion] ?? {};
+  const today  = new Date().toISOString().slice(0, 10);
+  const [fecha,    setFecha]    = useState(today);
+  const [autori,   setAutori]   = useState(false);
+  const [motivo,   setMotivo]   = useState('');
+  const [confirm,  setConfirm]  = useState('');
+  const [saving,   setSaving]   = useState(false);
+  const [error,    setError]    = useState(null);
+
+  const nombreCorto = (nombre ?? doc).replace(/^Dr[a]?\.?\s+/i, '').split(' ').slice(0, 3).join(' ');
+
+  const handleConfirm = async () => {
+    if (cfg.isDeletion) {
+      if (confirm.trim().toLowerCase() !== nombreCorto.toLowerCase()) {
+        setError('El nombre no coincide. Escríbelo exactamente como se muestra.');
+        return;
+      }
+      setSaving(true);
+      try {
+        await axiosInstance.delete(`/medicos/${doc}`);
+        onDone();
+      } catch (e) {
+        setError(e.response?.data?.detail ?? 'Error al eliminar el registro.');
+        setSaving(false);
+      }
+      return;
+    }
+
+    if (cfg.fechaRequired && !fecha) { setError('La fecha es obligatoria.'); return; }
+    if (cfg.showAuth && !autori) { setError('Debes confirmar el formulario de autorización de datos.'); return; }
+
+    const payload = { nuevoEstado: cfg.nuevoEstado, motivo: motivo || undefined };
+    if (accion === 'renuncia')                              payload.fechaTerminacion = fecha;
+    if (accion === 'inactivo')                              payload.fechaInactivacion = fecha || today;
+    if (accion === 'finalizado') { payload.fechaFinalizacionContrato = fecha; payload.formularioAutorizacionDatos = true; }
+    if (accion === 'reactivar' || accion === 'reingreso')  { if (fecha) payload.fechaIngreso = fecha; }
+
+    setSaving(true);
+    try {
+      await axiosInstance.patch(`/medicos/${doc}/estado`, payload);
+      onDone();
+    } catch (e) {
+      const msg = e.response?.data?.detail;
+      setError(Array.isArray(msg) ? msg.map(m => m.msg ?? String(m)).join(' · ') : (msg ?? 'Error al actualizar el estado.'));
+      setSaving(false);
+    }
+  };
+
+  return createPortal(
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 9100, background: 'rgba(0,16,62,0.45)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 20, padding: '2rem', width: '100%', maxWidth: 440, boxShadow: '0 24px 48px rgba(0,16,62,0.18)' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: '1.5rem' }}>
+          <div style={{ width: 44, height: 44, borderRadius: 12, background: cfg.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 22, color: cfg.color }}>{cfg.icon}</span>
+          </div>
+          <div>
+            <h3 style={{ fontWeight: 700, fontSize: '1rem', color: '#00103e', margin: 0 }}>{cfg.title}</h3>
+            <p style={{ fontSize: '0.8125rem', color: '#64748b', margin: '2px 0 0' }}>{nombreCorto}</p>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {/* Confirmación por nombre (eliminar) */}
+          {cfg.isDeletion && (
+            <>
+              <div style={{ padding: '12px 14px', background: 'rgba(127,29,29,0.06)', border: '1px solid rgba(127,29,29,0.2)', borderRadius: 10, fontSize: '0.8125rem', color: '#7f1d1d', lineHeight: 1.5 }}>
+                <strong>Esta acción es irreversible.</strong> Se eliminarán todos los datos del médico (historial, documentos, contratos, normativos).
+              </div>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>
+                  Escribe <strong style={{ color: '#7f1d1d' }}>{nombreCorto}</strong> para confirmar
+                </label>
+                <input value={confirm} onChange={e => setConfirm(e.target.value)}
+                  placeholder={nombreCorto}
+                  style={{ width: '100%', padding: '9px 12px', border: '1.5px solid rgba(127,29,29,0.3)', borderRadius: 10, fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+            </>
+          )}
+
+          {/* Fecha */}
+          {!cfg.isDeletion && (
+            <div>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>
+                {cfg.fechaLabel}
+                {cfg.fechaRequired && <span style={{ color: '#dc2626', marginLeft: 3 }}>*</span>}
+                {!cfg.fechaRequired && <span style={{ color: '#94a3b8', fontWeight: 400, marginLeft: 4, textTransform: 'none', letterSpacing: 0 }}>(opcional)</span>}
+              </label>
+              <input type="date" value={fecha} onChange={e => setFecha(e.target.value)}
+                style={{ width: '100%', padding: '9px 12px', border: '1px solid rgba(197,198,210,0.5)', borderRadius: 10, fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box' }} />
+            </div>
+          )}
+
+          {/* Autorización datos (solo finalizado) */}
+          {cfg.showAuth && (
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', padding: '12px', background: '#fef9f9', borderRadius: 10, border: `1px solid ${autori ? '#dc2626' : 'rgba(197,198,210,0.4)'}` }}>
+              <input type="checkbox" checked={autori} onChange={e => setAutori(e.target.checked)} style={{ marginTop: 2, accentColor: '#dc2626', width: 16, height: 16, flexShrink: 0 }} />
+              <span style={{ fontSize: '0.8125rem', color: '#374151', lineHeight: 1.4 }}>
+                <strong>Formulario de autorización de datos (Ley 1581)</strong> completado y firmado.
+                <span style={{ color: '#dc2626', marginLeft: 3 }}>*</span>
+              </span>
+            </label>
+          )}
+
+          {/* Motivo */}
+          {!cfg.isDeletion && (
+            <div>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>
+                Motivo <span style={{ color: '#94a3b8', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(opcional)</span>
+              </label>
+              <textarea value={motivo} onChange={e => setMotivo(e.target.value)} rows={2}
+                placeholder="Describe el motivo..."
+                style={{ width: '100%', padding: '9px 12px', border: '1px solid rgba(197,198,210,0.5)', borderRadius: 10, fontSize: '0.875rem', outline: 'none', resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+            </div>
+          )}
+
+          {/* Error */}
+          {error && (
+            <p style={{ fontSize: '0.8125rem', color: '#dc2626', background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.2)', borderRadius: 8, padding: '8px 12px', margin: 0 }}>{error}</p>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div style={{ display: 'flex', gap: 10, marginTop: '1.5rem', justifyContent: 'flex-end' }}>
+          <button onClick={onClose} disabled={saving} style={{ padding: '9px 22px', borderRadius: 10, border: '1px solid rgba(197,198,210,0.5)', background: 'white', color: '#374151', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer' }}>
+            Cancelar
+          </button>
+          <button onClick={handleConfirm} disabled={saving} style={{ padding: '9px 22px', borderRadius: 10, border: 'none', background: cfg.color, color: 'white', fontWeight: 700, fontSize: '0.875rem', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: 6 }}>
+            {saving && <span className="material-symbols-outlined" style={{ fontSize: 16, animation: 'spin 1s linear infinite' }}>progress_activity</span>}
+            {cfg.isDeletion ? 'Eliminar definitivamente' : 'Confirmar'}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 /* ── Action dropdown menu ─────────────────────────────────── */
-function ActionMenu({ doc, nombre, estado, profileRoute, editRoute, onEstadoAction }) {
-  const navigate = useNavigate();
+function ActionMenu({ doc, nombre, estado, profileRoute, editRoute, onAction }) {
+  const navigate  = useNavigate();
+  const { user }  = useAuth();
   const [open, setOpen] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
   const btnRef  = useRef(null);
@@ -85,24 +237,26 @@ function ActionMenu({ doc, nombre, estado, profileRoute, editRoute, onEstadoActi
     setOpen(o => !o);
   };
 
-  const esActivo   = estado === 'ACTIVO' || !estado;
-  const disabledTip = esActivo ? null : `El médico ya está en estado ${estado}`;
+  const esActivo     = estado === 'ACTIVO' || !estado;
+  const canReactivate = estado === 'INACTIVO' || estado === 'RENUNCIA' || estado === 'FINALIZADO';
 
   const items = [
-    { icon: 'person',            label: 'Ver perfil médico',    accent: true,
-      action: () => navigate(profileRoute(doc)) },
-    { icon: 'edit',              label: 'Editar carpetas',      accent: false,
-      action: () => navigate(editRoute(doc)) },
-    { divider: true },
-    { icon: 'assignment_return', label: 'Marcar renuncia',      color: '#92400E',
-      disabled: !esActivo, tip: disabledTip,
-      action: () => onEstadoAction?.('renuncia', doc, nombre) },
-    { icon: 'person_off',        label: 'Trasladar a inactivo', color: '#374151',
-      disabled: !esActivo, tip: disabledTip,
-      action: () => onEstadoAction?.('inactivo', doc, nombre) },
-    { icon: 'event_busy',        label: 'Marcar finalización',  color: '#991B1B',
-      disabled: !esActivo, tip: disabledTip,
-      action: () => onEstadoAction?.('finalizado', doc, nombre) },
+    { icon: 'person',  label: 'Ver perfil médico', accent: true,  action: 'ver_perfil' },
+    { icon: 'edit',    label: 'Editar carpetas',   accent: false, action: 'editar' },
+    ...(esActivo || canReactivate ? [{ divider: true }] : []),
+    ...(esActivo ? [
+      { icon: 'assignment_return', label: 'Marcar renuncia',      color: '#92400E', action: 'renuncia'   },
+      { icon: 'person_off',        label: 'Trasladar a inactivo', color: '#374151', action: 'inactivo'   },
+      { icon: 'event_busy',        label: 'Marcar finalización',  color: '#991B1B', action: 'finalizado' },
+    ] : []),
+    ...(canReactivate ? [
+      { icon: 'person_check', label: estado === 'RENUNCIA' ? 'Registrar reingreso' : 'Reactivar médico', color: '#065f46',
+        action: estado === 'RENUNCIA' ? 'reingreso' : 'reactivar' },
+    ] : []),
+    ...(user?.rol === 'admin' ? [
+      { divider: true },
+      { icon: 'delete_forever', label: 'Eliminar registro', color: '#7f1d1d', action: 'eliminar' },
+    ] : []),
   ];
 
   const dropdown = open && createPortal(
@@ -111,7 +265,7 @@ function ActionMenu({ doc, nombre, estado, profileRoute, editRoute, onEstadoActi
       background: 'white', borderRadius: 12,
       border: '1px solid rgba(197,198,210,0.3)',
       boxShadow: '0 8px 24px rgba(0,16,62,0.13), 0 2px 6px rgba(0,0,0,0.08)',
-      minWidth: 210, zIndex: 9999, overflow: 'hidden',
+      minWidth: 220, zIndex: 9999, overflow: 'hidden',
       animation: 'fadeIn 120ms ease',
     }}>
       <div style={{ padding: '8px 12px 6px', borderBottom: '1px solid rgba(197,198,210,0.15)' }}>
@@ -121,31 +275,30 @@ function ActionMenu({ doc, nombre, estado, profileRoute, editRoute, onEstadoActi
       </div>
       {items.map((item, i) => {
         if (item.divider) return <div key={i} style={{ height: 1, background: 'rgba(197,198,210,0.18)', margin: '2px 0' }} />;
-        const isDisabled = item.disabled;
-        const itemColor  = item.accent ? '#1a4ed7' : (item.color ?? '#334155');
+        const itemColor = item.accent ? '#1a4ed7' : (item.color ?? '#334155');
         return (
           <button key={i}
-            onClick={e => { e.stopPropagation(); if (!isDisabled) { setOpen(false); item.action(); } }}
-            title={item.tip ?? ''}
+            onClick={e => { e.stopPropagation(); setOpen(false);
+              if (item.action === 'ver_perfil') navigate(profileRoute(doc));
+              else if (item.action === 'editar') navigate(editRoute(doc));
+              else onAction(item.action, doc, nombre, estado);
+            }}
             style={{
-              width: '100%', textAlign: 'left', border: 'none',
-              cursor: isDisabled ? 'not-allowed' : 'pointer',
+              width: '100%', textAlign: 'left', border: 'none', cursor: 'pointer',
               display: 'flex', alignItems: 'center', gap: 10,
               padding: '9px 14px', fontSize: '0.8125rem',
               fontWeight: item.accent ? 700 : 500,
-              color: isDisabled ? '#c8d2df' : itemColor,
+              color: itemColor,
               background: item.accent ? 'rgba(26,78,215,0.04)' : 'transparent',
-              opacity: isDisabled ? 0.5 : 1,
               transition: 'background 100ms',
             }}
-            onMouseEnter={e => { if (!isDisabled) e.currentTarget.style.background = item.accent ? 'rgba(26,78,215,0.1)' : '#f8fafc'; }}
+            onMouseEnter={e => { e.currentTarget.style.background = item.accent ? 'rgba(26,78,215,0.1)' : '#f8fafc'; }}
             onMouseLeave={e => { e.currentTarget.style.background = item.accent ? 'rgba(26,78,215,0.04)' : 'transparent'; }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 16, color: isDisabled ? '#c8d2df' : itemColor, fontVariationSettings: item.accent ? "'FILL' 1" : "'FILL' 0" }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 16, color: itemColor, fontVariationSettings: item.accent ? "'FILL' 1" : "'FILL' 0" }}>
               {item.icon}
             </span>
             {item.label}
-            {isDisabled && <span className="material-symbols-outlined" style={{ fontSize: 13, marginLeft: 'auto', color: '#c8d2df' }}>lock</span>}
           </button>
         );
       })}
@@ -234,15 +387,15 @@ export default function MedicoTable({
   subtitulo,
   emptyIcon        = 'person_search',
   emptyText        = 'No se encontraron resultados',
-  statusBadge,           // override opcional; si no se pasa usa EstadoBadge universal
+  statusBadge,
   showFechaIngreso = false,
   showCatFilter    = false,
   showNewBtn       = false,
   newBtnLabel      = 'Nuevo',
   newBtnRoute,
   onNewClick,
-  onEstadoAction,        // (accion, doc, nombre) => void — manejado por el padre
-  refreshKey       = 0,  // incrementar desde el padre para forzar re-fetch
+  onEstadoAction,        // callback externo opcional para notificar al padre
+  refreshKey       = 0,
   SIZE             = 20,
   profileRoute     = (doc) => `/medicos/${doc}/perfil`,
   editRoute        = (doc) => `/medicos/${doc}/editar`,
@@ -254,6 +407,7 @@ export default function MedicoTable({
   const [search,  setSearch]  = useState('');
   const [catFil,  setCatFil]  = useState('');
   const [loading, setLoading] = useState(true);
+  const [gestion, setGestion] = useState(null); // { accion, doc, nombre, estadoActual }
   const totalPages = Math.max(1, Math.ceil(total / SIZE));
 
   const fetchData = useCallback(() => {
@@ -279,9 +433,19 @@ export default function MedicoTable({
   // Cuando el padre incrementa refreshKey vuelve a la página 1 y refetch
   useEffect(() => { if (refreshKey > 0) { setPage(1); fetchData(); } }, [refreshKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const skCols = [
-    ...(showFechaIngreso ? ['76px'] : ['55%', '40%', '60%']),
-  ];
+  const handleAction = (accion, doc, nombre, estadoActual) => {
+    setGestion({ accion, doc, nombre, estadoActual });
+  };
+
+  const handleGestionDone = () => {
+    const prev = gestion;
+    setGestion(null);
+    setPage(1);
+    fetchData();
+    onEstadoAction?.(prev?.accion, prev?.doc, prev?.nombre);
+  };
+
+  const skCols = showFechaIngreso ? ['60%', '55%', '76px'] : ['60%', '55%'];
 
   return (
     <div style={{
@@ -356,17 +520,12 @@ export default function MedicoTable({
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
           <colgroup>
-            {/* Fixed columns (52 + 60 = 112 px).
-                Without fecha: 22+16+14+12+14+10 = 88 % → OK
-                With    fecha: 20+14+12+10+12+ 9+ 9 = 86 % → OK */}
             <col style={{ width: 52 }} />
-            <col style={{ width: showFechaIngreso ? '20%' : '22%' }} />
-            <col style={{ width: showFechaIngreso ? '14%' : '16%' }} />
-            <col style={{ width: showFechaIngreso ? '12%' : '14%' }} />
-            <col style={{ width: showFechaIngreso ? '10%' : '12%' }} />
-            <col style={{ width: showFechaIngreso ? '12%' : '14%' }} />
-            {showFechaIngreso && <col style={{ width: '9%' }} />}
-            <col style={{ width: showFechaIngreso ? '9%' : '10%' }} />
+            <col style={{ width: showFechaIngreso ? '26%' : '30%' }} />
+            <col style={{ width: showFechaIngreso ? '22%' : '26%' }} />
+            <col style={{ width: showFechaIngreso ? '20%' : '24%' }} />
+            {showFechaIngreso && <col style={{ width: '11%' }} />}
+            <col style={{ width: showFechaIngreso ? '13%' : '14%' }} />
             <col style={{ width: 60 }} />
           </colgroup>
           <thead>
@@ -374,8 +533,6 @@ export default function MedicoTable({
               <th style={{ ...TH, paddingLeft: 20, paddingRight: 6 }}></th>
               <th style={TH}>Médico</th>
               <th style={TH}>Especialidad</th>
-              <th style={TH}>Departamento</th>
-              <th style={TH}>Contratación</th>
               <th style={TH}>Contacto</th>
               {showFechaIngreso && <th style={TH}>Ingreso</th>}
               <th style={TH}>Estado</th>
@@ -388,7 +545,7 @@ export default function MedicoTable({
               : items.length === 0
               ? (
                 <tr>
-                  <td colSpan={8 + (showFechaIngreso ? 1 : 0)} style={{ padding: '5rem 2rem', textAlign: 'center' }}>
+                  <td colSpan={6 + (showFechaIngreso ? 1 : 0)} style={{ padding: '5rem 2rem', textAlign: 'center' }}>
                     <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
                       <div style={{ width: 72, height: 72, borderRadius: 20, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <span className="material-symbols-outlined" style={{ fontSize: 36, color: '#c8d2df' }}>{emptyIcon}</span>
@@ -404,18 +561,17 @@ export default function MedicoTable({
                   return (
                     <tr
                       key={m.documento_identidad ?? i}
-                      onClick={() => navigate(profileRoute(m.documento_identidad))}
-                      style={{ borderBottom: '1px solid rgba(197,198,210,0.1)', cursor: 'pointer', transition: 'background 150ms' }}
-                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(26,78,215,0.025)'; }}
+                      style={{ borderBottom: '1px solid rgba(197,198,210,0.1)', transition: 'background 150ms' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(26,78,215,0.018)'; }}
                       onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                     >
                       {/* Avatar */}
-                      <td style={{ padding: '12px 6px 12px 20px' }}>
+                      <td style={{ padding: '12px 0 12px 20px' }}>
                         <DoctorAvatar name={m.nombre_medico} cat={cat} size={40} radius={11} />
                       </td>
 
                       {/* Médico: nombre + documento */}
-                      <td style={{ padding: '12px 10px 12px 10px', overflow: 'hidden' }}>
+                      <td style={{ padding: '12px 10px 12px 16px', overflow: 'hidden' }}>
                         <p style={{ fontSize: '0.875rem', fontWeight: 600, color: '#00103e', lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {safe(m.nombre_medico)}
                         </p>
@@ -439,20 +595,6 @@ export default function MedicoTable({
                             {m.seccion_nombre}
                           </p>
                         )}
-                      </td>
-
-                      {/* Departamento */}
-                      <td style={{ padding: '12px 16px', overflow: 'hidden' }}>
-                        <p style={{ fontSize: '0.8125rem', color: '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {safe(m.dept_coordinacion_nombre ?? m.dept_coordinacion_id)}
-                        </p>
-                      </td>
-
-                      {/* Tipo contratación */}
-                      <td style={{ padding: '12px 16px', overflow: 'hidden' }}>
-                        <p style={{ fontSize: '0.8125rem', color: '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {safe(m.tipo_vinculacion)}
-                        </p>
                       </td>
 
                       {/* Contacto: correo + celular */}
@@ -489,7 +631,7 @@ export default function MedicoTable({
                           estado={m.estado}
                           profileRoute={profileRoute}
                           editRoute={editRoute}
-                          onEstadoAction={onEstadoAction}
+                          onAction={handleAction}
                         />
                       </td>
                     </tr>
@@ -527,7 +669,21 @@ export default function MedicoTable({
         </div>
       )}
 
-      <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}`}</style>
+      <style>{`
+        @keyframes fadeIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+      `}</style>
+
+      {gestion && (
+        <GestionModal
+          accion={gestion.accion}
+          doc={gestion.doc}
+          nombre={gestion.nombre}
+          estadoActual={gestion.estadoActual}
+          onClose={() => setGestion(null)}
+          onDone={handleGestionDone}
+        />
+      )}
     </div>
   );
 }

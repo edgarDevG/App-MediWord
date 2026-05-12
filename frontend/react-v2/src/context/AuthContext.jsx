@@ -22,8 +22,8 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // login devuelve el userData para que el componente que llama maneje la navegación
-  const login = async (username, password) => {
-    const res = await axiosInstance.post('/auth/login', { username, password }, { skipToast: true });
+  const login = async (email, password) => {
+    const res = await axiosInstance.post('/auth/login', { email, password }, { skipToast: true });
     const token    = res.data.access_token;
     const userData = res.data.user;
     localStorage.setItem('token', token);
@@ -39,8 +39,10 @@ export const AuthProvider = ({ children }) => {
     if (navigateFn) navigateFn('/login');
   };
 
+  const hasRole = (...roles) => roles.includes(user?.rol);
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, hasRole }}>
       {!loading && children}
     </AuthContext.Provider>
   );

@@ -492,7 +492,7 @@ export default function FormFSFB() {
       ]);
 
       showToast?.('Médico FSFB guardado correctamente', 'success');
-      navigate('/medicos-fsfb');
+      navigate(`/medicos/${docId}/perfil`);
     } catch (e) {
       const msg = e.response?.data?.detail ?? 'Error al guardar';
       showToast?.(Array.isArray(msg) ? msg.map(m => m.msg ?? JSON.stringify(m)).join(' · ') : msg, 'error');

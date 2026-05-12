@@ -116,7 +116,7 @@ class MedicoUpdate(BaseModel):
     anios_cuerpo_medico: Optional[float] = None
 
 class EstadoUpdate(BaseModel):
-    nuevoEstado: str                                   # renuncia | inactivo | finalizado
+    nuevoEstado: str                                   # renuncia | inactivo | finalizado | activo
     fechaTerminacion: Optional[date] = None            # obligatorio para renuncia
     fechaInactivacion: Optional[date] = None           # obligatorio/default=hoy para inactivo
     fechaFinalizacionContrato: Optional[date] = None   # obligatorio para finalizado
@@ -124,6 +124,7 @@ class EstadoUpdate(BaseModel):
     direccionCorrespondencia: Optional[str] = None
     direccionConsultorio: Optional[str] = None
     motivo: Optional[str] = None
+    fechaIngreso: Optional[date] = None                # para reactivación: nueva fecha de ingreso
 
 
 class HistorialEstadoOut(BaseModel):
@@ -442,3 +443,39 @@ class DocsHabilitacionOut(DocsHabilitacionUpdate):
 class DashboardResumen(BaseModel):
     totales: dict
     por_categoria: list
+
+
+# ═══════════════════════════════════════════════════════════════
+# USUARIOS (gestión de sistema)
+# ═══════════════════════════════════════════════════════════════
+
+ROLES_VALIDOS = {"admin", "supervisor", "editor", "viewer"}
+
+class UserOut(BaseModel):
+    id: int
+    username: str
+    nombre: Optional[str]
+    email: Optional[str]
+    rol: str
+    activo: bool
+    created_at: Optional[datetime]
+    model_config = {"from_attributes": True}
+
+
+class UserCreate(BaseModel):
+    username: str
+    password: str
+    nombre: Optional[str] = None
+    email: Optional[str] = None
+    rol: str = "viewer"
+
+
+class UserUpdate(BaseModel):
+    nombre: Optional[str] = None
+    email: Optional[str] = None
+    rol: Optional[str] = None
+    activo: Optional[bool] = None
+
+
+class PasswordReset(BaseModel):
+    nueva_password: str

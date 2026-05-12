@@ -1,11 +1,9 @@
 /* ══════════════════════════════════════════════════════════════
-   FormMedico.jsx v9 — MediWork HSM
-   FIXES v9 (sobre v8):
-   - Fix 1: useState(false) en loadingData — era useState(isEdit) → loading infinito
-   - Fix 2: useEffect maestras con try/finally — garantiza liberación aunque falle endpoint
-   - Fix 3: setTab1 lee estado_civil desde cont (contacto), no med
-   - Fix 4: medicoPayload limpio — sin condicion_laboral/estado_civil, activo → estado string
-   - Fix 5: contactoPayload incluye estado_civil
+   FormMedico.jsx v10 — MediWork HSM
+   FIXES v10 (sobre v9):
+   - Fix 6: Sección Identificación — campos visa + alerta vigencia cuando tipo_doc = CE
+   - Fix 7: Icono adjuntos siempre visible en Identificación (carpeta: hoja_vida)
+   - Fix 8: fecha_vencimiento_visa en INIT_TAB1 y payload
 ══════════════════════════════════════════════════════════════ */
 
 import { useState, useEffect, useMemo } from 'react';
@@ -16,6 +14,7 @@ import Tab3Especialidades from './Tab3Especialidades';
 import Tab4Institucional  from './Tab4institucional';
 import Tab5Revision       from './Tab5revision';
 import './FormMedico.css';
+import FileUploadField from '../../components/shared/FileUploadField';
 
 const STEPS = [
   { id: 1, label: 'Datos del Médico',          icon: 'person'         },
@@ -26,7 +25,7 @@ const STEPS = [
 ];
 
 const API = {
-  medico:   (doc) => `/medicos/${doc}`,
+  medico:   (doc) => `/medicos/${doc}/`,
   medicos:  ()    => `/medicos/`,
   hv:       (doc) => `/medicos/${doc}/documentos-hv/`,
   contacto: (doc) => `/medicos/${doc}/contacto/`,
@@ -44,6 +43,7 @@ const INIT_TAB1 = {
   directorio_metrica_id: '',
   dept_coordinacion_id: '', dept_direccion_medica_id: '', seccion_id: '', especialidad: '',
   contacto_emergencia: '', parentesco: '', tel_emergencia: '', correo_alterno: '',
+  fecha_vencimiento_visa: '',
 };
 
 const REQUIRED = ['tipo_documento', 'documento_identidad', 'primer_nombre', 'primer_apellido'];
@@ -77,7 +77,7 @@ const mappers = {
   departamentos:    (row) => ({ value: row.id,        label: row.nombre }),
   secciones:        (row) => ({ value: row.id,        label: row.nombre }),
   especialidades:    (row) => ({ value: row.nombre,  label: row.nombre }),
-  directorioMetrica: (row) => ({ value: row.codigo,  label: `${row.codigo} – ${row.descripcion}` }),
+  directorioMetrica: (row) => ({ value: row.id,      label: `${row.id} – ${row.descripcion}` }),
 };
 
 function applyMapper(data, mapFn, fallback = []) {
@@ -147,6 +147,59 @@ function CampoSelect({ label, name, value, onChange, error, required,
         <span id={`${name}-err`} className="form-error-msg fm-error" role="alert">
           <span className="material-symbols-outlined sm">error</span>{error}
         </span>
+      )}
+    </div>
+  );
+}
+
+/* ── Adjuntos Identificación (Hoja de Vida) ── */
+function AdjuntosIdentificacion({ medicoDoc, tipoDoc }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ marginTop: '1rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ flex: 1, height: '1px', background: 'rgba(197,198,210,0.4)' }} />
+        <button
+          type="button"
+          onClick={() => setOpen(p => !p)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '5px 12px', borderRadius: 'var(--radius-full)',
+            border: '1px solid rgba(148,163,184,0.4)',
+            background: open ? 'rgba(26,78,215,0.06)' : 'transparent',
+            color: open ? 'var(--color-secondary)' : '#64748b',
+            fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
+            transition: 'all 160ms',
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>attach_file</span>
+          Adjuntos carpeta Hoja de Vida
+          <span className="material-symbols-outlined" style={{ fontSize: 14, transition: 'transform 160ms', transform: open ? 'rotate(180deg)' : 'none' }}>
+            expand_more
+          </span>
+        </button>
+        <div style={{ flex: 1, height: '1px', background: 'rgba(197,198,210,0.4)' }} />
+      </div>
+      {open && (
+        <div style={{
+          marginTop: '0.75rem', padding: '1.25rem',
+          background: '#fafcff',
+          border: '1px solid rgba(26,78,215,0.1)',
+          borderRadius: 'var(--radius-xl)',
+        }}>
+          <FileUploadField
+            carpeta="hoja_vida"
+            tiposPermitidos={['Form Aut. Datos', 'Cédula', 'Visa', 'Foto', 'Hoja de Vida', 'Cédula Extranjería']}
+            maxArchivos={5}
+            medicoDoc={medicoDoc}
+            label="Documentos de soporte (máx. 5 PDF)"
+            campoRef="identificacion"
+          />
+          <p style={{ fontSize: '0.6875rem', color: '#94a3b8', marginTop: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 13 }}>folder</span>
+            Carpeta: <strong style={{ color: '#64748b' }}>Hoja de Vida</strong>
+          </p>
+        </div>
       )}
     </div>
   );
@@ -460,6 +513,7 @@ export default function FormMedico() {
           fecha_nacimiento: toDateStr(hv.fecha_nacimiento ?? hv.fechanacimiento),
           lugar_nacimiento: hv.lugar_nacimiento ?? hv.lugarnacimiento ?? '',
           genero:           hv.sexo             ?? hv.genero          ?? '',
+          fecha_vencimiento_visa: hv.fecha_vencimiento_visa ?? '',
           correo_electronico:    cont.correo                    ?? cont.correo_electronico           ?? '',
           celular:               cont.celular                   ?? '',
           telefono:              cont.telefono                  ?? '',
@@ -532,7 +586,7 @@ export default function FormMedico() {
         segundo_apellido:         tab1.segundo_apellido         || null,
         categoria:                tab1.categoria                || null,
         cargo:                    tab1.cargo                    || null,
-        directorio_metrica_id:    tab1.directorio_metrica_id    || null,
+        directorio_metrica_id:    tab1.directorio_metrica_id ? parseInt(tab1.directorio_metrica_id, 10) : null,
         fecha_ingreso:            tab1.fecha_ingreso            || null,
         estado:                   tab1.activo ? 'ACTIVO' : 'INACTIVO',
         dept_coordinacion_id:     tab1.dept_coordinacion_id     || null,
@@ -552,11 +606,14 @@ export default function FormMedico() {
 
       const savedDoc = medicoDoc ?? tab1.documento_identidad;
       const hvPayload = {
-        tipo_documento:   tab1.tipo_documento   || null,
-        lugar_expedicion: tab1.lugar_expedicion || null,
-        fecha_nacimiento: tab1.fecha_nacimiento || null,
-        lugar_nacimiento: tab1.lugar_nacimiento || null,
-        sexo:             tab1.genero           || null,
+        tipo_documento:         tab1.tipo_documento         || null,
+        lugar_expedicion:       tab1.lugar_expedicion       || null,
+        fecha_nacimiento:       tab1.fecha_nacimiento       || null,
+        lugar_nacimiento:       tab1.lugar_nacimiento       || null,
+        sexo:                   tab1.genero                 || null,
+        fecha_vencimiento_visa: tab1.tipo_documento === 'CE'
+                                  ? (tab1.fecha_vencimiento_visa || null)
+                                  : null,
       };
       try { await upsert(API.hv(savedDoc), API.hv(savedDoc), hvPayload, savedDoc); }
       catch (hvErr) { console.warn('[FormMedico v9] documentos_hv:', hvErr); }
@@ -721,6 +778,59 @@ export default function FormMedico() {
                 options={optExpedicion} placeholder="Seleccionar ciudad…"
                 disabled={loadingMaestras} />
             </div>
+
+            {/* ── Cédula de Extranjería: campos visa ── */}
+            {tab1.tipo_documento === 'CE' && (
+              <div style={{
+                marginTop: '1rem', padding: '1rem 1.25rem',
+                background: 'rgba(26,78,215,0.04)',
+                border: '1px solid rgba(26,78,215,0.14)',
+                borderRadius: 'var(--radius-lg)',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.75rem' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--color-secondary)' }}>travel_explore</span>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Datos de Visa / Extranjería
+                  </span>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'flex-end' }}>
+                  <div className="form-group" style={{ flex: '1 1 200px' }}>
+                    <label className="form-label">Fecha vencimiento visa</label>
+                    <input
+                      type="date"
+                      className="form-input"
+                      name="fecha_vencimiento_visa"
+                      value={tab1.fecha_vencimiento_visa ?? ''}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  {tab1.fecha_vencimiento_visa && (() => {
+                    const dias = Math.ceil((new Date(tab1.fecha_vencimiento_visa + 'T00:00:00') - new Date()) / (1000 * 60 * 60 * 24));
+                    if (dias < 0) return (
+                      <span className="badge badge-vencido">
+                        <span className="material-symbols-outlined sm">cancel</span>
+                        Visa vencida hace {Math.abs(dias)}d
+                      </span>
+                    );
+                    if (dias <= 30) return (
+                      <span className="badge badge-por-vencer">
+                        <span className="material-symbols-outlined sm">schedule</span>
+                        Vence en {dias}d
+                      </span>
+                    );
+                    return (
+                      <span className="badge badge-vigente">
+                        <span className="material-symbols-outlined sm">check_circle</span>
+                        Visa vigente
+                      </span>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
+
+            {/* ── Adjuntos Hoja de Vida — siempre visible ── */}
+            <AdjuntosIdentificacion medicoDoc={medicoDoc ?? documento} tipoDoc={tab1.tipo_documento} />
           </SectionCard>
 
           {/* ── Sección: Nombre completo ── */}
@@ -871,25 +981,6 @@ export default function FormMedico() {
                 options={optEspecialidades} disabled={loadingMaestras}
                 placeholder="Seleccionar especialidad…" />
 
-              {/* Toggle activo */}
-              <div className="form-group fm-field">
-                <label className="form-label">Estado del médico</label>
-                <button
-                  type="button"
-                  onClick={() => { setTab1(prev => ({ ...prev, activo: !prev.activo })); setTab1Dirty(true); }}
-                  className={`fm-toggle-btn ${tab1.activo ? 'fm-toggle-active' : 'fm-toggle-inactive'}`}
-                >
-                  <div className="fm-toggle-track">
-                    <div className="fm-toggle-thumb" />
-                    <span className="fm-toggle-icon material-symbols-outlined">
-                      {tab1.activo ? 'check_circle' : 'cancel'}
-                    </span>
-                  </div>
-                  <span className="fm-toggle-label">
-                    {tab1.activo ? 'Activo' : 'Inactivo'}
-                  </span>
-                </button>
-              </div>
             </div>
           </SectionCard>
 

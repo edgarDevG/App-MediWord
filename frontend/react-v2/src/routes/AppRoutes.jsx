@@ -7,17 +7,22 @@ import NoAutorizado            from '../pages/auth/NoAutorizado';
 import Dashboard               from '../pages/dashboard/Dashboard';
 import FormMedico              from '../pages/medicos/FormMedico';
 import PerfilMedico            from '../pages/medicos/PerfilMedico';
+import ExpedientePage          from '../pages/medicos/ExpedienteTab';
 import ListaFSFB               from '../pages/fsfb/ListaFSFB';
 import FormFSFB                from '../pages/fsfb/FormFSFB';
 import ListaRenuncias          from '../pages/renuncias/ListaRenuncias';
 import ListaFinalizaciones     from '../pages/finalizaciones/ListaFinalizaciones';
 import ListaInactivos          from '../pages/personal_inactivo/ListaInactivos';
 import Reportes                from '../pages/reportes/Reportes';
+import ConfigPage             from '../pages/configuracion/ConfigPage';
 
-// ── Definición de permisos por módulo ──────────────────────────
-// admin : acceso total
-// user  : módulos operativos, sin Configuración ni acciones destructivas
-const ROLES_OPERATIVOS = ['admin', 'user'];
+// ── Roles del sistema ──────────────────────────────────────────
+// admin      : acceso total + gestión de usuarios
+// supervisor : crear/editar médicos + cambiar estados
+// editor     : crear/editar médicos (sin cambiar estados ni usuarios)
+// viewer     : solo lectura
+const ROLES_OPERATIVOS = ['admin', 'supervisor', 'editor', 'viewer'];
+const ROLES_EDITOR     = ['admin', 'supervisor', 'editor'];
 const ROLES_ADMIN      = ['admin'];
 
 export default function AppRoutes() {
@@ -36,14 +41,14 @@ export default function AppRoutes() {
             </ProtectedRoute>
           } />
 
-          {/* Cuerpo Médico — todos los roles operativos */}
+          {/* Cuerpo Médico — editor, supervisor y admin pueden crear/editar */}
           <Route path="/medicos/nuevo" element={
-            <ProtectedRoute roles={ROLES_OPERATIVOS}>
+            <ProtectedRoute roles={ROLES_EDITOR}>
               <MainLayout><FormMedico /></MainLayout>
             </ProtectedRoute>
           } />
           <Route path="/medicos/:doc/editar" element={
-            <ProtectedRoute roles={ROLES_OPERATIVOS}>
+            <ProtectedRoute roles={ROLES_EDITOR}>
               <MainLayout><FormMedico /></MainLayout>
             </ProtectedRoute>
           } />
@@ -52,19 +57,24 @@ export default function AppRoutes() {
               <MainLayout><PerfilMedico /></MainLayout>
             </ProtectedRoute>
           } />
-          {/* Médicos FSFB — todos los roles operativos */}
+          <Route path="/medicos/:doc/expediente" element={
+            <ProtectedRoute roles={ROLES_OPERATIVOS}>
+              <MainLayout><ExpedientePage /></MainLayout>
+            </ProtectedRoute>
+          } />
+          {/* Médicos FSFB */}
           <Route path="/medicos-fsfb" element={
             <ProtectedRoute roles={ROLES_OPERATIVOS}>
               <MainLayout><ListaFSFB /></MainLayout>
             </ProtectedRoute>
           } />
           <Route path="/medicos-fsfb/nuevo" element={
-            <ProtectedRoute roles={ROLES_OPERATIVOS}>
+            <ProtectedRoute roles={ROLES_EDITOR}>
               <MainLayout><FormFSFB /></MainLayout>
             </ProtectedRoute>
           } />
           <Route path="/medicos-fsfb/:documento/editar" element={
-            <ProtectedRoute roles={ROLES_OPERATIVOS}>
+            <ProtectedRoute roles={ROLES_EDITOR}>
               <MainLayout><FormFSFB /></MainLayout>
             </ProtectedRoute>
           } />
@@ -98,12 +108,7 @@ export default function AppRoutes() {
           {/* Configuración — solo admin */}
           <Route path="/configuracion" element={
             <ProtectedRoute roles={ROLES_ADMIN}>
-              <MainLayout>
-                <div style={{ padding: '2rem', color: '#374151' }}>
-                  <h2 style={{ fontWeight: 700, marginBottom: 8 }}>Configuración</h2>
-                  <p style={{ color: '#6B7280' }}>Tablas maestras, usuarios y roles (en desarrollo).</p>
-                </div>
-              </MainLayout>
+              <MainLayout><ConfigPage /></MainLayout>
             </ProtectedRoute>
           } />
 

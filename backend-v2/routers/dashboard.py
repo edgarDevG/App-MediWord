@@ -189,3 +189,98 @@ def get_vencimientos(
     alertas.sort(key=lambda x: x["dias_restantes"])
 
     return {"items": alertas, "total": len(alertas)}
+
+
+@router.get("/notificaciones/resumen-medico")
+def get_resumen_medico(
+    dias_limite: int = Query(30, ge=1, le=365),
+    db: Session = Depends(get_db),
+):
+    """
+    Una notificación por médico que agrupa todos sus documentos vencidos o por vencer.
+    Nivel de severidad: critico (vencido) > urgente (≤7d) > proximo (≤30d).
+    """
+    hoy = date.today()
+    limite = hoy + timedelta(days=dias_limite)
+
+    # Acumular alertas por médico: {medico_id: {"medico": obj, "docs": [...]}}
+    por_medico: dict = {}
+
+    # ── Normativos ──
+    normativos = (
+        db.query(MedicoNormativos)
+        .options(joinedload(MedicoNormativos.medico))
+        .all()
+    )
+    for n in normativos:
+        medico = n.medico
+        if medico is None:
+            continue
+        for campo, nombre_doc in CAMPOS_FECHA_NORMATIVOS:
+            fecha = getattr(n, campo, None)
+            if fecha is None:
+                continue
+            dias = (fecha - hoy).days
+            if dias <= dias_limite:
+                bucket = por_medico.setdefault(medico.id, {"medico": medico, "docs": []})
+                bucket["docs"].append({"nombre": nombre_doc, "dias": dias})
+
+    # ── Póliza responsabilidad civil ──
+    accesos = (
+        db.query(MedicoAccesos)
+        .options(joinedload(MedicoAccesos.medico))
+        .filter(MedicoAccesos.fecha_venc_poliza.isnot(None))
+        .all()
+    )
+    for a in accesos:
+        medico = a.medico
+        if medico is None or a.fecha_venc_poliza is None:
+            continue
+        dias = (a.fecha_venc_poliza - hoy).days
+        if dias <= dias_limite:
+            bucket = por_medico.setdefault(medico.id, {"medico": medico, "docs": []})
+            bucket["docs"].append({"nombre": "Póliza Resp. Civil", "dias": dias})
+
+    # ── Construir respuesta agrupada ──
+    def nivel_doc(dias: int) -> str:
+        if dias < 0:
+            return "critico"
+        if dias <= 7:
+            return "urgente"
+        return "proximo"
+
+    NIVEL_ORDER = {"critico": 0, "urgente": 1, "proximo": 2}
+
+    resultado = []
+    for bucket in por_medico.values():
+        m = bucket["medico"]
+        docs = bucket["docs"]
+
+        # Nivel máximo del grupo
+        nivel = min((nivel_doc(d["dias"]) for d in docs), key=lambda n: NIVEL_ORDER[n])
+
+        # Construir texto resumen
+        def doc_label(d):
+            if d["dias"] < 0:
+                return f"{d['nombre']} vencido"
+            if d["dias"] == 0:
+                return f"{d['nombre']} vence hoy"
+            return f"{d['nombre']} ({d['dias']}d)"
+
+        resumen = " · ".join(doc_label(d) for d in sorted(docs, key=lambda d: d["dias"]))
+
+        resultado.append({
+            "documento_identidad": m.documento_identidad,
+            "nombre_medico": m.nombre_medico,
+            "tipo_listado": m.tipo_listado or "cuerpo_medico",
+            "total_alertas": len(docs),
+            "vencidos": sum(1 for d in docs if d["dias"] < 0),
+            "por_vencer": sum(1 for d in docs if d["dias"] >= 0),
+            "nivel": nivel,
+            "resumen": resumen,
+        })
+
+    # Ordenar: críticos primero, luego urgentes, luego próximos; dentro de cada nivel por total_alertas desc
+    resultado.sort(key=lambda x: (NIVEL_ORDER[x["nivel"]], -x["total_alertas"]))
+
+    return {"items": resultado, "total": len(resultado)}

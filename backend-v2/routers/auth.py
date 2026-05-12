@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from sqlalchemy import func as sa_func
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from database import get_db
@@ -33,6 +34,8 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
+ACCESS_TOKEN_EXPIRE_ADMIN_DAYS = 30  # admin: 30 días
+
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -49,33 +52,70 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     user = db.query(User).filter(User.username == username).first()
     if user is None:
         raise credentials_exception
+    if not user.activo:
+        raise HTTPException(status_code=400, detail="Usuario inactivo")
     return user
+
+
+def require_roles(*roles: str):
+    """Dependencia de FastAPI que verifica el rol del usuario autenticado."""
+    def checker(current_user: User = Depends(get_current_user)):
+        if current_user.rol not in roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Acción no permitida para el rol '{current_user.rol}'",
+            )
+        return current_user
+    return checker
 
 
 from pydantic import BaseModel
 
 class LoginRequest(BaseModel):
-    username: str
+    email: str
     password: str
 
 @router.post("/login")
 def login(creds: LoginRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.username == creds.username).first()
+    email = creds.email.strip().lower()
+    user = db.query(User).filter(
+        sa_func.lower(User.email) == email
+    ).first()
     if not user or not verify_password(creds.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Usuario o contraseña incorrectos",
+            detail="Correo o contraseña incorrectos",
             headers={"WWW-Authenticate": "Bearer"},
         )
     if not user.activo:
         raise HTTPException(status_code=400, detail="Usuario inactivo")
-        
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+
+    if user.rol == "admin":
+        expires = timedelta(days=ACCESS_TOKEN_EXPIRE_ADMIN_DAYS)
+    else:
+        expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+
     access_token = create_access_token(
-        data={"sub": user.username, "rol": user.rol}, expires_delta=access_token_expires
+        data={"sub": user.username, "rol": user.rol}, expires_delta=expires
     )
-    return {"access_token": access_token, "token_type": "bearer", "user": {"id": user.id, "username": user.username, "rol": user.rol}}
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "id":       user.id,
+            "username": user.username,
+            "nombre":   user.nombre,
+            "email":    user.email,
+            "rol":      user.rol,
+        },
+    }
 
 @router.get("/me")
 def read_users_me(current_user: User = Depends(get_current_user)):
-    return {"id": current_user.id, "username": current_user.username, "rol": current_user.rol}
+    return {
+        "id":       current_user.id,
+        "username": current_user.username,
+        "nombre":   current_user.nombre,
+        "email":    current_user.email,
+        "rol":      current_user.rol,
+    }

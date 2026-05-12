@@ -44,7 +44,6 @@ def recalcular_vencimientos_diario():
                     m = db.query(Medico).filter(Medico.id == c.medico_id).first()
                     if m:
                         m.estado = "FINALIZADO"
-                        m.tipo_listado = "finalizacion"
                         db.commit()
 
     except Exception as e:
@@ -96,14 +95,18 @@ def root():
 
 
 # ── Registrar routers ─────────────────────────────────────────
-from routers.medicos import router as medicos_router
-from routers.maestras import router as maestras_router
+from routers.medicos   import router as medicos_router
+from routers.maestras  import router as maestras_router
 from routers.dashboard import router as dashboard_router
-from routers.auth import router as auth_router
-from routers.reportes import router as reportes_router
+from routers.auth      import router as auth_router
+from routers.reportes  import router as reportes_router
+from routers.users     import router as users_router
+from routers.archivos  import router as archivos_router
 
 app.include_router(auth_router,      prefix="/api/v1/auth")
+app.include_router(users_router,     prefix="/api/v1")
 app.include_router(medicos_router,   prefix="/api/v1")
 app.include_router(maestras_router,  prefix="/api/v1")
 app.include_router(dashboard_router, prefix="/api/v1")
 app.include_router(reportes_router,  prefix="/api/v1/reportes")
+app.include_router(archivos_router,  prefix="/api/v1")

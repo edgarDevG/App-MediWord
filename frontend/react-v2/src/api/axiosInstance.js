@@ -33,7 +33,10 @@ axiosInstance.interceptors.response.use(
     if (error.config?.skipToast) return Promise.reject(error);
 
     if (status === 401) {
-      toast.error('Sesión expirada. Por favor inicia sesión nuevamente.');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      toast.error('Sesión expirada. Redirigiendo al inicio de sesión...');
+      setTimeout(() => { window.location.href = '/login'; }, 1500);
     } else if (status === 403) {
       toast.error('No tienes permisos para realizar esta acción.');
     } else if (status === 404) {

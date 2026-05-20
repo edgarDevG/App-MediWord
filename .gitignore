@@ -30,6 +30,7 @@ Thumbs.db
 # ── Archivos sensibles / internos ────────
 mediword_data.sql
 prompt_master.txt
+backend-v2/migrar_bd.bat
 
 # ── Uploads / archivos subidos ───────────
 backend-v2/uploads/

@@ -1,38 +1,17 @@
 services:
 
-  # ── Base de datos PostgreSQL ─────────────────────────────────
-  db:
-    image: postgres:17-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB:       ${POSTGRES_DB:-MEDW}
-      POSTGRES_USER:     ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - mediword_net
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-MEDW}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 10s
-
   # ── Backend FastAPI ──────────────────────────────────────────
+  # BD externa: postgresql://dev_edgar@10.28.110.104:5432/MEDW
+  # Las credenciales se leen de backend-v2/.env (gitignoreado)
   backend:
     build:
       context: ./backend-v2
       dockerfile: Dockerfile
     restart: unless-stopped
-    environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-MEDW}
-      PORT:         8001
+    env_file:
+      - ./backend-v2/.env
     ports:
       - "${BACKEND_PORT:-8001}:8001"
-    depends_on:
-      db:
-        condition: service_healthy
     networks:
       - mediword_net
 
@@ -55,7 +34,3 @@ services:
 networks:
   mediword_net:
     driver: bridge
-
-volumes:
-  postgres_data:
-    name: mediword_postgres_data

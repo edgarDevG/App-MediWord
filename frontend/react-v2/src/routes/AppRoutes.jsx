@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster }             from 'react-hot-toast';
 import { AuthProvider }        from '../context/AuthContext';
 import MainLayout              from '../components/Layout/MainLayout';
 import ProtectedRoute          from '../components/Auth/ProtectedRoute';
@@ -14,7 +15,7 @@ import ListaRenuncias          from '../pages/renuncias/ListaRenuncias';
 import ListaFinalizaciones     from '../pages/finalizaciones/ListaFinalizaciones';
 import ListaInactivos          from '../pages/personal_inactivo/ListaInactivos';
 import Reportes                from '../pages/reportes/Reportes';
-import ConfigPage             from '../pages/configuracion/ConfigPage';
+import ConfigPage              from '../pages/configuracion/ConfigPage';
 
 // ── Roles del sistema ──────────────────────────────────────────
 // admin      : acceso total + gestión de usuarios
@@ -36,6 +37,12 @@ export default function AppRoutes() {
 
           {/* Protegidas — envueltas en MainLayout */}
           <Route path="/" element={
+            <ProtectedRoute roles={ROLES_OPERATIVOS}>
+              <MainLayout><Dashboard /></MainLayout>
+            </ProtectedRoute>
+          } />
+          {/* Alias /medicos → mismo Dashboard (navigate('/medicos') post-guardado) */}
+          <Route path="/medicos" element={
             <ProtectedRoute roles={ROLES_OPERATIVOS}>
               <MainLayout><Dashboard /></MainLayout>
             </ProtectedRoute>
@@ -116,6 +123,7 @@ export default function AppRoutes() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>
+      <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
     </BrowserRouter>
   );
 }

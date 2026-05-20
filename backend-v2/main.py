@@ -56,10 +56,76 @@ def recalcular_vencimientos_diario():
 scheduler = AsyncIOScheduler()
 scheduler.add_job(recalcular_vencimientos_diario, CronTrigger(hour=0, minute=0))
 
+def run_column_migrations():
+    """Agrega columnas nuevas a tablas existentes (idempotente).
+
+    SEGURIDAD: tabla, columna y tipo vienen de una lista de tuplas
+    hardcodeadas — nunca de entrada del usuario. Las queries de
+    information_schema usan parámetros bindados (:tbl, :col) para
+    evitar cualquier riesgo de SQL injection. El ALTER TABLE usa
+    validación de whitelist antes de interpolarse.
+    """
+    import sqlalchemy as sa
+
+    # Whitelist explícita de tablas y tipos permitidos
+    ALLOWED_TABLES = {
+        "medicos_datos_hv", "medicos_contacto", "medicos_normativos",
+        "medicos_contratacion", "medicos_accesos", "medicos_diplomas",
+        "medicos_prerrogativas", "medicos_docs_habilitacion", "medicos",
+        "archivos_medico", "historial_estados", "audit_log", "users",
+    }
+    ALLOWED_TYPES = {
+        "DATE", "VARCHAR(30)", "VARCHAR(80)", "VARCHAR(100)",
+        "VARCHAR(200)", "VARCHAR(255)", "TEXT", "BOOLEAN",
+        "INTEGER", "BIGINT", "NUMERIC", "TIMESTAMP WITH TIME ZONE",
+    }
+
+    migrations = [
+        ("medicos_datos_hv",  "fecha_vencimiento_visa", "DATE"),
+        ("medicos_contacto",  "contacto_emergencia",    "VARCHAR(200)"),
+        ("medicos_contacto",  "parentesco",             "VARCHAR(80)"),
+        ("medicos_contacto",  "tel_emergencia",         "VARCHAR(30)"),
+        ("medicos_contacto",  "correo_alterno",         "VARCHAR(200)"),
+    ]
+
+    with engine.connect() as conn:
+        for table, column, col_type in migrations:
+            # Validar contra whitelist antes de cualquier ejecución SQL
+            if table not in ALLOWED_TABLES:
+                print(f"[MIGRATION] RECHAZADO — tabla no permitida: {table}")
+                continue
+            if col_type.upper() not in ALLOWED_TYPES:
+                print(f"[MIGRATION] RECHAZADO — tipo no permitido: {col_type}")
+                continue
+            # Solo letras, dígitos y guión bajo en nombre de columna
+            if not column.replace("_", "").isalnum():
+                print(f"[MIGRATION] RECHAZADO — nombre de columna inválido: {column}")
+                continue
+
+            # Query con parámetros bindados — sin f-strings en el SQL
+            result = conn.execute(
+                sa.text(
+                    "SELECT column_name FROM information_schema.columns "
+                    "WHERE table_name = :tbl AND column_name = :col"
+                ),
+                {"tbl": table, "col": column},
+            )
+            if not result.fetchone():
+                # Aquí sí se interpola, pero solo después de pasar la whitelist
+                conn.execute(sa.text(
+                    f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"
+                ))
+                conn.commit()
+                print(f"[MIGRATION] {table}.{column} ({col_type}) — agregada")
+            else:
+                print(f"[MIGRATION] {table}.{column} — ya existe, omitiendo")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Startup: crear tablas si no existen."""
+    """Startup: crear tablas si no existen + columnas nuevas."""
     Base.metadata.create_all(bind=engine)
+    run_column_migrations()
     print("[OK] [MediWork v2] Tablas creadas/verificadas en MEDW")
     scheduler.start()
     yield
@@ -78,20 +144,26 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        # Desarrollo local
         "http://localhost:5173", "http://127.0.0.1:5173",
         "http://localhost:5174", "http://127.0.0.1:5174",
         "http://localhost:5175", "http://127.0.0.1:5175",
         "http://localhost:5176", "http://127.0.0.1:5176",
+        # Servidor de producción 10.28.110.104
+        "http://10.28.110.104",
+        "http://10.28.110.104:80",
+        "http://10.28.110.104:5173",
+        "http://10.28.110.104:4173",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ── Health check ──────────────────────────────────────────────
-@app.get("/")
+# ── Health check ─────────────────────────────────────────────
+@app.get('/')
 def root():
-    return {"mensaje": "MediWork HSM v2.0 — Conexión exitosa", "bd": "MEDW"}
+    return {'mensaje': 'MediWork HSM v2.0 — Conexión exitosa', 'bd': 'MEDW'}
 
 
 # ── Registrar routers ─────────────────────────────────────────
@@ -103,10 +175,10 @@ from routers.reportes  import router as reportes_router
 from routers.users     import router as users_router
 from routers.archivos  import router as archivos_router
 
-app.include_router(auth_router,      prefix="/api/v1/auth")
-app.include_router(users_router,     prefix="/api/v1")
-app.include_router(medicos_router,   prefix="/api/v1")
-app.include_router(maestras_router,  prefix="/api/v1")
-app.include_router(dashboard_router, prefix="/api/v1")
-app.include_router(reportes_router,  prefix="/api/v1/reportes")
-app.include_router(archivos_router,  prefix="/api/v1")
+app.include_router(auth_router,      prefix='/api/v1/auth')
+app.include_router(users_router,     prefix='/api/v1')
+app.include_router(medicos_router,   prefix='/api/v1')
+app.include_router(maestras_router,  prefix='/api/v1')
+app.include_router(dashboard_router, prefix='/api/v1')
+app.include_router(archivos_router,  prefix='/api/v1')
+app.include_router(reportes_router,  prefix='/api/v1/reportes')

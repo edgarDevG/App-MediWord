@@ -13,8 +13,9 @@ from database import DATABASE_URL  # o donde tengas la URL
 
 config = context.config
 
-# Sobreescribe la URL con la de tu app (evita hardcodearla en alembic.ini)
-config.set_main_option("sqlalchemy.url", DATABASE_URL)
+# NO usar config.set_main_option: configparser interpreta % como sintaxis de
+# interpolación y falla con passwords URL-encoded (p. ej. %23 para #).
+# La URL se inyecta directo al engine en run_migrations_online.
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
@@ -31,10 +32,8 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.", poolclass=pool.NullPool,
-    )
+    from sqlalchemy import create_engine
+    connectable = create_engine(DATABASE_URL, poolclass=pool.NullPool)
     with connectable.connect() as connection:
         context.configure(connection=connection, target_metadata=target_metadata)
         with context.begin_transaction():

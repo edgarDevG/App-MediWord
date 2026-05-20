@@ -27,15 +27,29 @@ echo "[entrypoint] Creando esquema de base de datos..."
 python -c "from database import engine; from model import Base; Base.metadata.create_all(bind=engine); print('Esquema OK')"
 
 echo "[entrypoint] Sincronizando migraciones..."
-# DB nueva (sin historial alembic) → stamp head (create_all ya aplicó todo)
-# DB existente con versión anterior → upgrade head aplica migraciones pendientes
+# DB nueva  → stamp heads (create_all ya aplicó todo el esquema)
+# DB existente → sellar ramas no rastreadas (creadas por create_all) y luego upgrade heads
 ALEMBIC_CURRENT=$(python -m alembic current 2>&1)
 if echo "$ALEMBIC_CURRENT" | grep -qE "[a-f0-9]{8,}"; then
-    echo "Revision detectada — aplicando migraciones pendientes..."
-    python -m alembic upgrade head
+    echo "Revision detectada — sellando ramas y aplicando pendientes..."
+    # Inserta en alembic_version cualquier branch head que create_all haya
+    # creado sin que Alembic lo haya registrado explícitamente.
+    python -c "
+from database import engine
+from sqlalchemy import text
+BRANCH_HEADS = ['f3a8c1d2e904']
+with engine.connect() as conn:
+    for rev in BRANCH_HEADS:
+        row = conn.execute(text(\"SELECT version_num FROM alembic_version WHERE version_num=:r\"), {\"r\": rev}).fetchone()
+        if not row:
+            conn.execute(text(\"INSERT INTO alembic_version (version_num) VALUES (:r)\"), {\"r\": rev})
+            conn.commit()
+            print('[MIGRATION] Branch sellado:', rev)
+"
+    python -m alembic upgrade heads
 else
     echo "DB nueva — estableciendo revision inicial..."
-    python -m alembic stamp head
+    python -m alembic stamp heads
 fi
 
 echo "[entrypoint] Creando usuario admin si no existe..."

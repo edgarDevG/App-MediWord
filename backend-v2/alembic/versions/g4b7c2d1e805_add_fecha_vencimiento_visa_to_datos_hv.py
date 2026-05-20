@@ -9,7 +9,8 @@ from alembic import op
 import sqlalchemy as sa
 
 revision = 'g4b7c2d1e805'
-down_revision = 'f3a8c1d2e904'
+# Merge de dos branches: rama principal (c2d5e8f1a607) y rama archivos (f3a8c1d2e904)
+down_revision = ('c2d5e8f1a607', 'f3a8c1d2e904')
 branch_labels = None
 depends_on = None
 

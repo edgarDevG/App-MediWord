@@ -15,9 +15,9 @@ branch_labels = None
 depends_on = None
 
 def upgrade() -> None:
-    op.add_column(
-        'medicos_datos_hv',
-        sa.Column('fecha_vencimiento_visa', sa.Date(), nullable=True)
+    # IF NOT EXISTS porque run_column_migrations() puede haberla creado antes
+    op.execute(
+        "ALTER TABLE medicos_datos_hv ADD COLUMN IF NOT EXISTS fecha_vencimiento_visa DATE"
     )
 
 def downgrade() -> None:

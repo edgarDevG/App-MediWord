@@ -170,7 +170,7 @@ function CursoCard({ curso, aplica, vencimiento, onChange, medicoDoc }) {
       display: 'flex', flexDirection: 'column', gap: 8,
     }}>
       {/* Fila 1: icono + nombre (flex:1) | toggle (sin competir con badge) */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, minWidth: 0, overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
           <span className="material-symbols-outlined" style={{ fontSize: 15, color: aplica ? 'var(--color-primary,#0A5C99)' : '#94a3b8', fontVariationSettings: "'FILL' 1", flexShrink: 0 }}>
             {curso.icon}
@@ -361,18 +361,18 @@ export default function Tab4Institucional({ medicoDoc, onNext, onPrev, markCompl
       const normPayload = {
         res_ejercicio_fecha_venc:     n.aplicaresolejercicioplaza ? (n.vencimientoresolejercicioplaza || null) : null,
         res_anestesiologo_fecha_venc: n.aplicaresolanastesiologo  ? (n.vencimientoresolanastesiologo  || null) : null,
-        bls_fecha_venc:       n.vencimientobls          || null,
-        acls_fecha_venc:      n.vencimientoacls         || null,
-        pals_fecha_venc:      n.vencimientopals         || null,
-        nals_fecha_venc:      n.vencimientonals         || null,
-        violencia_sexual_fecha:      n.vencimientoviolenciasexual       || null,
-        ataques_quimicos_fecha:      n.vencimientoataquesagentesquimicos || null,
-        dengue_fecha:                n.vencimientodengue                || null,
-        sedacion_fecha:              n.vencimientosedacion              || null,
-        manejo_dolor_fecha:          n.vencimientomanejodolor           || null,
-        radioproteccion_fecha:       n.vencimientoradioproteccion       || null,
-        iamii_fecha:                 n.vencimientoiamii                 || null,
-        gestion_duelo_fecha:         n.vencimientogestionduelo          || null,
+        bls_fecha_venc:              n.aplicabls ? (n.vencimientobls || null) : null,
+        acls_fecha_venc:             n.aplicaacls ? (n.vencimientoacls || null) : null,
+        pals_fecha_venc:             n.aplicapals ? (n.vencimientopals || null) : null,
+        nals_fecha_venc:             n.aplicanals ? (n.vencimientonals || null) : null,
+        violencia_sexual_fecha:      n.aplicaviolenciasexual ? (n.vencimientoviolenciasexual || null) : null,
+        ataques_quimicos_fecha:      n.aplicaataquesagentesquimicos ? (n.vencimientoataquesagentesquimicos || null) : null,
+        dengue_fecha:                n.aplicadengue ? (n.vencimientodengue || null) : null,
+        sedacion_fecha:              n.aplicasedacion ? (n.vencimientosedacion || null) : null,
+        manejo_dolor_fecha:          n.aplicamanejodolor ? (n.vencimientomanejodolor || null) : null,
+        radioproteccion_fecha:       n.aplicaradioproteccion ? (n.vencimientoradioproteccion || null) : null,
+        iamii_fecha:                 n.aplicaiamii ? (n.vencimientoiamii || null) : null,
+        gestion_duelo_fecha:         n.aplicagestionduelo ? (n.vencimientogestionduelo || null) : null,
         vigenciacurso3anos:          n.aplicacurso3anos ? (n.vigenciacurso3anos || null) : null,
       };
 
@@ -416,6 +416,9 @@ export default function Tab4Institucional({ medicoDoc, onNext, onPrev, markCompl
         upsert(`/medicos/${medicoDoc}/accesos/`,      accesosPayload),
         upsert(`/medicos/${medicoDoc}/contratacion/`, contratacionPayload),
       ]);
+
+      // Recalcular estados de vencimiento inmediatamente tras guardar
+      axiosInstance.post('/dashboard/recalcular-vencimientos', {}, { skipToast: true }).catch(() => {});
 
       markCompleted?.(4);
       onNext?.();
@@ -496,50 +499,56 @@ export default function Tab4Institucional({ medicoDoc, onNext, onPrev, markCompl
             />
           </div>
 
-          <p style={{ fontSize:'0.75rem', fontWeight:700, color:'#64748b', letterSpacing:'0.06em', marginBottom:12 }}>OFERTA MERCANTIL</p>
-          <div style={{ display:'flex', flexWrap:'wrap', gap:'var(--space-4)' }}>
-            <div style={{ flex:'1 1 200px' }}>
-              <SimpleSelect label="Estado oferta mercantil" value={contratacion.estadoofertamercantil}
-                onChange={e => chgCont('estadoofertamercantil', e.target.value)} options={OPTESTADO} />
-            </div>
-            <div style={{ flex:'1 1 160px' }}>
-              <SimpleSelect label="Tipo persona" value={contratacion.persona}
-                onChange={e => chgCont('persona', e.target.value)}
-                options={[{ value:'', label:'Seleccionar' }, { value:'NATURAL', label:'Natural' }, { value:'JURIDICA', label:'Jurídica' }]} />
-            </div>
-            <div style={{ flex:'1 1 180px' }}>
-              <CampoFechaNullable label="Firma oferta mercantil"
-                fieldKey="fechafirmaofertamercantil" value={contratacion.fechafirmaofertamercantil} onChangeFn={chgCont} />
-            </div>
-            <div style={{ flex:'1 1 180px' }}>
-              <CampoFechaNullable label="Vencimiento oferta mercantil"
-                fieldKey="fechavencimientoofertamercantil" value={contratacion.fechavencimientoofertamercantil} onChangeFn={chgCont} />
-            </div>
-            <div style={{ flex:'1 1 180px' }}>
-              <CampoFechaNullable label="Fecha acep. pre-legal"
-                fieldKey="fechafirmaacepprelegal" value={contratacion.fechafirmaacepprelegal} onChangeFn={chgCont} />
-            </div>
-          </div>
+          {/* ─── OFERTA MERCANTIL: visible solo cuando el tipo lo requiere ─── */}
+          {['OFERTA MERCANTIL', 'LABORAL/OFERTA MERCANTIL'].includes(contratacion.tipovinculacion) && (
+            <>
+              <div style={{ height:1, background:'rgba(26,78,215,0.07)', margin:'4px 0 16px' }} />
+              <p style={{ fontSize:'0.75rem', fontWeight:700, color:'#64748b', letterSpacing:'0.06em', marginBottom:12 }}>OFERTA MERCANTIL</p>
+              <div style={{ display:'flex', flexWrap:'wrap', gap:'var(--space-4)' }}>
+                <div style={{ flex:'1 1 200px' }}>
+                  <SimpleSelect label="Estado oferta mercantil" value={contratacion.estadoofertamercantil}
+                    onChange={e => chgCont('estadoofertamercantil', e.target.value)} options={OPTESTADO} />
+                </div>
+                <div style={{ flex:'1 1 160px' }}>
+                  <SimpleSelect label="Tipo persona" value={contratacion.persona}
+                    onChange={e => chgCont('persona', e.target.value)}
+                    options={[{ value:'', label:'Seleccionar' }, { value:'NATURAL', label:'Natural' }, { value:'JURIDICA', label:'Jurídica' }]} />
+                </div>
+                <div style={{ flex:'1 1 180px' }}>
+                  <CampoFechaNullable label="Firma oferta mercantil"
+                    fieldKey="fechafirmaofertamercantil" value={contratacion.fechafirmaofertamercantil} onChangeFn={chgCont} />
+                </div>
+                <div style={{ flex:'1 1 180px' }}>
+                  <CampoFechaNullable label="Vencimiento oferta mercantil"
+                    fieldKey="fechavencimientoofertamercantil" value={contratacion.fechavencimientoofertamercantil} onChangeFn={chgCont} />
+                </div>
+                <div style={{ flex:'1 1 180px' }}>
+                  <CampoFechaNullable label="Fecha acep. pre-legal"
+                    fieldKey="fechafirmaacepprelegal" value={contratacion.fechafirmaacepprelegal} onChangeFn={chgCont} />
+                </div>
+              </div>
 
-          {/* Vigencia card oferta mercantil */}
-          {contratacion.fechavencimientoofertamercantil && (
-            <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:8, padding:'8px 14px', borderRadius:10, background:'rgba(26,78,215,0.04)', border:'1px solid rgba(26,78,215,0.10)' }}>
-              <span className="material-symbols-outlined" style={{ fontSize:17, color:'var(--color-secondary)' }}>event_available</span>
-              <span style={{ fontSize:'0.8125rem', color:'#475569', fontWeight:500 }}>Vigencia oferta mercantil:</span>
-              <VigenciaOferta fecha={contratacion.fechavencimientoofertamercantil} />
-            </div>
+              {/* Vigencia card oferta mercantil */}
+              {contratacion.fechavencimientoofertamercantil && (
+                <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:8, padding:'8px 14px', borderRadius:10, background:'rgba(26,78,215,0.04)', border:'1px solid rgba(26,78,215,0.10)' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize:17, color:'var(--color-secondary)' }}>event_available</span>
+                  <span style={{ fontSize:'0.8125rem', color:'#475569', fontWeight:500 }}>Vigencia oferta mercantil:</span>
+                  <VigenciaOferta fecha={contratacion.fechavencimientoofertamercantil} />
+                </div>
+              )}
+
+              {/* Adjunto oferta mercantil */}
+              <div style={{ marginTop:14 }}>
+                <FileUploadField
+                  carpeta="contratacion"
+                  maxArchivos={1}
+                  medicoDoc={medicoDoc}
+                  campoRef="oferta_mercantil"
+                  label="Documento oferta mercantil (PDF)"
+                />
+              </div>
+            </>
           )}
-
-          {/* Adjunto oferta mercantil */}
-          <div style={{ marginTop:14 }}>
-            <FileUploadField
-              carpeta="contratacion"
-              maxArchivos={1}
-              medicoDoc={medicoDoc}
-              campoRef="oferta_mercantil"
-              label="Documento oferta mercantil (PDF)"
-            />
-          </div>
         </SectionCard>
 
         {/* ═══ SECCIÓN 2 — NORMATIVOS Y CURSOS ═══ */}

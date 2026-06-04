@@ -88,7 +88,7 @@ export default function ListaFSFB() {
   const [kpiLoad, setKpiLoad] = useState(true);
 
   useEffect(() => {
-    axiosInstance.get('/dashboard/resumen', { skipToast: true })
+    axiosInstance.get('/dashboard/resumen/', { skipToast: true })
       .then(r => setKpis(r.data))
       .catch(() => {})
       .finally(() => setKpiLoad(false));

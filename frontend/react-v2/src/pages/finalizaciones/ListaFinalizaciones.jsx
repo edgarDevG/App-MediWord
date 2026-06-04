@@ -89,7 +89,7 @@ export default function ListaFinalizaciones() {
   const [kpiLoad, setKpiLoad] = useState(true);
 
   useEffect(() => {
-    axiosInstance.get('/dashboard/resumen', { skipToast: true })
+    axiosInstance.get('/dashboard/resumen/', { skipToast: true })
       .then(r => setKpis(r.data))
       .catch(() => {})
       .finally(() => setKpiLoad(false));
@@ -138,7 +138,6 @@ export default function ListaFinalizaciones() {
             <EstadoBadge estado={m.estado ?? 'FINALIZADO'} />
           </div>
         )}
-        showFechaIngreso
         SIZE={20}
       />
     </div>

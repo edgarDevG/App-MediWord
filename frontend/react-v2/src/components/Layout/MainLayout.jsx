@@ -84,9 +84,7 @@ function NotificacionesDrawer({ open, onClose, alertas, loading, navigate }) {
 
   const irAlPerfil = (item) => {
     onClose();
-    const ruta = item.tipo_listado === 'fsfb_externo'
-      ? `/medicos-fsfb/${item.documento_identidad}/perfil`
-      : `/medicos/${item.documento_identidad}/perfil`;
+    const ruta = `/medicos/${item.documento_identidad}/perfil`;
     navigate(ruta);
   };
 
@@ -285,6 +283,21 @@ export default function MainLayout({ children }) {
   const [alertas,        setAlertas]        = useState([]);
   const [alertasLoading, setAlertasLoading] = useState(false);
   const [alertasCnt,     setAlertasCnt]     = useState(0);
+  const [isFullscreen,   setIsFullscreen]   = useState(false);
+
+  useEffect(() => {
+    const onFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => document.removeEventListener('fullscreenchange', onFsChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  };
 
   const { user, logout } = useAuth();
 
@@ -292,7 +305,7 @@ export default function MainLayout({ children }) {
   const location = useLocation();
 
   useEffect(() => {
-    if (location.pathname.match(/\/medicos\/.+\/perfil/)) {
+    if (location.pathname.match(/\/medicos(-fsfb)?\/.+\/perfil/)) {
       setCollapsed(true);
     }
   }, [location.pathname]);
@@ -316,13 +329,20 @@ export default function MainLayout({ children }) {
   }, [alertas.length]);
 
   useEffect(() => {
-    axiosInstance.get('/notificaciones/resumen-medico?dias_limite=30', { skipToast: true })
-      .then(r => {
-        const items = Array.isArray(r.data) ? r.data : (r.data?.items ?? []);
-        setAlertasCnt(items.length);
-        setAlertas(items);
-      })
-      .catch(() => {});
+    const fetchAlerts = () => {
+      axiosInstance.get('/notificaciones/resumen-medico?dias_limite=30', { skipToast: true })
+        .then(r => {
+          const items = Array.isArray(r.data) ? r.data : (r.data?.items ?? []);
+          setAlertasCnt(items.length);
+          setAlertas(items);
+        })
+        .catch(() => {});
+    };
+
+    fetchAlerts();
+
+    window.addEventListener('refresh-alerts', fetchAlerts);
+    return () => window.removeEventListener('refresh-alerts', fetchAlerts);
   }, []);
 
   const handleNotifClick = () => {
@@ -412,6 +432,7 @@ export default function MainLayout({ children }) {
           <div className="topbar-actions">
             {/* Notificaciones */}
             <button
+              id="btn-notificaciones-panel"
               className="topbar-icon-btn"
               aria-label={`Notificaciones${alertasCnt > 0 ? ` (${alertasCnt} alertas)` : ''}`}
               onClick={handleNotifClick}
@@ -439,6 +460,32 @@ export default function MainLayout({ children }) {
                   {alertasCnt > 99 ? '99+' : alertasCnt}
                 </span>
               )}
+            </button>
+
+            <div className="topbar-divider" />
+
+            {/* Fullscreen */}
+            <button
+              className="topbar-icon-btn"
+              onClick={toggleFullscreen}
+              aria-label={isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
+              title={isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
+              style={!isFullscreen ? {
+                animation: 'fs-pulse 2.2s ease-in-out infinite',
+                color: '#10b981',
+              } : {}}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+                {isFullscreen ? 'fullscreen_exit' : 'fullscreen'}
+              </span>
+              <style>{`
+                @keyframes fs-pulse {
+                  0%   { box-shadow: 0 0 0 0 rgba(16,185,129,0.0); transform: scale(1);    background: transparent; }
+                  40%  { box-shadow: 0 0 0 6px rgba(16,185,129,0.22); transform: scale(1.13); background: rgba(16,185,129,0.10); }
+                  70%  { box-shadow: 0 0 0 10px rgba(16,185,129,0.0); transform: scale(1.06); background: rgba(16,185,129,0.05); }
+                  100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.0); transform: scale(1);    background: transparent; }
+                }
+              `}</style>
             </button>
 
             <div className="topbar-divider" />

@@ -72,9 +72,7 @@ export default function NotificacionesPanel() {
   const descartarTodas = () => setDesc(new Set(items.map(i => i.documento_identidad)));
 
   const irAlPerfil = (item) => {
-    const ruta = item.tipo_listado === 'fsfb_externo'
-      ? `/medicos-fsfb/${item.documento_identidad}/perfil`
-      : `/medicos/${item.documento_identidad}/perfil`;
+    const ruta = `/medicos/${item.documento_identidad}/perfil`;
     navigate(ruta);
     setOpen(false);
   };

@@ -13,6 +13,7 @@ from model import Medico, MedicoNormativos, MedicoAccesos
 router = APIRouter(tags=["Dashboard"])
 
 
+@router.get("/dashboard/resumen")
 @router.get("/dashboard/resumen/")
 def dashboard_resumen(db: Session = Depends(get_db)):
     """Resumen de KPIs para el dashboard."""
@@ -75,18 +76,18 @@ def dashboard_resumen(db: Session = Depends(get_db)):
 
 # Campos con fecha de vencimiento en medicos_normativos
 CAMPOS_FECHA_NORMATIVOS = [
-    ("bls_fecha_venc",           "BLS"),
-    ("acls_fecha_venc",          "ACLS"),
-    ("pals_fecha_venc",          "PALS"),
-    ("nals_fecha_venc",          "NALS"),
-    ("violencia_sexual_fecha",   "Violencia Sexual"),
-    ("ataques_quimicos_fecha",   "Ataques Agentes Químicos"),
-    ("dengue_fecha",             "Dengue"),
-    ("sedacion_fecha",           "Sedación"),
-    ("radioproteccion_fecha",    "Radioprotección"),
-    ("manejo_dolor_fecha",       "Manejo del Dolor"),
-    ("iamii_fecha",              "IAMII"),
-    ("gestion_duelo_fecha",      "Gestión del Duelo"),
+    ("bls_fecha_venc",              "BLS"),
+    ("acls_fecha_venc",             "ACLS"),
+    ("pals_fecha_venc",             "PALS"),
+    ("nals_fecha_venc",             "NALS"),
+    ("violencia_sexual_fecha",      "Violencia Sexual"),
+    ("ataques_quimicos_fecha",      "Agentes Químicos"),
+    ("dengue_fecha",                "Dengue"),
+    ("sedacion_fecha",              "Sedación"),
+    ("radioproteccion_fecha",       "Radioprotección"),
+    ("manejo_dolor_fecha",          "Manejo del Dolor"),
+    ("iamii_fecha",                 "IAMII"),
+    ("gestion_duelo_fecha",         "Gestión del Duelo"),
 ]
 
 
@@ -284,3 +285,5 @@ def get_resumen_medico(
     resultado.sort(key=lambda x: (NIVEL_ORDER[x["nivel"]], -x["total_alertas"]))
 
     return {"items": resultado, "total": len(resultado)}
+
+

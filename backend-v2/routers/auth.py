@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timedelta
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -12,7 +13,13 @@ from model import User
 router = APIRouter(tags=["Auth"])
 
 # ── Configuración de Seguridad ─────────────────────────────────
-SECRET_KEY = "mediwork-super-secret-key-cambiar-en-produccion"
+# SECRET_KEY se lee del entorno. Si no existe (desarrollo local)
+# usa un fallback — NUNCA desplegar en producción sin definir esta variable.
+# Generar clave segura: python -c "import secrets; print(secrets.token_hex(32))"
+SECRET_KEY = os.getenv(
+    "JWT_SECRET_KEY",
+    "mediwork-dev-only-key-NO-usar-en-produccion-cambiar-con-JWT_SECRET_KEY"
+)
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 8  # 8 horas
 

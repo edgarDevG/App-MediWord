@@ -1,5 +1,6 @@
 /* ══════════════════════════════════════════════════════════════
-   Reportes.jsx v3 — MediWork HSM — Premium Design
+   Reportes.jsx v4 — MediWork HSM — Multi-Format Exports
+   Soporte para PDF, XLSX y CSV con selector de formato
    ══════════════════════════════════════════════════════════════ */
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -35,6 +36,13 @@ const ESTADO_COLORS = {
   finalizados: { color: '#6366f1', grad: 'linear-gradient(90deg,#4f46e5,#6366f1)',   label: 'Finalizados' },
   renuncias:   { color: '#f59e0b', grad: 'linear-gradient(90deg,#d97706,#f59e0b)',   label: 'Renuncias'   },
   inactivos:   { color: '#94a3b8', grad: 'linear-gradient(90deg,#64748b,#94a3b8)',   label: 'Inactivos'   },
+};
+
+/* ── Format config ──────────────────────────────────────────── */
+const FORMAT_CFG = {
+  xlsx: { label: 'Excel',  icon: 'table_view',      ext: '.xlsx', color: '#0A7E6E' },
+  csv:  { label: 'CSV',    icon: 'csv',             ext: '.csv',  color: '#0A5C99' },
+  pdf:  { label: 'PDF',    icon: 'picture_as_pdf',  ext: '.pdf',  color: '#7c3aed' },
 };
 
 /* ── Helpers ────────────────────────────────────────────────── */
@@ -210,8 +218,64 @@ function AlertDoctorCard({ item, onNavigate }) {
   );
 }
 
-function ExportCard({ icon, title, description, buttonLabel, buttonIcon, grad, loading, onClick }) {
+/* ── FormatSelector — Selector de formato de descarga ─────── */
+function FormatSelector({ formats, selected, onChange }) {
+  return (
+    <div style={{
+      display: 'inline-flex',
+      gap: 0,
+      background: '#f1f5f9',
+      borderRadius: 10,
+      padding: 3,
+    }}>
+      {formats.map((fmt) => {
+        const cfg = FORMAT_CFG[fmt];
+        const isActive = selected === fmt;
+        const isDisabled = fmt !== 'xlsx';
+        return (
+          <button
+            key={fmt}
+            disabled={isDisabled}
+            onClick={(e) => { e.stopPropagation(); if (!isDisabled) onChange(fmt); }}
+            title={isDisabled ? 'Formato no disponible' : `Descargar en ${cfg.label}`}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              padding: '5px 12px',
+              borderRadius: 8,
+              border: 'none',
+              cursor: isDisabled ? 'not-allowed' : 'pointer',
+              fontSize: '0.6875rem',
+              fontWeight: isActive ? 700 : 500,
+              fontFamily: 'inherit',
+              background: isActive ? cfg.color : 'transparent',
+              color: isDisabled ? '#c0c8d4' : (isActive ? 'white' : '#64748b'),
+              opacity: isDisabled ? 0.5 : 1,
+              transition: 'all 160ms cubic-bezier(0.16, 1, 0.3, 1)',
+              transform: isActive ? 'scale(1.02)' : 'scale(1)',
+              boxShadow: isActive ? `0 2px 8px ${cfg.color}30` : 'none',
+              pointerEvents: isDisabled ? 'none' : 'auto',
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>{cfg.icon}</span>
+            {cfg.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ── ExportCard — Card de exportación con selector de formato ─ */
+function ExportCard({ icon, title, description, formats, endpoint, baseFilename, grad, loading, onDownload }) {
   const [hover, setHover] = useState(false);
+  const [selectedFormat, setSelectedFormat] = useState(formats[0]);
+
+  const fmtCfg = FORMAT_CFG[selectedFormat];
+  const filename = baseFilename.replace(/\.[^.]+$/, fmtCfg.ext);
+  const fullEndpoint = `${endpoint}?formato=${selectedFormat}`;
+
   return (
     <div
       onMouseEnter={() => setHover(true)}
@@ -222,27 +286,47 @@ function ExportCard({ icon, title, description, buttonLabel, buttonIcon, grad, l
         borderRadius: 16, padding: '24px',
         boxShadow: hover ? '0 8px 32px rgba(0,16,62,0.1)' : '0 2px 8px rgba(0,16,62,0.05)',
         display: 'flex', flexDirection: 'column', gap: 16,
-        flex: '1 1 220px', minWidth: 0,
+        flex: '1 1 260px', minWidth: 0,
         transition: 'all 200ms ease',
         transform: hover ? 'translateY(-2px)' : 'none',
       }}
     >
-      <div style={{
-        width: 52, height: 52, borderRadius: 14, background: grad,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: 'white', flexShrink: 0, boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-      }}>
-        <span className="material-symbols-outlined" style={{ fontSize: 26 }}>{icon}</span>
+      {/* Header row: icon + format selector */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+        <div style={{
+          width: 52, height: 52, borderRadius: 14, background: grad,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: 'white', flexShrink: 0, boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+        }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 26 }}>{icon}</span>
+        </div>
+        <FormatSelector
+          formats={formats}
+          selected={selectedFormat}
+          onChange={setSelectedFormat}
+        />
       </div>
+
+      {/* Content */}
       <div style={{ flex: 1 }}>
         <h3 style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#00103e', marginBottom: 6 }}>{title}</h3>
         <p style={{ fontSize: '0.8125rem', color: '#64748b', lineHeight: 1.6 }}>{description}</p>
       </div>
-      <button onClick={onClick} disabled={loading} className="btn btn-signature" style={{ alignSelf: 'flex-start' }}>
+
+      {/* Download button */}
+      <button
+        onClick={() => onDownload(fullEndpoint, filename)}
+        disabled={loading}
+        className="btn btn-signature"
+        style={{ alignSelf: 'flex-start' }}
+      >
         {loading ? (
           <><span className="material-symbols-outlined sm rpt-spin">progress_activity</span>Generando…</>
         ) : (
-          <><span className="material-symbols-outlined sm">{buttonIcon}</span>{buttonLabel}</>
+          <>
+            <span className="material-symbols-outlined sm">{fmtCfg.icon}</span>
+            Descargar {fmtCfg.label}
+          </>
         )}
       </button>
     </div>
@@ -261,9 +345,9 @@ export default function Reportes() {
   const [loadAlert,  setLoadAlert]  = useState(true);
   const [errorKpi,   setErrorKpi]   = useState(null);
   const [errorAlert, setErrorAlert] = useState(null);
-  const [dlCompleto, setDlCompleto] = useState(false);
-  const [dlAlerts,   setDlAlerts]   = useState(false);
-  const [dlPdf,      setDlPdf]      = useState(false);
+
+  // Estado de descarga por endpoint base
+  const [downloading, setDownloading] = useState({});
 
   useEffect(() => {
     setLoadKpi(true);
@@ -286,8 +370,9 @@ export default function Reportes() {
       .finally(() => setLoadAlert(false));
   }, []);
 
-  const handleDownload = async (endpoint, filename, setLoading) => {
-    setLoading(true);
+  const handleDownload = async (endpoint, filename) => {
+    const key = endpoint;
+    setDownloading(prev => ({ ...prev, [key]: true }));
     try {
       const res  = await axiosInstance.get(endpoint, { responseType: 'blob' });
       const url  = window.URL.createObjectURL(new Blob([res.data]));
@@ -301,7 +386,7 @@ export default function Reportes() {
     } catch {
       alert(`Error al descargar ${filename}. Intenta de nuevo.`);
     } finally {
-      setLoading(false);
+      setDownloading(prev => ({ ...prev, [key]: false }));
     }
   };
 
@@ -333,6 +418,50 @@ export default function Reportes() {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
   });
 
+  /* ── Report definitions ── */
+  const REPORTS = [
+    {
+      id: 'completo',
+      icon: 'table_view',
+      title: 'Exportación Completa',
+      description: 'Todos los médicos con datos generales, estado, contratación, contacto y alertas de vencimiento.',
+      formats: ['xlsx', 'csv', 'pdf'],
+      endpoint: '/reportes/exportar',
+      baseFilename: 'reporte_medicos.xlsx',
+      grad: 'linear-gradient(135deg,#0A7E6E,#0e9b8a)',
+    },
+    {
+      id: 'alertas',
+      icon: 'notification_important',
+      title: 'Alertas de Vencimiento',
+      description: 'Lista de documentos vencidos o próximos a vencer en los próximos 30 días para gestión inmediata.',
+      formats: ['xlsx', 'csv', 'pdf'],
+      endpoint: '/reportes/exportar-alertas',
+      baseFilename: 'alertas_vencimiento.xlsx',
+      grad: 'linear-gradient(135deg,#d97706,#f59e0b)',
+    },
+    {
+      id: 'directorio',
+      icon: 'contacts',
+      title: 'Directorio Médico',
+      description: 'Médicos activos con categoría, especialidad, departamentos, datos de contacto e idiomas consolidados.',
+      formats: ['xlsx', 'csv', 'pdf'],
+      endpoint: '/reportes/directorio-medico',
+      baseFilename: 'directorio_medico.xlsx',
+      grad: 'linear-gradient(135deg,#0A2540,#1a4ed7)',
+    },
+    {
+      id: 'ejecutivo',
+      icon: 'summarize',
+      title: 'Informe Ejecutivo',
+      description: 'Resumen general con indicadores HSM/FSFB, distribución por estado y tabla de documentos por vencer.',
+      formats: ['xlsx', 'pdf'],
+      endpoint: '/reportes/informe-ejecutivo-pdf',
+      baseFilename: 'informe_ejecutivo.xlsx',
+      grad: 'linear-gradient(135deg,#7c3aed,#6366f1)',
+    },
+  ];
+
   /* ══════════════════════════════════════════════════════════════ */
   return (
     <>
@@ -349,6 +478,8 @@ export default function Reportes() {
           padding: '2rem 2.5rem 2.25rem',
           position: 'relative', overflow: 'hidden',
           marginBottom: 28,
+          top: 12,
+          borderRadius: '16px'
         }}>
           {/* dot grid */}
           <div style={{
@@ -381,7 +512,7 @@ export default function Reportes() {
                   </h1>
                 </div>
                 <p style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.55)', maxWidth: 520, lineHeight: 1.55 }}>
-                  Indicadores operativos · Alertas de vencimiento · Herramientas de exportación
+                  Indicadores operativos · Alertas de vencimiento · Descarga en PDF, Excel o CSV
                 </p>
               </div>
               <div style={{
@@ -643,38 +774,25 @@ export default function Reportes() {
               Exportar Datos
             </h3>
             <p style={{ fontSize: '0.8125rem', color: '#94a3b8' }}>
-              Descarga la información del cuerpo médico en diferentes formatos
+              Descarga la información del cuerpo médico en PDF, Excel o CSV
             </p>
           </div>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
-            <ExportCard
-              icon="table_view"
-              title="Exportación Completa"
-              description="Genera un archivo Excel (.xlsx) con todos los médicos, datos generales, estado e información de contacto."
-              buttonLabel="Descargar Excel" buttonIcon="download"
-              grad="linear-gradient(135deg,#0A7E6E,#0e9b8a)"
-              loading={dlCompleto}
-              onClick={() => handleDownload('/reportes/exportar', 'reporte_medicos.xlsx', setDlCompleto)}
-            />
-            <ExportCard
-              icon="notification_important"
-              title="Alertas de Vencimiento"
-              description="Exporta la lista de documentos próximos a vencer o ya vencidos para gestión inmediata del equipo."
-              buttonLabel="Descargar Excel" buttonIcon="download"
-              grad="linear-gradient(135deg,#d97706,#f59e0b)"
-              loading={dlAlerts}
-              onClick={() => handleDownload('/reportes/exportar-alertas', 'alertas_vencimiento.xlsx', setDlAlerts)}
-            />
-            <ExportCard
-              icon="picture_as_pdf"
-              title="Reporte Ejecutivo PDF"
-              description="Genera un reporte ejecutivo en PDF con indicadores clave, resumen estadístico y alertas prioritarias."
-              buttonLabel="Descargar PDF" buttonIcon="picture_as_pdf"
-              grad="linear-gradient(135deg,#4f46e5,#6366f1)"
-              loading={dlPdf}
-              onClick={() => handleDownload('/reportes/exportar-pdf', 'reporte_ejecutivo.pdf', setDlPdf)}
-            />
+            {REPORTS.map((report) => (
+              <ExportCard
+                key={report.id}
+                icon={report.icon}
+                title={report.title}
+                description={report.description}
+                formats={report.formats}
+                endpoint={report.endpoint}
+                baseFilename={report.baseFilename}
+                grad={report.grad}
+                loading={!!downloading[`${report.endpoint}?formato=${report.formats[0]}`] || Object.keys(downloading).some(k => k.startsWith(report.endpoint) && downloading[k])}
+                onDownload={handleDownload}
+              />
+            ))}
           </div>
 
         </div>

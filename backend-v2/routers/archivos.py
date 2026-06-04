@@ -115,7 +115,7 @@ def _build_ruta(documento: str, carpeta: str) -> Path:
 
 def _archivo_to_out(archivo: ArchivoMedico, documento: str) -> ArchivoOut:
     data = ArchivoOut.model_validate(archivo)
-    data.url_descarga = f"/api/v1/medicos/{documento}/archivos/{archivo.id}/file"
+    data.url_descarga = f"/medicos/{documento}/archivos/{archivo.id}/file"
     return data
 
 
@@ -296,4 +296,4 @@ def delete_archivo(
     archivo.activo = False
     db.commit()
     # Nota: el archivo físico se conserva en disco (eliminación lógica).
-    # Para purga física programada, usar un job de mantenimiento separado.
+    # Para purga física programada, usar un job de mantenimiento 

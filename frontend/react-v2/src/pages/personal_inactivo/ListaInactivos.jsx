@@ -94,7 +94,7 @@ export default function ListaInactivos() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    axiosInstance.get('/dashboard/resumen', { skipToast: true })
+    axiosInstance.get('/dashboard/resumen/', { skipToast: true })
       .then(r => setKpis(r.data))
       .catch(() => {})
       .finally(() => setKpiLoad(false));
@@ -145,7 +145,6 @@ export default function ListaInactivos() {
             <EstadoBadge estado={m.estado ?? 'INACTIVO'} />
           </div>
         )}
-        showFechaIngreso
         refreshKey={refreshKey}
         SIZE={20}
       />

@@ -500,7 +500,7 @@ export default function FormMedico() {
           activo:              med.estado === 'INACTIVO' ? false : (med.activo ?? true),
           // FIX 3c: estado_civil viene de contacto, no de medico
           estado_civil:        cont.estado_civil ?? '',
-          tiene_hijos:         cont.tiene_hijos  ?? '',
+          tiene_hijos:         cont.tiene_hijos == null ? '' : String(cont.tiene_hijos),
           idiomas:             Array.isArray(cont.idiomas) ? cont.idiomas : [],
           otro_idioma:         cont.otro_idioma  ?? '',
           lenguaje_senas:      cont.maneja_lengua_senas ?? false,
@@ -627,7 +627,7 @@ export default function FormMedico() {
         direccion_correspondencia: tab1.direccion_residencia || null,
         direccion_consultorio:     tab1.direccion_consultorio || null,
         estado_civil:              tab1.estado_civil         || null,
-        tiene_hijos:               tab1.tiene_hijos          || null,
+        tiene_hijos:               tab1.tiene_hijos === '' ? null : tab1.tiene_hijos === 'true',
         idiomas:                   tab1.idiomas?.length ? tab1.idiomas : null,
         otro_idioma:               tab1.otro_idioma          || null,
         maneja_lengua_senas:       tab1.lenguaje_senas       ?? null,
@@ -867,7 +867,7 @@ export default function FormMedico() {
 
               <CampoSelect label="¿Tiene hijos?" name="tiene_hijos"
                 value={tab1.tiene_hijos} onChange={handleChange}
-                options={[{ value: 'S', label: 'Sí' }, { value: 'N', label: 'No' }]} />
+                options={[{ value: 'true', label: 'Sí' }, { value: 'false', label: 'No' }]} />
 
               <div className="form-group fm-field" style={{ gridColumn: 'span 2' }}>
                 <label className="form-label">Idiomas que maneja</label>

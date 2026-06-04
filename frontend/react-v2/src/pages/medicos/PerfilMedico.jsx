@@ -172,19 +172,20 @@ export default function PerfilMedico() {
   const { doc }  = useParams();
   const navigate = useNavigate();
 
-  const [med,      setMed]      = useState(null);
-  const [cont,     setCont]     = useState(null);
-  const [hv,       setHv]       = useState(null);
-  const [norm,     setNorm]     = useState(null);
-  const [acc,      setAcc]      = useState(null);
-  const [contrato, setContrato] = useState(null);
-  const [docsHab,  setDocsHab]  = useState(null);   // docs-habilitacion (Tab3 DocPanel)
-  const [loading,  setLoading]  = useState(true);
+  const [med,       setMed]       = useState(null);
+  const [cont,      setCont]      = useState(null);
+  const [hv,        setHv]        = useState(null);
+  const [norm,      setNorm]      = useState(null);
+  const [acc,       setAcc]       = useState(null);
+  const [contrato,  setContrato]  = useState(null);
+  const [docsHab,   setDocsHab]   = useState(null);  // docs-habilitacion (Tab3 DocPanel)
+  const [ofertaDoc, setOfertaDoc] = useState(false); // si existe adjunto oferta mercantil
+  const [loading,   setLoading]   = useState(true);
 
   useEffect(() => {
     if (!doc) return;
     (async () => {
-      const [rMed, rCont, rHv, rNorm, rAcc, rContr, rDocs] = await Promise.allSettled([
+      const [rMed, rCont, rHv, rNorm, rAcc, rContr, rDocs, rOferta] = await Promise.allSettled([
         axiosInstance.get(`/medicos/${doc}/`,                { skipToast: true }),
         axiosInstance.get(`/medicos/${doc}/contacto/`,       { skipToast: true }),
         axiosInstance.get(`/medicos/${doc}/documentos-hv/`,  { skipToast: true }),
@@ -192,14 +193,19 @@ export default function PerfilMedico() {
         axiosInstance.get(`/medicos/${doc}/accesos/`,        { skipToast: true }),
         axiosInstance.get(`/medicos/${doc}/contratacion/`,   { skipToast: true }),
         axiosInstance.get(`/medicos/${doc}/docs-habilitacion/`, { skipToast: true }),
+        axiosInstance.get(`/medicos/${doc}/archivos/`, { params: { campo_ref: 'oferta_mercantil' }, skipToast: true }),
       ]);
-      if (rMed.status   === 'fulfilled') setMed(rMed.value.data);
-      if (rCont.status  === 'fulfilled') setCont(rCont.value.data);
-      if (rHv.status    === 'fulfilled') setHv(rHv.value.data);
-      if (rNorm.status  === 'fulfilled') setNorm(rNorm.value.data);
-      if (rAcc.status   === 'fulfilled') setAcc(rAcc.value.data);
-      if (rContr.status === 'fulfilled') setContrato(rContr.value.data);
-      if (rDocs.status  === 'fulfilled') setDocsHab(rDocs.value.data);
+      if (rMed.status    === 'fulfilled') setMed(rMed.value.data);
+      if (rCont.status   === 'fulfilled') setCont(rCont.value.data);
+      if (rHv.status     === 'fulfilled') setHv(rHv.value.data);
+      if (rNorm.status   === 'fulfilled') setNorm(rNorm.value.data);
+      if (rAcc.status    === 'fulfilled') setAcc(rAcc.value.data);
+      if (rContr.status  === 'fulfilled') setContrato(rContr.value.data);
+      if (rDocs.status   === 'fulfilled') setDocsHab(rDocs.value.data);
+      if (rOferta.status === 'fulfilled') {
+        const lista = rOferta.value.data;
+        setOfertaDoc(Array.isArray(lista) ? lista.length > 0 : !!lista);
+      }
       setLoading(false);
     })();
   }, [doc]);
@@ -209,7 +215,7 @@ export default function PerfilMedico() {
     ? [med.primer_nombre, med.segundo_nombre, med.primer_apellido, med.segundo_apellido].filter(Boolean).join(' ')
     : '';
   const nombre = (med?.nombre_medico?.trim() || _partes || (med ? `Doc. ${med.documento_identidad}` : '—'));
-  const activo    = med?.estado === 'ACTIVO' || med?.activo !== false;
+  const activo    = med?.estado === 'ACTIVO';
   const avatarCl  = getAvatarColor(med?.categoria, nombre);
   const init      = getInitials(nombre);
   const editRoute = med?.tipo_listado === 'fsfb_externo'
@@ -233,6 +239,19 @@ export default function PerfilMedico() {
   const rethusFecha   = rethusDoc?.fecha_vencimiento ?? null;
   const rethusEstado  = rethusDoc?.tiene_documento || rethusFecha ? calcEstado(rethusFecha) : 'sin_registro';
   const rethusCfg     = E[rethusEstado];
+
+  /* VISA CE: visible solo cuando el tipo de documento es CE */
+  const esCE       = hv?.tipo_documento === 'CE';
+  const visaFecha  = toDate(hv?.fecha_vencimiento_visa) || null;
+  const visaEstado = esCE ? (visaFecha ? calcEstado(visaFecha) : 'sin_registro') : null;
+  const visaCfg    = visaEstado ? E[visaEstado] : null;
+
+  /* OFERTA MERCANTIL: visible solo cuando el tipo de vinculación lo requiere */
+  const TIPOS_OFERTA = ['OFERTA MERCANTIL', 'LABORAL/OFERTA MERCANTIL'];
+  const tieneOferta  = TIPOS_OFERTA.includes(contrato?.tipo_vinculacion ?? '');
+  const ofertaFecha  = toDate(contrato?.fecha_venc_oferta) || null;
+  const ofertaEstado = tieneOferta ? (ofertaFecha ? calcEstado(ofertaFecha) : 'sin_registro') : null;
+  const ofertaCfg    = ofertaEstado ? E[ofertaEstado] : null;
 
   /* ── Loading ── */
   if (loading) return (
@@ -283,7 +302,7 @@ export default function PerfilMedico() {
             <div style={{
               position: 'absolute', bottom: 0, right: 0,
               width: 14, height: 14, borderRadius: '50%',
-              background: activo ? '#0A7E6E' : '#94a3b8',
+              background: activo ? '#0A7E6E' : med?.estado === 'RENUNCIA' ? '#ba1a1a' : med?.estado === 'FINALIZADO' ? '#92400e' : '#94a3b8',
               border: '2.5px solid #fff',
               boxShadow: activo ? '0 0 0 2px rgba(10,126,110,0.35)' : '0 0 0 2px rgba(148,163,184,0.25)',
             }} />
@@ -301,16 +320,24 @@ export default function PerfilMedico() {
 
           {/* Badges estado + categoría */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, justifyContent: 'center' }}>
-            <span style={{
-              padding: '3px 10px', borderRadius: 12, fontSize: '0.6875rem', fontWeight: 700,
-              background: activo ? 'rgba(10,126,110,0.12)' : 'rgba(148,163,184,0.12)',
-              color: activo ? '#0A7E6E' : '#64748b',
-              border: `1px solid ${activo ? 'rgba(10,126,110,0.25)' : 'rgba(148,163,184,0.3)'}`,
-              display: 'flex', alignItems: 'center', gap: 4,
-            }}>
-              <span style={{ width: 5.5, height: 5.5, borderRadius: '50%', background: 'currentColor', display: 'inline-block' }} />
-              {activo ? 'Activo' : 'Inactivo'}
-            </span>
+            {(() => {
+              const cfg = {
+                ACTIVO:     { bg: 'rgba(10,126,110,0.12)',  color: '#0A7E6E', border: 'rgba(10,126,110,0.25)',  label: 'Activo'     },
+                INACTIVO:   { bg: 'rgba(148,163,184,0.12)', color: '#64748b', border: 'rgba(148,163,184,0.3)',  label: 'Inactivo'   },
+                RENUNCIA:   { bg: 'rgba(186,26,26,0.10)',   color: '#ba1a1a', border: 'rgba(186,26,26,0.22)',   label: 'Renuncia'   },
+                FINALIZADO: { bg: 'rgba(120,53,15,0.10)',   color: '#92400e', border: 'rgba(120,53,15,0.22)',   label: 'Finalizado' },
+              }[med?.estado] ?? { bg: 'rgba(148,163,184,0.12)', color: '#64748b', border: 'rgba(148,163,184,0.3)', label: med?.estado ?? '—' };
+              return (
+                <span style={{
+                  padding: '3px 10px', borderRadius: 12, fontSize: '0.6875rem', fontWeight: 700,
+                  background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`,
+                  display: 'flex', alignItems: 'center', gap: 4,
+                }}>
+                  <span style={{ width: 5.5, height: 5.5, borderRadius: '50%', background: 'currentColor', display: 'inline-block' }} />
+                  {cfg.label}
+                </span>
+              );
+            })()}
             {med?.categoria && (
               <span style={{ padding: '3px 10px', borderRadius: 12, fontSize: '0.6875rem', fontWeight: 700, background: avatarCl.bg, color: avatarCl.color, border: `1px solid ${avatarCl.color}40` }}>
                 Cat. {med.categoria}
@@ -358,21 +385,11 @@ export default function PerfilMedico() {
         {/* ── Botón editar ── */}
         <button
           onClick={() => navigate(editRoute)}
-          style={{
-            marginTop: 'auto',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-            width: '100%', padding: '11px 0',
-            background: 'linear-gradient(135deg, #0A7E6E 0%, #086557 100%)', 
-            color: '#fff', border: 'none', borderRadius: 11,
-            fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer',
-            transition: 'all 200ms',
-            boxShadow: '0 2px 8px rgba(10,126,110,0.25)',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(10,126,110,0.35)'; }}
-          onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 2px 8px rgba(10,126,110,0.25)'; }}
+          className="btn btn-signature"
+          style={{ marginTop: 'auto', width: '100%', justifyContent: 'center' }}
         >
-          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>edit</span>
-          Editar
+          <span className="material-symbols-outlined sm">edit</span>
+          Editar médico
         </button>
       </aside>
 
@@ -408,33 +425,17 @@ export default function PerfilMedico() {
           <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
             <button
               onClick={() => navigate(`/medicos/${doc}/expediente`)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 7, padding: '10px 20px',
-                background: '#fff', border: '1.5px solid rgba(10,37,64,0.15)', borderRadius: 10,
-                fontSize: '0.875rem', fontWeight: 600, color: '#0A2540', cursor: 'pointer',
-                transition: 'all 200ms', whiteSpace: 'nowrap',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.borderColor = 'rgba(10,37,64,0.3)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = 'rgba(10,37,64,0.15)'; }}
+              className="btn btn-tonal"
             >
-              <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#0A5C99' }}>folder_open</span>
+              <span className="material-symbols-outlined sm">folder_open</span>
               Expediente
             </button>
             <button
               onClick={() => navigate(editRoute)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 7, padding: '10px 20px',
-                background: '#0A7E6E', border: 'none', borderRadius: 10,
-                fontSize: '0.875rem', fontWeight: 600, color: '#fff', cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(10,126,110,0.32)',
-                transition: 'all 200ms',
-                whiteSpace: 'nowrap',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#086557'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(10,126,110,0.40)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#0A7E6E'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(10,126,110,0.32)'; }}
+              className="btn btn-signature"
             >
-              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>edit</span>
-              Editar
+              <span className="material-symbols-outlined sm">edit</span>
+              Editar médico
             </button>
           </div>
         </div>
@@ -478,6 +479,53 @@ export default function PerfilMedico() {
                 </p>
               )}
             </div>
+
+            {/* VISA CE — solo visible cuando el tipo de documento es Cédula de Extranjería */}
+            {esCE && visaCfg && (
+              <div style={{ padding: '11px 12px', background: visaCfg.bg, borderRadius: 10, border: `1px solid ${visaCfg.border}`, display: 'flex', flexDirection: 'column', gap: 5, transition: 'transform 150ms, box-shadow 150ms' }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(10,37,64,0.12)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 16, color: visaCfg.color, fontVariationSettings: "'FILL' 1" }}>travel_explore</span>
+                  <span style={{ fontSize: '0.775rem', fontWeight: 700, color: '#0f172a' }}>Visa CE</span>
+                </div>
+                <span style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 3, padding: '3px 8px', borderRadius: 12, background: 'rgba(255,255,255,0.8)', color: visaCfg.color, fontSize: '0.625rem', fontWeight: 700, border: `1px solid ${visaCfg.border}` }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 11, fontVariationSettings: "'FILL' 1" }}>{visaCfg.icon}</span>
+                  {visaCfg.label}
+                </span>
+                {visaFecha
+                  ? <p style={{ fontSize: '0.65rem', color: '#64748b', margin: 0 }}>Venc: {fmtDate(visaFecha)}</p>
+                  : <p style={{ fontSize: '0.65rem', color: '#94a3b8', margin: 0, fontStyle: 'italic' }}>Sin fecha registrada</p>
+                }
+              </div>
+            )}
+
+            {/* OFERTA MERCANTIL — solo visible cuando el tipo de vinculación lo requiere */}
+            {tieneOferta && ofertaCfg && (
+              <div style={{ padding: '11px 12px', background: ofertaCfg.bg, borderRadius: 10, border: `1px solid ${ofertaCfg.border}`, display: 'flex', flexDirection: 'column', gap: 5, transition: 'transform 150ms, box-shadow 150ms' }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(10,37,64,0.12)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 16, color: ofertaCfg.color, fontVariationSettings: "'FILL' 1" }}>description</span>
+                  <span style={{ fontSize: '0.775rem', fontWeight: 700, color: '#0f172a' }}>Oferta Mercantil</span>
+                </div>
+                <span style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 3, padding: '3px 8px', borderRadius: 12, background: 'rgba(255,255,255,0.8)', color: ofertaCfg.color, fontSize: '0.625rem', fontWeight: 700, border: `1px solid ${ofertaCfg.border}` }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 11, fontVariationSettings: "'FILL' 1" }}>{ofertaCfg.icon}</span>
+                  {ofertaCfg.label}
+                </span>
+                {ofertaFecha && (
+                  <p style={{ fontSize: '0.65rem', color: '#64748b', margin: 0 }}>
+                    Venc: {fmtDate(ofertaFecha)}
+                  </p>
+                )}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '0.625rem', fontWeight: 600, color: ofertaDoc ? '#0A7E6E' : '#94a3b8' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 11, fontVariationSettings: "'FILL' 1" }}>{ofertaDoc ? 'attach_file' : 'file_present'}</span>
+                  {ofertaDoc ? 'Doc. adjunto' : 'Sin documento'}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Banner alerta */}
@@ -524,7 +572,6 @@ export default function PerfilMedico() {
               { label: 'Estado contrato',   value: contrato?.estado_contrato,  badge: true },
               { label: 'Tipo contrato',     value: contrato?.tipo_contrato },
               { label: 'Firma contrato',    value: fmtDate(toDate(contrato?.fecha_firma_contrato)) },
-              { label: 'Venc. oferta',      value: fmtDate(toDate(contrato?.fecha_venc_oferta)) },
               { label: 'Honorarios',        value: contrato?.modalidad_honorarios },
               { label: 'Jornada (h)',       value: contrato?.jornada ? `${contrato.jornada} h` : null },
             ]} />
@@ -536,7 +583,6 @@ export default function PerfilMedico() {
               { label: 'Estado carnet',     value: acc?.estado_carnet,         badge: true },
               { label: 'Ind. Médica FSFB',  value: acc?.induccion_medica_fsfb, badge: true },
               { label: 'Ind. Médica CHSM',  value: acc?.induccion_medica_chsm, badge: true },
-              { label: 'Ind. General CHSM', value: acc?.induccion_general_chsm,badge: true },
               { label: 'Póliza resp. civil',value: acc?.poliza_resp_civil,     badge: true },
               { label: 'Venc. póliza',      value: fmtDate(toDate(acc?.fecha_venc_poliza)) },
             ]} />

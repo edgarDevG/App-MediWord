@@ -231,8 +231,15 @@ function ActionMenu({ doc, nombre, estado, profileRoute, editRoute, onAction }) 
   const handleOpen = (e) => {
     e.stopPropagation();
     if (!open && btnRef.current) {
-      const r = btnRef.current.getBoundingClientRect();
-      setMenuPos({ top: r.bottom + 6, right: window.innerWidth - r.right });
+      const r           = btnRef.current.getBoundingClientRect();
+      const MENU_H      = 280; // altura estimada del menú
+      const spaceBelow  = window.innerHeight - r.bottom;
+      const openUpward  = spaceBelow < MENU_H && r.top > MENU_H;
+      setMenuPos({
+        top:    openUpward ? undefined : r.bottom + 6,
+        bottom: openUpward ? window.innerHeight - r.top + 6 : undefined,
+        right:  window.innerWidth - r.right,
+      });
     }
     setOpen(o => !o);
   };
@@ -261,7 +268,10 @@ function ActionMenu({ doc, nombre, estado, profileRoute, editRoute, onAction }) 
 
   const dropdown = open && createPortal(
     <div ref={menuRef} style={{
-      position: 'fixed', top: menuPos.top, right: menuPos.right,
+      position: 'fixed',
+      top:    menuPos.top    !== undefined ? menuPos.top    : 'auto',
+      bottom: menuPos.bottom !== undefined ? menuPos.bottom : 'auto',
+      right: menuPos.right,
       background: 'white', borderRadius: 12,
       border: '1px solid rgba(197,198,210,0.3)',
       boxShadow: '0 8px 24px rgba(0,16,62,0.13), 0 2px 6px rgba(0,0,0,0.08)',

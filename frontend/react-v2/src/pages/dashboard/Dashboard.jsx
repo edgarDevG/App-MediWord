@@ -189,6 +189,7 @@ function AlertBanner({ count }) {
         }}
         onMouseEnter={e => e.currentTarget.style.background = '#fecaca'}
         onMouseLeave={e => e.currentTarget.style.background = '#fee2e2'}
+        onClick={() => document.getElementById('btn-notificaciones-panel')?.click()}
       >
         Ver alertas →
       </button>
@@ -441,7 +442,7 @@ export default function Dashboard() {
   /* ── KPIs ─────────────────────────────────────────────────── */
   useEffect(() => {
     setLoadKpi(true);
-    axiosInstance.get('/dashboard/resumen', { skipToast: true })
+    axiosInstance.get('/dashboard/resumen/', { skipToast: true })
       .then(r => setResumen(r.data))
       .catch(() => {})
       .finally(() => setLoadKpi(false));

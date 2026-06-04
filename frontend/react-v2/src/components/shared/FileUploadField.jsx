@@ -317,11 +317,25 @@ export default function FileUploadField({
     setArchivos(prev => prev.filter(a => a.id !== archivo.id));
   };
 
-  /* ── Descargar archivo ── */
-  const handleDownload = (archivo) => {
+  /* ── Descargar/visualizar archivo con token ── */
+  const handleDownload = async (archivo) => {
     if (!archivo.urlDescarga) return;
-    const base = axiosInstance.defaults.baseURL || '';
-    window.open(`${base}${archivo.urlDescarga}`, '_blank');
+    try {
+      // Siempre usar solo el segmento después de /api/v1 para evitar duplicación con baseURL
+      const rawPath = archivo.urlDescarga || '';
+      const apiPath = rawPath.includes('/api/v1')
+        ? rawPath.slice(rawPath.indexOf('/api/v1') + '/api/v1'.length)
+        : rawPath;
+      const resp = await axiosInstance.get(apiPath, { responseType: 'blob' });
+      const url  = URL.createObjectURL(resp.data);
+      const a    = document.createElement('a');
+      a.href = url; a.target = '_blank'; a.rel = 'noopener';
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    } catch {
+      toast.error('No se pudo abrir el archivo.');
+    }
   };
 
   /* ── Cambiar tipo de un archivo local ── */

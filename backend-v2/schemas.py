@@ -191,6 +191,7 @@ class DatosHVUpdate(BaseModel):
     fecha_nacimiento: Optional[date] = None
     lugar_nacimiento: Optional[str] = None
     sexo: Optional[str] = None
+    fecha_vencimiento_visa: Optional[date] = None
     form_sol_ingreso: Optional[str] = None
     fecha_form_sol_ingreso: Optional[date] = None
     form_cap_educacion: Optional[str] = None
@@ -236,6 +237,10 @@ class ContactoUpdate(BaseModel):
     maneja_lengua_senas: Optional[bool] = None
     idiomas: Optional[Any] = None
     otro_idioma: Optional[str] = None
+    contacto_emergencia: Optional[str] = None
+    parentesco: Optional[str] = None
+    tel_emergencia: Optional[str] = None
+    correo_alterno: Optional[str] = None
 
 
 class ContactoOut(ContactoUpdate):

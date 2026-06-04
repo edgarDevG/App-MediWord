@@ -89,7 +89,7 @@ export default function ListaRenuncias() {
   const [kpiLoad, setKpiLoad] = useState(true);
 
   useEffect(() => {
-    axiosInstance.get('/dashboard/resumen', { skipToast: true })
+    axiosInstance.get('/dashboard/resumen/', { skipToast: true })
       .then(r => setKpis(r.data))
       .catch(() => {})
       .finally(() => setKpiLoad(false));
@@ -138,7 +138,6 @@ export default function ListaRenuncias() {
             <EstadoBadge estado={m.estado ?? 'RENUNCIA'} />
           </div>
         )}
-        showFechaIngreso
         SIZE={20}
       />
     </div>

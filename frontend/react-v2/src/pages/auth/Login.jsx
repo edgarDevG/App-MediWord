@@ -440,7 +440,7 @@ export default function Login() {
               <LogoMark />
 
               <div style={{ marginTop: 'clamp(40px,8vh,90px)', maxWidth: 580 }}>
-                <span className="lgn-eyebrow">Centro de mando clínico</span>
+                <span className="lgn-eyebrow">Centro de mando hospitalario</span>
                 <h1>Talento médico,<br />disponible y verificado.</h1>
                 <p className="desc">
                   Administra credenciales, habilitaciones, normativos y estadísticas
@@ -611,7 +611,8 @@ export default function Login() {
                     </p>
                     <p style={{ color: '#475569', fontSize: '.72rem', lineHeight: 1.6 }}>
                       Solicita el restablecimiento de tus credenciales.
-                      El administrador enviará una nueva contraseña a tu correo.
+                      El administrador a este correo: edgar.guerrero@chsm.com
+                      enviará una nueva contraseña a tu correo.
                     </p>
                     <p style={{ color: '#0A2540', fontSize: '.72rem', marginTop: 7, fontWeight: 600 }}>
                       Dirección Médica · Hospital Serena del Mar

@@ -55,6 +55,24 @@ const fmtDateTime = (iso) => {
   return `${d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })} · ${d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}`;
 };
 
+/* ── Abrir archivo autenticado via axios → blob URL ── */
+async function openArchivo(urlDescarga) {
+  if (!urlDescarga) return;
+  try {
+    // Normalizar: quitar /api/v1 si viene en urlDescarga (evita duplicación con baseURL)
+    const apiPath = urlDescarga.includes('/api/v1')
+      ? urlDescarga.slice(urlDescarga.indexOf('/api/v1') + '/api/v1'.length)
+      : urlDescarga;
+    const resp = await axiosInstance.get(apiPath, { responseType: 'blob' });
+    const url  = URL.createObjectURL(resp.data);
+    const a    = document.createElement('a');
+    a.href = url; a.target = '_blank'; a.rel = 'noopener';
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  } catch { /* silencioso */ }
+}
+
 /* ══ SUBCOMPONENTE: Sidebar de carpetas ══════════════════════ */
 function FoldersSidebar({ carpetaActiva, onSelect, conteos }) {
   return (
@@ -144,7 +162,7 @@ function FoldersSidebar({ carpetaActiva, onSelect, conteos }) {
 
 /* ══ SUBCOMPONENTE: Tarjeta de archivo ══════════════════════ */
 function FileCard({ archivo, selected, onSelect, onDelete, canDelete, baseURL }) {
-  const handleView = (e) => { e.stopPropagation(); window.open(`${baseURL}${archivo.url_descarga}`, '_blank'); };
+  const handleView = (e) => { e.stopPropagation(); openArchivo(archivo.url_descarga); };
   const handleDel  = (e) => { e.stopPropagation(); onDelete(archivo); };
 
   return (
@@ -227,7 +245,7 @@ function PreviewPanel({ archivo, onClose, onDelete, canDelete, baseURL }) {
         <span style={{ fontSize: 11, color: 'rgba(255,255,255,.55)', textAlign: 'center', padding: '0 12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
           {archivo.nombre_original}
         </span>
-        <button type="button" onClick={() => window.open(`${baseURL}${archivo.url_descarga}`, '_blank')}
+        <button type="button" onClick={() => openArchivo(archivo.url_descarga)}
           style={{ position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)', background: 'rgba(16,185,129,.9)', color: '#fff', border: 'none', borderRadius: 7, padding: '5px 14px', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}>
           <span className="material-symbols-outlined" style={{ fontSize: 13 }}>open_in_new</span>
           Abrir en nueva pestaña
@@ -249,7 +267,7 @@ function PreviewPanel({ archivo, onClose, onDelete, canDelete, baseURL }) {
       </div>
       <div style={{ padding: '10px 14px', borderTop: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button type="button" onClick={() => window.open(`${baseURL}${archivo.url_descarga}`, '_blank')}
+          <button type="button" onClick={() => openArchivo(archivo.url_descarga)}
             style={{ flex: 1, padding: '8px', borderRadius: 8, background: '#10b981', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
             <span className="material-symbols-outlined" style={{ fontSize: 14 }}>download</span>
             Descargar
@@ -521,17 +539,9 @@ export default function ExpedienteTab({ medicoDoc: medicoDocProp }) {
 
             <button
               onClick={() => navigate(`/medicos/${medicoDoc}/perfil`)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px',
-                background: '#fff', border: '1px solid #cbd5e1', borderRadius: 8,
-                fontSize: '0.875rem', fontWeight: 500, color: '#1e293b',
-                cursor: 'pointer', transition: 'all 150ms',
-                boxShadow: '0 1px 2px rgba(10,37,64,.06)',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.borderColor = '#94a3b8'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
+              className="btn btn-signature"
             >
-              <span className="material-symbols-outlined" style={{ fontSize: 17 }}>arrow_back</span>
+              <span className="material-symbols-outlined sm">arrow_back</span>
               Volver al perfil
             </button>
           </div>

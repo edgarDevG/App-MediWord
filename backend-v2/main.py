@@ -81,11 +81,11 @@ def run_column_migrations():
     }
 
     migrations = [
-        ("medicos_datos_hv",  "fecha_vencimiento_visa", "DATE"),
-        ("medicos_contacto",  "contacto_emergencia",    "VARCHAR(200)"),
-        ("medicos_contacto",  "parentesco",             "VARCHAR(80)"),
-        ("medicos_contacto",  "tel_emergencia",         "VARCHAR(30)"),
-        ("medicos_contacto",  "correo_alterno",         "VARCHAR(200)"),
+        ("medicos_datos_hv",    "fecha_vencimiento_visa",       "DATE"),
+        ("medicos_contacto",    "contacto_emergencia",          "VARCHAR(200)"),
+        ("medicos_contacto",    "parentesco",                   "VARCHAR(80)"),
+        ("medicos_contacto",    "tel_emergencia",               "VARCHAR(30)"),
+        ("medicos_contacto",    "correo_alterno",               "VARCHAR(200)"),
     ]
 
     with engine.connect() as conn:
@@ -138,9 +138,15 @@ app = FastAPI(
     description="Sistema de Gestión del Cuerpo Médico — Hospital Serena del Mar",
     version="2.0.0",
     lifespan=lifespan,
+    redirect_slashes=False,
 )
 
 # ── CORS ──────────────────────────────────────────────────────
+# allow_origin_regex acepta cualquier IP en la red interna 10.28.x.x
+# en los puertos típicos de desarrollo y producción.
+# allow_origins se mantiene para localhost y el servidor de producción fijo.
+import re as _re
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -149,12 +155,14 @@ app.add_middleware(
         "http://localhost:5174", "http://127.0.0.1:5174",
         "http://localhost:5175", "http://127.0.0.1:5175",
         "http://localhost:5176", "http://127.0.0.1:5176",
-        # Servidor de producción 10.28.110.104
+        # Servidor de producción fijo
         "http://10.28.110.104",
         "http://10.28.110.104:80",
         "http://10.28.110.104:5173",
         "http://10.28.110.104:4173",
     ],
+    # Acepta red interna 10.28.x.x y túneles de VS Code (devtunnels.ms) / GitHub Codespaces
+    allow_origin_regex=r"http://10\.28\.\d{1,3}\.\d{1,3}(:\d+)?|https://.*\.(devtunnels\.ms|app\.github\.dev|githubpreview\.dev)(:\d+)?",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -186,7 +186,7 @@ function DocPanel({ doc, data, onChange, onToggle, medicoDoc }) {
           {/* Adjunto por documento de habilitación */}
           <div style={{ marginTop: 'var(--space-4)' }}>
             <FileUploadField
-              carpeta="habilitacion"
+              carpeta="diplomas_verificaciones"
               maxArchivos={2}
               medicoDoc={medicoDoc}
               campoRef={doc.key}

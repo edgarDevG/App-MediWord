@@ -32,19 +32,37 @@ echo "[entrypoint] Sincronizando migraciones..."
 ALEMBIC_CURRENT=$(python -m alembic current 2>&1)
 if echo "$ALEMBIC_CURRENT" | grep -qE "[a-f0-9]{8,}"; then
     echo "Revision detectada — sellando ramas y aplicando pendientes..."
-    # Inserta en alembic_version cualquier branch head que create_all haya
-    # creado sin que Alembic lo haya registrado explícitamente.
+    # Sincroniza alembic_version con el estado real del esquema:
+    # 1. Elimina revisiones intermedias huérfanas que bloqueen el merge head.
+    # 2. Sella el merge head final (g4b7c2d1e805) si el esquema ya lo tiene.
+    # 3. Aplica cualquier migración pendiente posterior al merge head.
     python -c "
 from database import engine
 from sqlalchemy import text
-BRANCH_HEADS = ['f3a8c1d2e904']
+
+# Head final del árbol de migraciones (merge de c2d5e8f1a607 + f3a8c1d2e904)
+MERGE_HEAD = 'g4b7c2d1e805'
+# Revisiones intermedias que NO deben coexistir con el merge head
+INTERMEDIATE = ['f3a8c1d2e904', 'c2d5e8f1a607']
+
 with engine.connect() as conn:
-    for rev in BRANCH_HEADS:
-        row = conn.execute(text(\"SELECT version_num FROM alembic_version WHERE version_num=:r\"), {\"r\": rev}).fetchone()
-        if not row:
-            conn.execute(text(\"INSERT INTO alembic_version (version_num) VALUES (:r)\"), {\"r\": rev})
-            conn.commit()
-            print('[MIGRATION] Branch sellado:', rev)
+    current = [r[0] for r in conn.execute(text('SELECT version_num FROM alembic_version')).fetchall()]
+    print('[MIGRATION] Revisiones actuales en BD:', current)
+
+    # Si el merge head ya está registrado no hay nada que hacer
+    if MERGE_HEAD in current:
+        print('[MIGRATION] Merge head ya registrado, nada que sellar.')
+    else:
+        # Eliminar intermedias que bloqueen el upgrade
+        for rev in INTERMEDIATE:
+            if rev in current:
+                conn.execute(text('DELETE FROM alembic_version WHERE version_num=:r'), {'r': rev})
+                conn.commit()
+                print('[MIGRATION] Intermedia eliminada:', rev)
+        # Sellar merge head
+        conn.execute(text('INSERT INTO alembic_version (version_num) VALUES (:r)'), {'r': MERGE_HEAD})
+        conn.commit()
+        print('[MIGRATION] Merge head sellado:', MERGE_HEAD)
 "
     python -m alembic upgrade heads
 else

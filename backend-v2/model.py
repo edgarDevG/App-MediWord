@@ -117,6 +117,7 @@ class MedicoDatosHV(Base):
     fecha_nacimiento        = Column(Date)
     lugar_nacimiento        = Column(String(100))
     sexo                    = Column(String(1))               # M|F|O
+    fecha_vencimiento_visa  = Column(Date, nullable=True)     # Solo aplica para CE
 
     # Documentos HV (estado: OK|PENDIENTE|N.A.)
     form_sol_ingreso            = Column(String(20))
@@ -164,6 +165,10 @@ class MedicoContacto(Base):
     maneja_lengua_senas      = Column(Boolean)
     idiomas                  = Column(JSON)                   # ['Inglés','Francés',...]
     otro_idioma              = Column(String(100))
+    contacto_emergencia      = Column(String(200))
+    parentesco               = Column(String(80))
+    tel_emergencia           = Column(String(30))
+    correo_alterno           = Column(String(200))
 
     medico = relationship("Medico", back_populates="contacto")
 

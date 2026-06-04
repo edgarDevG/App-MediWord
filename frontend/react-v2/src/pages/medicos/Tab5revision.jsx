@@ -142,6 +142,7 @@ export default function Tab5Revision({ medicoDoc, tab1Data, onPrev, completedSte
       /* await axiosInstance.post(`/medicos/${medicoDoc}/finalizar`) */
       markCompleted(5);
       setGuardadoOk(true);
+      window.dispatchEvent(new Event('refresh-alerts'));
       setTimeout(() => navigate(`/medicos/${medicoDoc}/perfil`), 1800);
     } catch (e) {
       const msg = e.response?.data?.detail ?? 'Error al confirmar.';

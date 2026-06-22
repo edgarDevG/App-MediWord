@@ -329,12 +329,10 @@ class NormativosUpdate(BaseModel):
     consulta_rethus: Optional[str] = None
     titulos_rethus: Optional[str] = None
     cursos_3_anios: Optional[str] = None
+    cursos_3_anios_fecha_venc: Optional[date] = None
+    cursos_3_anios_estado: Optional[str] = None
     tarjeta_profesional: Optional[str] = None
     examen_medico: Optional[str] = None
-
-
-class NormativosOut(NormativosUpdate):
-    medico_id: int
     bls_estado: Optional[str] = None
     acls_estado: Optional[str] = None
     pals_estado: Optional[str] = None
@@ -350,9 +348,11 @@ class NormativosOut(NormativosUpdate):
     aiepi_estado: Optional[str] = None
     gestion_donante_estado: Optional[str] = None
     telemedicina_estado: Optional[str] = None
+
+
+class NormativosOut(NormativosUpdate):
+    medico_id: int
     model_config = {"from_attributes": True}
-
-
 # ═══════════════════════════════════════════════════════════════
 # CONTRATACION
 # ═══════════════════════════════════════════════════════════════
@@ -397,9 +397,10 @@ class AccesosUpdate(BaseModel):
     entrega_almera: Optional[str] = None
     entrega_ruaf: Optional[str] = None
     mipres: Optional[str] = None
-    correo_corporativo: Optional[str] = None
-    radio_expuesto: Optional[str] = None
-    carta_turnos: Optional[str] = None
+    correo_corporativo:     Optional[str] = None
+    radio_expuesto:         Optional[str] = None
+    carta_turnos:           Optional[str] = None
+    inspektor:              Optional[str] = None
     poliza_resp_civil: Optional[str] = None
     fecha_venc_poliza: Optional[date] = None
     poliza_complicaciones: Optional[str] = None

@@ -46,10 +46,8 @@ const INIT_ESPECIALIDAD = {
 // ELIMINADOS: certificado_especialidad, diploma_pregrado, antecedentes_judiciales
 const DOCS_HABILITACION = [
   { key: 'rethus',                      label: 'Tarjeta RETHUS',                      icon: 'verified',            required: true  },
-  { key: 'tarjeta_profesional',         label: 'Tarjeta Profesional',                 icon: 'badge',               required: true  },
   { key: 'examen_medico',               label: 'Examen Médico Ocupacional',           icon: 'medical_information', required: true  },
   { key: 'antecedentes_disciplinarios', label: 'Cert. Antecedentes Disciplinarios',   icon: 'gavel',               required: false },
-  { key: 'contrato_prestacion',         label: 'Contrato / Prestación de Servicios',  icon: 'description',         required: false },
 ];
 
 const INIT_DOC = {
@@ -161,11 +159,13 @@ function DocPanel({ doc, data, onChange, onToggle, medicoDoc }) {
               </div>
             </div>
             <div style={{ flex:'1 1 160px' }}>
-              <div className="form-group">
-                <label className="form-label">Fecha vencimiento</label>
-                <input type="date" className="form-input" value={data.fecha_vencimiento}
-                  onChange={e => onChange(doc.key, 'fecha_vencimiento', e.target.value)} />
-              </div>
+              {doc.key !== 'rethus' && (
+                <div className="form-group">
+                  <label className="form-label">Fecha vencimiento</label>
+                  <input type="date" className="form-input" value={data.fecha_vencimiento}
+                    onChange={e => onChange(doc.key, 'fecha_vencimiento', e.target.value)} />
+                </div>
+              )}
             </div>
             <div style={{ flex:'1 1 220px' }}>
               <div className="form-group">
@@ -408,7 +408,7 @@ export default function Tab3Especialidades({ onPrev, onNext, medicoDoc, markComp
         docsHabPayload[doc.key] = docSnap.tiene_documento ? {
           codigo:            docSnap.numero_documento_hv || null,
           fecha_expedicion:  docSnap.fecha_expedicion    || null,
-          fecha_vencimiento: docSnap.fecha_vencimiento   || null,
+          fecha_vencimiento: doc.key === 'rethus' ? null : (docSnap.fecha_vencimiento || null),
           entidad_expide:    docSnap.entidad_expide       || null,
           observaciones:     docSnap.observaciones        || null,
         } : null;

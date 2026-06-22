@@ -12,38 +12,34 @@ const STATS = [
 
 const ACTIVITIES = [
   { time: '08:42', kind: 'success', title: 'Credentialing validado',  detail: 'Cardiología · Dr. Morales'      },
-  { time: '08:31', kind: 'info',    title: 'Turno crítico cubierto',  detail: 'UCI Adultos · 12 h nocturnas'  },
-  { time: '08:18', kind: 'warning', title: 'Revisión pendiente',      detail: 'Pediatría · 2 documentos'      },
+  { time: '08:31', kind: 'info',    title: 'Gestión documental',  detail: 'Normativos · Completado'  },
+  { time: '08:18', kind: 'warning', title: 'Revisión pendiente',      detail: 'Hoja de vida · 2 documentos'      },
 ];
 
 /* ─── subcomponentes ─────────────────────────────────────────── */
 function LogoMark() {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-      <div style={{
-        width: 48, height: 48, borderRadius: 14, flexShrink: 0,
-        background: 'linear-gradient(145deg, #13c7a6, #05a6bf)',
-        boxShadow: '0 14px 32px rgba(0,194,163,.32), inset 0 1px 0 rgba(255,255,255,.35)',
-        display: 'grid', placeItems: 'center', position: 'relative',
-        animation: 'lgn-pulse 3.4s ease-in-out infinite',
-      }}>
-        <svg viewBox="0 0 32 32" fill="none" width="22" height="22">
-          <rect x="13" y="4" width="6" height="24" rx="2" fill="white"/>
-          <rect x="4" y="13" width="24" height="6" rx="2" fill="white"/>
-        </svg>
-      </div>
-      <div>
-        <strong style={{ display: 'block', fontSize: '1rem', color: '#f6fbff', letterSpacing: '-0.03em' }}>
-          MediWord HSM
-        </strong>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      {/* Título en una línea: Med + Index */}
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 0, lineHeight: 1 }}>
         <span style={{
-          display: 'block', marginTop: 2,
-          fontSize: '0.68rem', fontWeight: 800,
-          color: 'rgba(246,251,255,.5)', letterSpacing: '0.11em', textTransform: 'uppercase',
-        }}>
-          Hospital Serena del Mar
-        </span>
+          fontFamily: 'Plus Jakarta Sans, sans-serif',
+          fontWeight: 800, fontSize: '3rem',
+          color: '#ffffff', letterSpacing: '-0.05em', lineHeight: 1,
+        }}>Med</span>
+        <span style={{
+          fontFamily: 'Plus Jakarta Sans, sans-serif',
+          fontWeight: 700, fontSize: '3rem',
+          color: '#0E9B8A', letterSpacing: '-0.05em', lineHeight: 1,
+        }}>Index</span>
       </div>
+      {/* Subtítulo debajo */}
+      <span style={{
+        fontSize: '0.7rem', fontWeight: 700,
+        color: 'rgba(246,251,255,.45)', letterSpacing: '0.12em', textTransform: 'uppercase',
+      }}>
+        Hospital Serena del Mar
+      </span>
     </div>
   );
 }
@@ -432,7 +428,7 @@ export default function Login() {
       `}</style>
 
       <main className="lgn-page">
-        <section className="lgn-shell" aria-label="Inicio de sesión MediWord HSM">
+        <section className="lgn-shell" aria-label="Inicio de sesión MedIndex HSM">
 
           {/* ══ PANEL IZQUIERDO ══════════════════════════════════════ */}
           <aside className="lgn-brand" aria-label="Sistema de gestión del cuerpo médico">
@@ -490,23 +486,22 @@ export default function Login() {
 
             <div className="lgn-form-wrap">
               {/* Logo móvil */}
-              <div className="lgn-mobile-logo">
-                <div style={{
-                  width: 38, height: 38, borderRadius: 11,
-                  background: 'linear-gradient(145deg,#13c7a6,#05a6bf)',
-                  display: 'grid', placeItems: 'center',
-                }}>
-                  <svg viewBox="0 0 32 32" fill="none" width="18" height="18">
-                    <rect x="13" y="4" width="6" height="24" rx="2" fill="white"/>
-                    <rect x="4" y="13" width="24" height="6" rx="2" fill="white"/>
-                  </svg>
+              <div className="lgn-mobile-logo" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 0, lineHeight: 1 }}>
+                  <span style={{
+                    fontFamily: 'Plus Jakarta Sans, sans-serif',
+                    fontWeight: 800, fontSize: '1.5rem',
+                    color: '#0b152b', letterSpacing: '-0.05em', lineHeight: 1,
+                  }}>Med</span>
+                  <span style={{
+                    fontFamily: 'Plus Jakarta Sans, sans-serif',
+                    fontWeight: 700, fontSize: '1.5rem',
+                    color: '#0E9B8A', letterSpacing: '-0.05em', lineHeight: 1,
+                  }}>Index</span>
                 </div>
-                <div>
-                  <strong style={{ display: 'block', fontSize: '.95rem', color: '#0b152b' }}>MediWord HSM</strong>
-                  <span style={{ fontSize: '.65rem', color: '#66738b', textTransform: 'uppercase', letterSpacing: '.1em' }}>
-                    Hospital Serena del Mar
-                  </span>
-                </div>
+                <span style={{ fontSize: '.6rem', color: '#66738b', textTransform: 'uppercase', letterSpacing: '.1em' }}>
+                  Hospital Serena del Mar
+                </span>
               </div>
 
               <p className="lgn-kicker">Inicio de sesión</p>
@@ -621,15 +616,7 @@ export default function Login() {
                 )}
               </div>
 
-              {/* Stats */}
-              <div className="lgn-stats" aria-label="Indicadores institucionales">
-                {STATS.map(s => (
-                  <div key={s.label}>
-                    <strong>{s.value}</strong>
-                    <span>{s.label}</span>
-                  </div>
-                ))}
-              </div>
+        
             </div>
           </section>
 

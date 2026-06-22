@@ -21,7 +21,7 @@ def recalcular_vencimientos_diario():
         normativos = db.query(MedicoNormativos).all()
         for doc in normativos:
             cambios = False
-            for campo in ["bls", "acls", "pals", "nals", "violencia_sexual", "ataques_quimicos", "dengue", "sedacion", "radioproteccion", "manejo_dolor", "iamii", "gestion_duelo"]:
+            for campo in ["bls", "acls", "pals", "nals", "violencia_sexual", "ataques_quimicos", "dengue", "sedacion", "radioproteccion", "manejo_dolor", "iamii", "gestion_duelo", "cursos_3_anios"]:
                 fecha = getattr(doc, f"{campo}_fecha_venc", None) or getattr(doc, f"{campo}_fecha", None)
                 if fecha:
                     delta = (fecha - date.today()).days
@@ -75,7 +75,7 @@ def run_column_migrations():
         "archivos_medico", "historial_estados", "audit_log", "users",
     }
     ALLOWED_TYPES = {
-        "DATE", "VARCHAR(30)", "VARCHAR(80)", "VARCHAR(100)",
+        "DATE", "VARCHAR(20)", "VARCHAR(30)", "VARCHAR(80)", "VARCHAR(100)",
         "VARCHAR(200)", "VARCHAR(255)", "TEXT", "BOOLEAN",
         "INTEGER", "BIGINT", "NUMERIC", "TIMESTAMP WITH TIME ZONE",
     }
@@ -86,6 +86,9 @@ def run_column_migrations():
         ("medicos_contacto",    "parentesco",                   "VARCHAR(80)"),
         ("medicos_contacto",    "tel_emergencia",               "VARCHAR(30)"),
         ("medicos_contacto",    "correo_alterno",               "VARCHAR(200)"),
+        # Póliza RC — columnas de vigencia
+        ("medicos_normativos",  "cursos_3_anios_fecha_venc",    "DATE"),
+        ("medicos_normativos",  "cursos_3_anios_estado",        "VARCHAR(20)"),
     ]
 
     with engine.connect() as conn:

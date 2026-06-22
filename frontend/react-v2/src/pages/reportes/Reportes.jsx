@@ -499,14 +499,22 @@ export default function Reportes() {
             {/* title row */}
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14 }}>
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                  <div style={{
-                    width: 44, height: 44, borderRadius: 12,
-                    background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white',
-                  }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 22 }}>insert_chart</span>
+                {/* Marca MedIndex */}
+                <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1, marginBottom: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 0 }}>
+                    <span style={{
+                      fontFamily: 'Plus Jakarta Sans, sans-serif',
+                      fontWeight: 800, fontSize: '1.6rem',
+                      color: '#ffffff', letterSpacing: '-0.05em', lineHeight: 1,
+                    }}>Med</span>
+                    <span style={{
+                      fontFamily: 'Plus Jakarta Sans, sans-serif',
+                      fontWeight: 700, fontSize: '1.6rem',
+                      color: '#0E9B8A', letterSpacing: '-0.05em', lineHeight: 1,
+                    }}>Index</span>
                   </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
                   <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'white', lineHeight: 1.1 }}>
                     Reportes &amp; Exportaciones
                   </h1>
@@ -515,15 +523,24 @@ export default function Reportes() {
                   Indicadores operativos · Alertas de vencimiento · Descarga en PDF, Excel o CSV
                 </p>
               </div>
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)',
-                borderRadius: 10, padding: '8px 14px',
-                color: 'rgba(255,255,255,0.7)', fontSize: '0.8125rem',
-                alignSelf: 'flex-start', whiteSpace: 'nowrap',
-              }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 15 }}>calendar_today</span>
-                {today}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)',
+                  borderRadius: 10, padding: '8px 14px',
+                  color: 'rgba(255,255,255,0.7)', fontSize: '0.8125rem',
+                  whiteSpace: 'nowrap',
+                }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 15 }}>calendar_today</span>
+                  {today}
+                </div>
+                <div style={{
+                  fontSize: '0.65rem', color: 'rgba(255,255,255,0.3)',
+                  textTransform: 'uppercase', letterSpacing: '0.09em',
+                  textAlign: 'right',
+                }}>
+                  Hospital Serena del Mar · CHSM
+                </div>
               </div>
             </div>
 

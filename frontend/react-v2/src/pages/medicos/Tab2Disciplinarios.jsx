@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import axiosInstance from '../../api/axiosInstance';
 import FileUploadField from '../../components/shared/FileUploadField';
 
@@ -173,15 +173,16 @@ function CampoFechaNullable({ label, fieldKey, value, onChangeFn }) {
 }
 
 /* ══ COMPONENTE PRINCIPAL ════════════════════════════════════ */
-export default function Tab2Habilitacion({ medicoDoc, onNext, onPrev, markCompleted }) {
+const Tab2Habilitacion = forwardRef(function Tab2Habilitacion({ medicoDoc, onNext, onPrev, markCompleted }, ref) {
   const [hv,        setHv]        = useState(buildInitHV);
   const [pre,       setPre]       = useState(buildInitPre);
   const [loading,   setLoading]   = useState(true);
   const [saving,    setSaving]    = useState(false);
   const [saveError, setSaveError] = useState(null);
+  const [dirty,     setDirty]     = useState(false);
 
-  const chgHv  = (field, value) => setHv(p  => ({ ...p, [field]: value }));
-  const chgPre = (field, value) => setPre(p => ({ ...p, [field]: value }));
+  const chgHv  = (field, value) => { setHv(p  => ({ ...p, [field]: value })); setDirty(true); };
+  const chgPre = (field, value) => { setPre(p => ({ ...p, [field]: value })); setDirty(true); };
 
   /* ── Carga datos ── */
   useEffect(() => {
@@ -244,7 +245,7 @@ export default function Tab2Habilitacion({ medicoDoc, onNext, onPrev, markComple
       } catch (e) {
         console.error('[Tab2] load error:', e);
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) { setLoading(false); setDirty(false); }
       }
     };
     load();
@@ -262,59 +263,69 @@ export default function Tab2Habilitacion({ medicoDoc, onNext, onPrev, markComple
     }
   };
 
+  /* ── Persistir en API sin navegar (reutilizable desde stepper) ── */
+  const saveData = async () => {
+    const docInst  = hv.otrosdocs.find(d => d.tipo === 'Carta Institucionalidad');
+    const docCond  = hv.otrosdocs.find(d => d.tipo === 'Carta Cód. Conducta');
+    const docLibre = hv.otrosdocs.filter(d => d.tipo === '__libre__').map(d => d.nombreLibre).filter(Boolean).join('; ');
+
+    const hvPayload = {
+      carta_institucionalidad:   docInst  ? 'SI' : null,
+      carta_cod_conducta:        docCond  ? 'SI' : null,
+      carta_presentacion_dm:     null,
+      otros_docs_ingreso:        docLibre || null,
+      fecha_form_sol_ingreso:    hv.fechaformsolingreso       || null,
+      fecha_form_cap:            hv.fechaformcapeducacion     || null,
+      fecha_carta_coord_dpto:    hv.fechacartaprescoorddpto   || null,
+      fecha_carta_coord_sec:     hv.fechacartaprescoordsecc   || null,
+      fecha_carta_aspirante:     hv.fechacartaaspirante       || null,
+      fecha_carta_recom1:        hv.fecharecomendacion1       || null,
+      fecha_carta_recom2:        hv.fecharecomendacion2       || null,
+      fecha_presentacion_dm:     hv.fechapresdm               || null,
+    };
+
+    const prePayload = {
+      estado_prerrogativas:           pre.estadoprerrogativas            || null,
+      fecha_aprobacion_definitivas:   pre.fechaaprovdefinitiva           || null,
+      pt_solicitud:                   pre.prertemporalessolicitud        || null,
+      pt_fecha_solicitud:             pre.fechaprertemporalessolicitud   || null,
+      pt_respuesta:                   pre.prertemporalesrespuesta        || null,
+      pt_fecha_respuesta:             pre.fechaprertemporalesrespuesta   || null,
+      pt_inicio:                      null,
+      pt_fecha_inicio:                pre.fechaprertemporalesinicio      || null,
+      pt_fecha_fin:                   pre.fechaprertemporalesfin         || null,
+      pt_notif_coord:                 pre.prertemporalesnoticord         || null,
+      amp_pt_solicitud:               pre.amplprertemporalessolicitud    || null,
+      amp_pt_respuesta:               pre.amplprertemporalesrespuesta    || null,
+      amp_pt_fecha_aprobada:          pre.fechaampliacionaprobada        || null,
+      carta_aut_credenciales:         pre.cartaauthcredenciales          || null,
+      fecha_carta_aut_cred:           pre.fechacartaauthcredenciales     || null,
+      carta_aut_ingreso_cme:          pre.cartaauthingresocme            || null,
+      fecha_carta_aut_cme:            pre.fechacartaauthingresocme       || null,
+      notif_ingreso_profesional:      pre.notificacioningresoprofesional || null,
+      cert_entrega_modelo_medico:     pre.certentregamodelomedico        || null,
+      declaracion_conflicto:          pre.declaracionconflictointereses  || null,
+    };
+
+    await Promise.all([
+      upsert(`/medicos/${medicoDoc}/documentos-hv/`,  hvPayload),
+      upsert(`/medicos/${medicoDoc}/prerrogativas/`, prePayload),
+    ]);
+
+    setDirty(false);
+    markCompleted(2);
+  };
+
+  useImperativeHandle(ref, () => ({
+    isDirty: () => dirty,
+    save:    saveData,
+  }));
+
   /* ── Guardar ── */
   const handleNext = async () => {
     setSaving(true); setSaveError(null);
     try {
-      /* 2B: serializar otrosdocs de vuelta a campos legacy */
-      const docInst  = hv.otrosdocs.find(d => d.tipo === 'Carta Institucionalidad');
-      const docCond  = hv.otrosdocs.find(d => d.tipo === 'Carta Cód. Conducta');
-      const docLibre = hv.otrosdocs.filter(d => d.tipo === '__libre__').map(d => d.nombreLibre).filter(Boolean).join('; ');
-
-      const hvPayload = {
-        carta_institucionalidad:   docInst  ? 'SI' : null,
-        carta_cod_conducta:        docCond  ? 'SI' : null,
-        carta_presentacion_dm:     null,   // mantenido para compatibilidad
-        otros_docs_ingreso:        docLibre || null,
-        fecha_form_sol_ingreso:    hv.fechaformsolingreso       || null,
-        fecha_form_cap:            hv.fechaformcapeducacion     || null,
-        fecha_carta_coord_dpto:    hv.fechacartaprescoorddpto   || null,
-        fecha_carta_coord_sec:     hv.fechacartaprescoordsecc   || null,
-        fecha_carta_aspirante:     hv.fechacartaaspirante       || null,
-        fecha_carta_recom1:        hv.fecharecomendacion1       || null,
-        fecha_carta_recom2:        hv.fecharecomendacion2       || null,
-        fecha_presentacion_dm:     hv.fechapresdm               || null,
-      };
-
-      const prePayload = {
-        estado_prerrogativas:           pre.estadoprerrogativas            || null,
-        fecha_aprobacion_definitivas:   pre.fechaaprovdefinitiva           || null,
-        pt_solicitud:                   pre.prertemporalessolicitud        || null,
-        pt_fecha_solicitud:             pre.fechaprertemporalessolicitud   || null,
-        pt_respuesta:                   pre.prertemporalesrespuesta        || null,
-        pt_fecha_respuesta:             pre.fechaprertemporalesrespuesta   || null,
-        pt_inicio:                      null,
-        pt_fecha_inicio:                pre.fechaprertemporalesinicio      || null,
-        pt_fecha_fin:                   pre.fechaprertemporalesfin         || null,
-        pt_notif_coord:                 pre.prertemporalesnoticord         || null,
-        amp_pt_solicitud:               pre.amplprertemporalessolicitud    || null,
-        amp_pt_respuesta:               pre.amplprertemporalesrespuesta    || null,
-        amp_pt_fecha_aprobada:          pre.fechaampliacionaprobada        || null,
-        carta_aut_credenciales:         pre.cartaauthcredenciales          || null,
-        fecha_carta_aut_cred:           pre.fechacartaauthcredenciales     || null,
-        carta_aut_ingreso_cme:          pre.cartaauthingresocme            || null,
-        fecha_carta_aut_cme:            pre.fechacartaauthingresocme       || null,
-        notif_ingreso_profesional:      pre.notificacioningresoprofesional || null,
-        cert_entrega_modelo_medico:     pre.certentregamodelomedico        || null,
-        declaracion_conflicto:          pre.declaracionconflictointereses  || null,
-      };
-
-      await Promise.all([
-        upsert(`/medicos/${medicoDoc}/documentos-hv/`,  hvPayload),
-        upsert(`/medicos/${medicoDoc}/prerrogativas/`, prePayload),
-      ]);
-
-      markCompleted(2);
+      await saveData();
       onNext();
     } catch (e) {
       const msg = e.response?.data?.detail ?? 'Error al guardar. Intenta de nuevo.';
@@ -326,16 +337,11 @@ export default function Tab2Habilitacion({ medicoDoc, onNext, onPrev, markComple
 
   /* ── Handlers otros docs (2B) ── */
   const addOtroDoc = () => {
-    setHv(p => ({
-      ...p,
-      otrosdocs: [...p.otrosdocs, { id: `nd-${Date.now()}`, tipo: '', nombreLibre: '' }],
-    }));
+    setHv(p => ({ ...p, otrosdocs: [...p.otrosdocs, { id: `nd-${Date.now()}`, tipo: '', nombreLibre: '' }] }));
+    setDirty(true);
   };
-  const removeOtroDoc = (id) => setHv(p => ({ ...p, otrosdocs: p.otrosdocs.filter(d => d.id !== id) }));
-  const chgOtroDoc = (id, field, val) => setHv(p => ({
-    ...p,
-    otrosdocs: p.otrosdocs.map(d => d.id === id ? { ...d, [field]: val } : d),
-  }));
+  const removeOtroDoc = (id) => { setHv(p => ({ ...p, otrosdocs: p.otrosdocs.filter(d => d.id !== id) })); setDirty(true); };
+  const chgOtroDoc = (id, field, val) => { setHv(p => ({ ...p, otrosdocs: p.otrosdocs.map(d => d.id === id ? { ...d, [field]: val } : d) })); setDirty(true); };
 
   /* ── Skeleton ── */
   if (loading) return (
@@ -692,4 +698,6 @@ export default function Tab2Habilitacion({ medicoDoc, onNext, onPrev, markComple
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   );
-}
+});
+
+export default Tab2Habilitacion;

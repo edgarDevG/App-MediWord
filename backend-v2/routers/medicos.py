@@ -9,7 +9,7 @@ from datetime import date as date_type
 from model import (
     Medico, MedicoDatosHV, MedicoContacto, MedicoPrerrogativas,
     MedicoDiplomas, MedicoNormativos, MedicoContratacion, MedicoAccesos,
-    MedicoDocsHabilitacion, HistorialEstados,
+    MedicoDocsHabilitacion, HistorialEstados, ArchivoMedico,
     Seccion, Departamento, User,
 )
 from routers.auth import get_current_user, require_roles
@@ -77,12 +77,12 @@ def enrich(items: list[Medico], db: Session) -> list[MedicoOut]:
 
 
 def upsert_sub(db: Session, model_cls, medico_id: int, data: dict):
-    """Insert or update a sub-resource row by medico_id."""
+    """Insert or update a sub-resource row by medico_id.
+    Permite enviar None para limpiar campos (ej: desmarcar normativos)."""
     obj = db.query(model_cls).filter(model_cls.medico_id == medico_id).first()
     if obj:
         for k, v in data.items():
-            if v is not None:
-                setattr(obj, k, v)
+            setattr(obj, k, v)  # Permite limpiar campos enviando None
     else:
         obj = model_cls(medico_id=medico_id, **{k: v for k, v in data.items() if v is not None})
         db.add(obj)
@@ -269,6 +269,7 @@ def delete_medico(
                 MedicoAccesos, MedicoDocsHabilitacion]:
         db.query(sub).filter(sub.medico_id == medico.id).delete(synchronize_session=False)
     db.query(HistorialEstados).filter(HistorialEstados.medico_id == medico.id).delete(synchronize_session=False)
+    db.query(ArchivoMedico).filter(ArchivoMedico.medico_id == medico.id).delete(synchronize_session=False)
     db.delete(medico)
     db.commit()
 
@@ -372,8 +373,12 @@ def update_normativos(documento: str, data: NormativosUpdate, db: Session = Depe
         ("gestion_duelo_fecha", "gestion_duelo_estado"),
     ]
     for fecha_key, estado_key in fecha_fields:
+        if d.get(estado_key) is not None:
+            continue
         if d.get(fecha_key) is not None:
             d[estado_key] = calcular_estado(d[fecha_key])
+        else:
+            d[estado_key] = None
 
     return upsert_sub(db, MedicoNormativos, m.id, d)
 
@@ -424,9 +429,11 @@ def get_docs_habilitacion(documento: str, db: Session = Depends(get_db)):
 def update_docs_habilitacion(documento: str, data: DocsHabilitacionUpdate, db: Session = Depends(get_db)):
     m = get_medico_or_404(documento, db)
     obj = db.query(MedicoDocsHabilitacion).filter(MedicoDocsHabilitacion.medico_id == m.id).first()
+    from sqlalchemy.orm.attributes import flag_modified
     if obj:
         for k, v in data.model_dump().items():
             setattr(obj, k, v)  # permite limpiar a null cuando se desmarca un documento
+            flag_modified(obj, k)
     else:
         obj = MedicoDocsHabilitacion(medico_id=m.id, **data.model_dump())
         db.add(obj)

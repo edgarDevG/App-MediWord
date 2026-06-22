@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import axiosInstance from '../../api/axiosInstance';
 import FileUploadField from '../../components/shared/FileUploadField';
 
@@ -46,10 +46,8 @@ const INIT_ESPECIALIDAD = {
 // ELIMINADOS: certificado_especialidad, diploma_pregrado, antecedentes_judiciales
 const DOCS_HABILITACION = [
   { key: 'rethus',                      label: 'Tarjeta RETHUS',                      icon: 'verified',            required: true  },
-  { key: 'tarjeta_profesional',         label: 'Tarjeta Profesional',                 icon: 'badge',               required: true  },
   { key: 'examen_medico',               label: 'Examen Médico Ocupacional',           icon: 'medical_information', required: true  },
   { key: 'antecedentes_disciplinarios', label: 'Cert. Antecedentes Disciplinarios',   icon: 'gavel',               required: false },
-  { key: 'contrato_prestacion',         label: 'Contrato / Prestación de Servicios',  icon: 'description',         required: false },
 ];
 
 const INIT_DOC = {
@@ -161,11 +159,13 @@ function DocPanel({ doc, data, onChange, onToggle, medicoDoc }) {
               </div>
             </div>
             <div style={{ flex:'1 1 160px' }}>
-              <div className="form-group">
-                <label className="form-label">Fecha vencimiento</label>
-                <input type="date" className="form-input" value={data.fecha_vencimiento}
-                  onChange={e => onChange(doc.key, 'fecha_vencimiento', e.target.value)} />
-              </div>
+              {doc.key !== 'rethus' && (
+                <div className="form-group">
+                  <label className="form-label">Fecha vencimiento</label>
+                  <input type="date" className="form-input" value={data.fecha_vencimiento}
+                    onChange={e => onChange(doc.key, 'fecha_vencimiento', e.target.value)} />
+                </div>
+              )}
             </div>
             <div style={{ flex:'1 1 220px' }}>
               <div className="form-group">
@@ -249,19 +249,20 @@ function SeccionEspecialidad({ titulo, icono, subtitulo, open, onToggle, badgeVe
 }
 
 /* ── 4. COMPONENTE PRINCIPAL ── */
-export default function Tab3Especialidades({ onPrev, onNext, medicoDoc, markCompleted, setExiste }) {
+const Tab3Especialidades = forwardRef(function Tab3Especialidades({ onPrev, onNext, medicoDoc, markCompleted, setExiste }, ref) {
   const [data, setData] = useState(INIT);
   const [docs, setDocs] = useState(() => {
     const d = {}; DOCS_HABILITACION.forEach(doc => d[doc.key] = { ...INIT_DOC }); return d;
   });
-  
+
   const [especialidades, setEspecialidades] = useState([{ ...INIT_ESPECIALIDAD }]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
-  
+  const [dirty, setDirty] = useState(false);
+
   const [openSec, setOpenSec] = useState({ pregrado: true, otros: false });
-  const [openSpecs, setOpenSpecs] = useState([false, false, false]); 
+  const [openSpecs, setOpenSpecs] = useState([false, false, false]);
 
   const docsRef = useRef(docs);
   useEffect(() => { docsRef.current = docs; }, [docs]);
@@ -322,21 +323,23 @@ export default function Tab3Especialidades({ onPrev, onNext, medicoDoc, markComp
         if (e.response?.status !== 404) console.error('Error cargando Tab3:', e);
       } finally {
         setLoading(false);
+        setDirty(false);
       }
     };
     load();
   }, [medicoDoc]);
 
   /* ── Handlers ── */
-  const handleChange  = (e) => { const { name, value } = e.target; setData(prev => ({ ...prev, [name]: value })); };
+  const handleChange  = (e) => { const { name, value } = e.target; setData(prev => ({ ...prev, [name]: value })); setDirty(true); };
   const toggleSec     = (key) => setOpenSec(prev => ({ ...prev, [key]: !prev[key] }));
-  const handleToggle  = (key) => setDocs(prev => ({ ...prev, [key]: { ...prev[key], tiene_documento: !prev[key].tiene_documento } }));
-  const handleDocChange = (key, field, value) => setDocs(prev => ({ ...prev, [key]: { ...prev[key], [field]: value } }));
+  const handleToggle  = (key) => { setDocs(prev => ({ ...prev, [key]: { ...prev[key], tiene_documento: !prev[key].tiene_documento } })); setDirty(true); };
+  const handleDocChange = (key, field, value) => { setDocs(prev => ({ ...prev, [key]: { ...prev[key], [field]: value } })); setDirty(true); };
 
   const handleEspecialidadChange = (index, field, value) => {
     const nuevasSpecs = [...especialidades];
     nuevasSpecs[index] = { ...nuevasSpecs[index], [field]: value };
     setEspecialidades(nuevasSpecs);
+    setDirty(true);
   };
 
   const agregarEspecialidad = () => {
@@ -345,14 +348,14 @@ export default function Tab3Especialidades({ onPrev, onNext, medicoDoc, markComp
       const newOpenSpecs = [...openSpecs];
       newOpenSpecs[especialidades.length] = true;
       setOpenSpecs(newOpenSpecs);
+      setDirty(true);
     }
   };
 
   const eliminarEspecialidad = (index) => {
-    const nuevasSpecs = especialidades.filter((_, i) => i !== index);
-    setEspecialidades(nuevasSpecs);
-    const newOpenSpecs = openSpecs.filter((_, i) => i !== index);
-    setOpenSpecs(newOpenSpecs);
+    setEspecialidades(especialidades.filter((_, i) => i !== index));
+    setOpenSpecs(openSpecs.filter((_, i) => i !== index));
+    setDirty(true);
   };
 
   const toggleSpec = (index) => {
@@ -361,66 +364,78 @@ export default function Tab3Especialidades({ onPrev, onNext, medicoDoc, markComp
     setOpenSpecs(newOpenSpecs);
   };
 
+  /* ── Persistir en API sin navegar (reutilizable desde stepper) ── */
+  const saveData = async () => {
+    const d    = data;
+    const snap = docsRef.current;
+
+    const diplomasPayload = {
+      cartas_verificacion:    d.cartasolicvericredenciales || null,
+      soporte_verificacion:   d.soporteverificaciontitulos || null,
+      fecha_verificacion:     d.fechaverificaciontitulos   || null,
+      pregrado: {
+        titulo:            d.titulomedgeneralodontologo       || null,
+        acta:              d.actamedgeneralodontologo         || null,
+        tituloprofesional: d.tituloprofesional                || null,
+        universidad:       d.universidadtituloprofesional     || null,
+        pais:              d.paisuniversidadtituloprofesional || null,
+        convalidacion:     d.actaconvalidacionprofesional     || null,
+        verificado:        d.verifporcredtituloprofesional    || null,
+        numero:            snap.diploma_pregrado?.numero_documento_hv || null,
+        fecha_exp:         snap.diploma_pregrado?.fecha_expedicion    || null,
+        entidad:           snap.diploma_pregrado?.entidad_expide      || null,
+        observaciones:     snap.diploma_pregrado?.observaciones       || null,
+      },
+      especialidad_1: especialidades[0] ? {
+        ...especialidades[0],
+        numero:      snap.certificado_especialidad?.numero_documento_hv || null,
+        fecha_exp:   snap.certificado_especialidad?.fecha_expedicion    || null,
+        entidad:     snap.certificado_especialidad?.entidad_expide      || null,
+        observaciones: snap.certificado_especialidad?.observaciones     || null,
+      } : null,
+      subespecialidad_2: especialidades[1] || null,
+      subespecialidad_3: especialidades[2] || null,
+      otros_estudios: {
+        diploma:               d.diplomaotrasespecialidades          || null,
+        detalle:               d.detalleotrosestudiosformales        || null,
+        verificado:            d.verifporcredotrosestudios           || null,
+        detalle_entrenamiento: d.detalleotrosentrenamientosavanzados || null,
+      },
+      certificaciones_entrenamientos: d.certentrenamavanzado || null,
+    };
+
+    const docsHabPayload = {};
+    DOCS_HABILITACION.forEach(doc => {
+      const docSnap = snap[doc.key];
+      docsHabPayload[doc.key] = docSnap.tiene_documento ? {
+        codigo:            docSnap.numero_documento_hv || null,
+        fecha_expedicion:  docSnap.fecha_expedicion    || null,
+        fecha_vencimiento: doc.key === 'rethus' ? null : (docSnap.fecha_vencimiento || null),
+        entidad_expide:    docSnap.entidad_expide       || null,
+        observaciones:     docSnap.observaciones        || null,
+      } : null;
+    });
+
+    await Promise.all([
+      axiosInstance.put(`/medicos/${medicoDoc}/diplomas-verificaciones/`, diplomasPayload),
+      axiosInstance.put(`/medicos/${medicoDoc}/docs-habilitacion/`,       docsHabPayload),
+    ]);
+
+    setDirty(false);
+    if (setExiste) setExiste(true);
+    if (markCompleted) markCompleted(3);
+  };
+
+  useImperativeHandle(ref, () => ({
+    isDirty: () => dirty,
+    save:    saveData,
+  }));
+
   /* ── Guardar ── */
   const handleNext = async () => {
     setSaving(true); setSaveError(null);
     try {
-      const d    = data;
-      const snap = docsRef.current;
-
-      const diplomasPayload = {
-        cartas_verificacion:    d.cartasolicvericredenciales || null,
-        soporte_verificacion:   d.soporteverificaciontitulos || null,
-        fecha_verificacion:     d.fechaverificaciontitulos   || null,
-        pregrado: {
-          titulo:          d.titulomedgeneralodontologo       || null,
-          acta:            d.actamedgeneralodontologo         || null,
-          tituloprofesional: d.tituloprofesional              || null,
-          universidad:     d.universidadtituloprofesional     || null,
-          pais:            d.paisuniversidadtituloprofesional || null,
-          convalidacion:   d.actaconvalidacionprofesional     || null,
-          verificado:      d.verifporcredtituloprofesional    || null,
-          numero:          snap.diploma_pregrado?.numero_documento_hv || null,
-          fecha_exp:       snap.diploma_pregrado?.fecha_expedicion    || null,
-          entidad:         snap.diploma_pregrado?.entidad_expide      || null,
-          observaciones:   snap.diploma_pregrado?.observaciones       || null,
-        },
-        especialidad_1: especialidades[0] ? {
-          ...especialidades[0],
-          numero:          snap.certificado_especialidad?.numero_documento_hv || null,
-          fecha_exp:       snap.certificado_especialidad?.fecha_expedicion    || null,
-          entidad:         snap.certificado_especialidad?.entidad_expide      || null,
-          observaciones:   snap.certificado_especialidad?.observaciones       || null,
-        } : null,
-        subespecialidad_2: especialidades[1] || null,
-        subespecialidad_3: especialidades[2] || null,
-        otros_estudios: {
-          diploma: d.diplomaotrasespecialidades || null, detalle: d.detalleotrosestudiosformales || null,
-          verificado: d.verifporcredotrosestudios || null,
-          detalle_entrenamiento: d.detalleotrosentrenamientosavanzados || null,
-        },
-        certificaciones_entrenamientos: d.certentrenamavanzado || null,
-      };
-
-      const docsHabPayload = {};
-      DOCS_HABILITACION.forEach(doc => {
-        const docSnap = snap[doc.key];
-        docsHabPayload[doc.key] = docSnap.tiene_documento ? {
-          codigo:            docSnap.numero_documento_hv || null,
-          fecha_expedicion:  docSnap.fecha_expedicion    || null,
-          fecha_vencimiento: docSnap.fecha_vencimiento   || null,
-          entidad_expide:    docSnap.entidad_expide       || null,
-          observaciones:     docSnap.observaciones        || null,
-        } : null;
-      });
-
-      await Promise.all([
-        axiosInstance.put(`/medicos/${medicoDoc}/diplomas-verificaciones/`, diplomasPayload),
-        axiosInstance.put(`/medicos/${medicoDoc}/docs-habilitacion/`,       docsHabPayload),
-      ]);
-
-      if(setExiste) setExiste(true);
-      if(markCompleted) markCompleted(3);
+      await saveData();
       onNext();
     } catch (e) {
       const msg = e.response?.data?.detail ?? 'Error al guardar.';
@@ -652,4 +667,6 @@ export default function Tab3Especialidades({ onPrev, onNext, medicoDoc, markComp
       <style>{`@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }`}</style>
     </div>
   );
-}
+});
+
+export default Tab3Especialidades;

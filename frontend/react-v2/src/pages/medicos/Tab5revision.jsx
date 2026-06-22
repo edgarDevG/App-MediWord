@@ -112,7 +112,7 @@ function calcEstado(campos, requeridos) {
 }
 
 /* ══ COMPONENTE PRINCIPAL ════════════════════════════════════ */
-export default function Tab5Revision({ medicoDoc, tab1Data, onPrev, completedSteps, markCompleted }) {
+export default function Tab5Revision({ medicoDoc, tab1Data, tab1Dirty, onSaveTab1, onPrev, completedSteps, markCompleted }) {
   const navigate = useNavigate();
   const [saving,     setSaving]     = useState(false);
   const [saveError,  setSaveError]  = useState(null);
@@ -138,8 +138,10 @@ export default function Tab5Revision({ medicoDoc, tab1Data, onPrev, completedSte
     setSaving(true);
     setSaveError(null);
     try {
-      /* Aquí puedes agregar un endpoint de "finalización" si el backend lo requiere */
-      /* await axiosInstance.post(`/medicos/${medicoDoc}/finalizar`) */
+      /* Guardar Tab1 si tiene cambios pendientes (p.ej. llegó aquí vía stepper sin pasar por "Continuar") */
+      if (tab1Dirty && onSaveTab1) {
+        await onSaveTab1();
+      }
       markCompleted(5);
       setGuardadoOk(true);
       window.dispatchEvent(new Event('refresh-alerts'));

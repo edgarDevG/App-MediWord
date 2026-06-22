@@ -282,6 +282,8 @@ class MedicoNormativos(Base):
     consulta_rethus              = Column(String(20))
     titulos_rethus               = Column(Text)
     cursos_3_anios               = Column(String(20))
+    cursos_3_anios_fecha_venc    = Column(Date)
+    cursos_3_anios_estado        = Column(String(20))
     tarjeta_profesional          = Column(String(20))
     examen_medico                = Column(String(20))
 
@@ -342,6 +344,7 @@ class MedicoAccesos(Base):
     correo_corporativo      = Column(String(20))
     radio_expuesto          = Column(String(20))
     carta_turnos            = Column(String(20))
+    inspektor               = Column(String(20))
 
     # Pólizas
     poliza_resp_civil       = Column(String(20))

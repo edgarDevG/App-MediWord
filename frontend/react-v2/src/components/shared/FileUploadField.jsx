@@ -23,7 +23,7 @@ import axiosInstance from '../../api/axiosInstance';
 
 /* ── Constantes ── */
 const ACCEPTED     = '.pdf,application/pdf';
-const MAX_SIZE_MB  = 10;
+const MAX_SIZE_MB  = 50;
 const MAX_SIZE_B   = MAX_SIZE_MB * 1024 * 1024;
 
 /* ── Utilidades ── */

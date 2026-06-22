@@ -22,7 +22,7 @@ const CURSOS = [
   { key: 'manejodolor',            label: 'Man. Dolor',      icon: 'healing',               campo: 'manejo_dolor_fecha'         },
   { key: 'iamii',                  label: 'IAMII',           icon: 'cardiology',            campo: 'iamii_fecha'                },
   { key: 'gestionduelo',           label: 'Gest. Duelo',     icon: 'sentiment_sad',         campo: 'gestion_duelo_fecha'        },
-  { key: 'curso3anos',             label: 'Póliza RC',       icon: 'policy',                campo: 'vigenciacurso3anos'         },
+  { key: 'curso3anos',             label: 'Póliza RC',       icon: 'policy',                campo: 'cursos_3_anios_fecha_venc'  },
 ];
 
 const E = {
@@ -222,11 +222,29 @@ export default function PerfilMedico() {
     ? `/medicos-fsfb/${doc}/editar`
     : `/medicos/${doc}/editar`;
 
-  const cursosConEstado = useMemo(() => CURSOS.map(c => ({
-    ...c,
-    fechaVenc: norm?.[c.campo] ?? null,
-    estado:    calcEstado(norm?.[c.campo]),
-  })), [norm]);
+  const cursosConEstado = useMemo(() => CURSOS.map(c => {
+    // Calcular el nombre de la columna de estado
+    const campoEstado = c.campo.replace('_fecha_venc', '_estado').replace('_fecha', '_estado');
+    const dbEstado = norm?.[campoEstado];
+    
+    let finalEstado = 'sin_registro';
+    
+    if (dbEstado) {
+      const s = dbEstado.toLowerCase();
+      if (s === 'vigente') finalEstado = 'vigente';
+      else if (s === 'vencido') finalEstado = 'vencido';
+      else if (s === 'por vencer' || s === 'por_vencer') finalEstado = 'por_vencer';
+      else finalEstado = s;
+    } else {
+      finalEstado = calcEstado(norm?.[c.campo]);
+    }
+
+    return {
+      ...c,
+      fechaVenc: norm?.[c.campo] ?? null,
+      estado:    E[finalEstado] ? finalEstado : 'sin_registro',
+    };
+  }), [norm]);
 
   const vigentes  = cursosConEstado.filter(c => c.estado === 'vigente').length;
   const vencidos  = cursosConEstado.filter(c => c.estado === 'vencido').length;
@@ -237,7 +255,7 @@ export default function PerfilMedico() {
   /* RETHUS: estado real basado en fecha_vencimiento del DocPanel de Tab3 */
   const rethusDoc     = docsHab?.rethus;
   const rethusFecha   = rethusDoc?.fecha_vencimiento ?? null;
-  const rethusEstado  = rethusDoc?.tiene_documento || rethusFecha ? calcEstado(rethusFecha) : 'sin_registro';
+  const rethusEstado  = rethusDoc ? 'vigente' : 'sin_registro';
   const rethusCfg     = E[rethusEstado];
 
   /* VISA CE: visible solo cuando el tipo de documento es CE */
@@ -598,9 +616,9 @@ export default function PerfilMedico() {
                 { label: 'Lugar expedición', value: hv?.lugar_expedicion ?? hv?.lugarexpedicion },
                 { label: 'Fecha nacimiento', value: fmtDate(toDate(hv?.fecha_nacimiento ?? hv?.fechanacimiento)) },
                 { label: 'Lugar nacimiento', value: hv?.lugar_nacimiento ?? hv?.lugarnacimiento },
-                { label: 'Género',           value: hv?.sexo ?? hv?.genero },
-                { label: 'Estado civil',     value: cont?.estado_civil },
-                { label: 'Tiene hijos',      value: cont?.tiene_hijos },
+                { label: 'Género',           value: { 'M': 'Masculino', 'F': 'Femenino', 'O': 'Otro' }[hv?.sexo ?? hv?.genero] ?? (hv?.sexo ?? hv?.genero) },
+                { label: 'Estado civil',     value: { 'S': 'Soltero/a', 'C': 'Casado/a', 'U': 'Unión libre', 'D': 'Divorciado/a', 'V': 'Viudo/a' }[cont?.estado_civil] ?? cont?.estado_civil },
+                { label: 'Tiene hijos',      value: typeof cont?.tiene_hijos === 'boolean' ? (cont.tiene_hijos ? 'Sí' : 'No') : cont?.tiene_hijos },
                 { label: 'Lengua de señas',  value: cont?.maneja_lengua_senas ? 'Sí' : null },
                 { label: 'Correo alterno',   value: cont?.correo_alterno },
                 { label: 'Contacto emerg.',  value: cont?.contacto_emergencia },

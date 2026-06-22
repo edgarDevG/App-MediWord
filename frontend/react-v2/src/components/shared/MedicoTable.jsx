@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../../api/axiosInstance';
 import { useAuth } from '../../context/AuthContext';
 import DoctorAvatar, { CAT_COLORS, getAvatarColor } from './DoctorAvatar';
+import CredentialModal from './CredentialModal';
 
 /* ══════════════════════════════════════════════════════════════
    MedicoTable — Componente premium compartido · MediWork HSM v2
@@ -69,26 +70,28 @@ function GestionModal({ accion, doc, nombre, estadoActual, onClose, onDone }) {
   const [fecha,    setFecha]    = useState(today);
   const [autori,   setAutori]   = useState(false);
   const [motivo,   setMotivo]   = useState('');
-  const [confirm,  setConfirm]  = useState('');
+  const [showCredModal, setShowCredModal] = useState(false);
   const [saving,   setSaving]   = useState(false);
   const [error,    setError]    = useState(null);
 
   const nombreCorto = (nombre ?? doc).replace(/^Dr[a]?\.?\s+/i, '').split(' ').slice(0, 3).join(' ');
 
+  // Eliminar: ejecutar después de validación de credenciales
+  const executeDelete = async () => {
+    setSaving(true);
+    try {
+      await axiosInstance.delete(`/medicos/${doc}`);
+      onDone();
+    } catch (e) {
+      setError(e.response?.data?.detail ?? 'Error al eliminar el registro.');
+      setSaving(false);
+    }
+  };
+
   const handleConfirm = async () => {
     if (cfg.isDeletion) {
-      if (confirm.trim().toLowerCase() !== nombreCorto.toLowerCase()) {
-        setError('El nombre no coincide. Escríbelo exactamente como se muestra.');
-        return;
-      }
-      setSaving(true);
-      try {
-        await axiosInstance.delete(`/medicos/${doc}`);
-        onDone();
-      } catch (e) {
-        setError(e.response?.data?.detail ?? 'Error al eliminar el registro.');
-        setSaving(false);
-      }
+      // Abrir modal de credenciales en lugar de pedir nombre
+      setShowCredModal(true);
       return;
     }
 
@@ -127,21 +130,14 @@ function GestionModal({ accion, doc, nombre, estadoActual, onClose, onDone }) {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {/* Confirmación por nombre (eliminar) */}
+          {/* Aviso eliminación */}
           {cfg.isDeletion && (
-            <>
-              <div style={{ padding: '12px 14px', background: 'rgba(127,29,29,0.06)', border: '1px solid rgba(127,29,29,0.2)', borderRadius: 10, fontSize: '0.8125rem', color: '#7f1d1d', lineHeight: 1.5 }}>
-                <strong>Esta acción es irreversible.</strong> Se eliminarán todos los datos del médico (historial, documentos, contratos, normativos).
-              </div>
-              <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>
-                  Escribe <strong style={{ color: '#7f1d1d' }}>{nombreCorto}</strong> para confirmar
-                </label>
-                <input value={confirm} onChange={e => setConfirm(e.target.value)}
-                  placeholder={nombreCorto}
-                  style={{ width: '100%', padding: '9px 12px', border: '1.5px solid rgba(127,29,29,0.3)', borderRadius: 10, fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box' }} />
-              </div>
-            </>
+            <div style={{ padding: '12px 14px', background: 'rgba(127,29,29,0.06)', border: '1px solid rgba(127,29,29,0.2)', borderRadius: 10, fontSize: '0.8125rem', color: '#7f1d1d', lineHeight: 1.5 }}>
+              <strong>Esta acción es irreversible.</strong> Se eliminarán todos los datos del médico (historial, documentos, contratos, normativos).
+              <p style={{ margin: '8px 0 0', fontSize: '0.75rem', color: '#991b1b' }}>
+                Se requerirá autorización con credenciales de Administrador o Supervisor.
+              </p>
+            </div>
           )}
 
           {/* Fecha */}
@@ -196,6 +192,24 @@ function GestionModal({ accion, doc, nombre, estadoActual, onClose, onDone }) {
             {cfg.isDeletion ? 'Eliminar definitivamente' : 'Confirmar'}
           </button>
         </div>
+
+        {/* Modal de credenciales para eliminación */}
+        {showCredModal && (
+          <CredentialModal
+            title="Autorizar eliminación"
+            description={`Se eliminarán permanentemente todos los datos de ${nombreCorto}. Ingresa credenciales de Administrador o Supervisor.`}
+            icon="delete_forever"
+            iconColor="#7f1d1d"
+            iconBg="rgba(127,29,29,0.08)"
+            confirmLabel="Autorizar y eliminar"
+            confirmColor="#7f1d1d"
+            onClose={() => setShowCredModal(false)}
+            onSuccess={() => {
+              setShowCredModal(false);
+              executeDelete();
+            }}
+          />
+        )}
       </div>
     </div>,
     document.body

@@ -20,7 +20,7 @@ import { getAvatarColor, getInitials } from '../../components/shared/DoctorAvata
 /* ── Definición canónica de las 15 carpetas ── */
 const CARPETAS = [
   { key: 'hoja_vida',              label: 'Hoja de Vida',          icon: 'person'              },
-  { key: 'habilitacion',           label: 'Habilitación',          icon: 'verified'            },
+  { key: 'habilitacion',           label: 'Disciplinarios',        icon: 'verified'            },
   { key: 'diplomas_verificaciones',label: 'Diplomas / Verif.',     icon: 'school'              },
   { key: 'normativos',             label: 'Normativos',            icon: 'policy'              },
   { key: 'prerrogativas',          label: 'Prerrogativas',         icon: 'shield_person'       },
@@ -402,7 +402,7 @@ export default function ExpedienteTab({ medicoDoc: medicoDocProp }) {
 
   const subirArchivo = async (file) => {
     if (!file || file.type !== 'application/pdf') { setUploadError('Solo se permiten archivos PDF.'); return; }
-    if (file.size > 10 * 1024 * 1024) { setUploadError(`"${file.name}" supera el límite de 10 MB.`); return; }
+    if (file.size > 50 * 1024 * 1024) { setUploadError(`"${file.name}" supera el límite de 50 MB.`); return; }
     setUploadError(null); setUploading(true);
     try {
       const fd = new FormData();
@@ -420,8 +420,24 @@ export default function ExpedienteTab({ medicoDoc: medicoDocProp }) {
     }
   };
 
-  const handleFileInput = (e) => { const f = e.target.files?.[0]; if (f) subirArchivo(f); };
-  const handleDrop      = (e) => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files?.[0]; if (f) subirArchivo(f); };
+  const handleFileInput = async (e) => {
+    const files = e.target.files;
+    if (files) {
+      for (const f of Array.from(files)) {
+        await subirArchivo(f);
+      }
+    }
+  };
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    setDragging(false);
+    const files = e.dataTransfer.files;
+    if (files) {
+      for (const f of Array.from(files)) {
+        await subirArchivo(f);
+      }
+    }
+  };
   const handleDragOver  = (e) => { e.preventDefault(); setDragging(true); };
   const handleDragLeave = () => setDragging(false);
 
@@ -605,7 +621,7 @@ export default function ExpedienteTab({ medicoDoc: medicoDocProp }) {
                 }
                 {uploading ? 'Subiendo…' : 'Subir PDF'}
               </button>
-              <input ref={fileInputRef} type="file" accept=".pdf,application/pdf" style={{ display: 'none' }} onChange={handleFileInput} />
+              <input ref={fileInputRef} type="file" accept=".pdf,application/pdf" multiple style={{ display: 'none' }} onChange={handleFileInput} />
             </div>
           </div>
 
@@ -642,7 +658,7 @@ export default function ExpedienteTab({ medicoDoc: medicoDocProp }) {
               <p style={{ fontSize: '0.9375rem', fontWeight: 600, color: '#334155', margin: 0 }}>
                 {dragging ? 'Suelta aquí el PDF' : 'Arrastra un PDF o haz clic para subir'}
               </p>
-              <p style={{ fontSize: '0.8125rem', color: '#94a3b8', margin: 0 }}>Tamaño máximo: 10MB</p>
+              <p style={{ fontSize: '0.8125rem', color: '#94a3b8', margin: 0 }}>Tamaño máximo: 50MB</p>
             </div>
 
             {/* Error upload */}

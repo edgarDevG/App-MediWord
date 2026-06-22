@@ -32,7 +32,7 @@ from routers.auth import get_current_user, require_roles
 _BASE_DIR = Path(__file__).resolve().parent.parent  # /backend-v2/
 MEDIA_ROOT: Path = Path(os.getenv("MEDIA_ROOT", str(_BASE_DIR / "uploads" / "medicos")))
 
-MAX_FILE_SIZE_MB = 10
+MAX_FILE_SIZE_MB = 50
 ALLOWED_MIME_TYPES = {"application/pdf"}
 
 router = APIRouter(tags=["archivos"])

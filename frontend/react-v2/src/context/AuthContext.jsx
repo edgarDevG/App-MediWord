@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import axiosInstance from '../api/axiosInstance';
+import SessionExpiredModal from '../components/shared/SessionExpiredModal';
 
 const AuthContext = createContext(null);
 
@@ -44,8 +45,10 @@ export const AuthProvider = ({ children }) => {
   return (
     <AuthContext.Provider value={{ user, login, logout, loading, hasRole }}>
       {!loading && children}
+      <SessionExpiredModal />
     </AuthContext.Provider>
   );
 };
 
 export const useAuth = () => useContext(AuthContext);
+

@@ -43,7 +43,7 @@ function getTitle(pathname) {
   if (pathname.match(/\/medicos\/.+\/editar/)) return 'Editar Médico';
   if (pathname.match(/\/medicos-fsfb\/.+\/editar/)) return 'Editar Médico FSFB';
   if (pathname.startsWith('/medicos-fsfb/nuevo')) return 'Nuevo Médico FSFB';
-  return ROUTE_TITLES[pathname] ?? 'MediWord HSM';
+  return ROUTE_TITLES[pathname] ?? 'MedIndex';
 }
 
 /* ── Helpers para el drawer ───────────────────────────────────── */
@@ -359,17 +359,29 @@ export default function MainLayout({ children }) {
 
         {/* Logo */}
         <div className="sidebar-logo">
-          <div className="sidebar-logo-icon">
-            {/* SVG logo inline — cruz médica */}
-            <svg viewBox="0 0 32 32" fill="none" width="18" height="18">
-              <rect x="13" y="4" width="6" height="24" rx="2" fill="white"/>
-              <rect x="4" y="13" width="24" height="6" rx="2" fill="white"/>
-            </svg>
-          </div>
-          <div className="sidebar-logo-text">
-            <h1>MediWord HSM</h1>
-            <p>Hospital Serena del Mar</p>
-          </div>
+          {collapsed ? (
+            /* Estado colapsado: iniciales MI en fila */
+            <div className="sidebar-logo-mi" aria-label="MedIndex">
+              <span className="sidebar-logo-mi-med">M</span>
+              <span className="sidebar-logo-mi-index">I</span>
+            </div>
+          ) : (
+            /* Estado expandido: ícono a la izquierda + wordmark */
+            <div className="sidebar-logo-row">
+              <div className="sidebar-logo-icon-badge" aria-hidden="true">
+                <svg viewBox="0 0 32 32" fill="none" width="16" height="16">
+                  <rect x="13" y="4" width="6" height="24" rx="2" fill="white"/>
+                  <rect x="4" y="13" width="24" height="6" rx="2" fill="white"/>
+                </svg>
+              </div>
+              <div className="sidebar-logo-wordmark">
+                <div className="sidebar-logo-wordmark-type">
+                  <span className="slw-med">Med</span><span className="slw-index">Index</span>
+                </div>
+                <p className="sidebar-logo-sub">Hospital Serena del Mar</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Nav principal */}
@@ -405,7 +417,7 @@ export default function MainLayout({ children }) {
             </button>
           ))}
           {!collapsed && (
-            <p className="sidebar-version">MediWork v2.0 · CHSM</p>
+            <p className="sidebar-version">v2.0 · CHSM</p>
           )}
         </div>
       </aside>

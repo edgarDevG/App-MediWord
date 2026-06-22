@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axiosInstance from '../../api/axiosInstance';
 import FileUploadField from '../../components/shared/FileUploadField';
+import CredentialModal from '../../components/shared/CredentialModal';
 
 
 /* ── Helpers ── */
@@ -47,7 +48,7 @@ const ESTADO_BADGE = {
 };
 
 function getEstadoCurso(fecha) {
-  if (!fecha) return null;
+  if (!fecha) return 'VIGENTE';
   const diff = (new Date(fecha) - new Date()) / 86400000;
   if (diff < 0)   return 'VENCIDO';
   if (diff <= 60) return 'Por vencer';
@@ -254,6 +255,8 @@ export default function Tab4Institucional({ medicoDoc, onNext, onPrev, markCompl
   const [loading,      setLoading]      = useState(true);
   const [saving,       setSaving]       = useState(false);
   const [error,        setError]        = useState(null);
+  // Estado para modal de credenciales al desactivar normativos
+  const [pendingDeactivation, setPendingDeactivation] = useState(null); // { field, cursoLabel }
 
 
   /* ── Carga ── */
@@ -279,18 +282,19 @@ export default function Tab4Institucional({ medicoDoc, onNext, onPrev, markCompl
           aplicaresolanastesiologo:  !!dNorm.res_anestesiologo_fecha_venc,
           vencimientoresolanastesiologo:  toDate(dNorm.res_anestesiologo_fecha_venc),
 
-          aplicabls:                !!dNorm.bls_fecha_venc,               vencimientobls:                toDate(dNorm.bls_fecha_venc),
-          aplicaacls:               !!dNorm.acls_fecha_venc,              vencimientoacls:               toDate(dNorm.acls_fecha_venc),
-          aplicapals:               !!dNorm.pals_fecha_venc,              vencimientopals:               toDate(dNorm.pals_fecha_venc),
-          aplicanals:               !!dNorm.nals_fecha_venc,              vencimientonals:               toDate(dNorm.nals_fecha_venc),
-          aplicaviolenciasexual:    !!dNorm.violencia_sexual_fecha,       vencimientoviolenciasexual:    toDate(dNorm.violencia_sexual_fecha),
-          aplicaataquesagentesquimicos: !!dNorm.ataques_quimicos_fecha,   vencimientoataquesagentesquimicos: toDate(dNorm.ataques_quimicos_fecha),
-          aplicadengue:             !!dNorm.dengue_fecha,                 vencimientodengue:             toDate(dNorm.dengue_fecha),
-          aplicasedacion:           !!dNorm.sedacion_fecha,               vencimientosedacion:           toDate(dNorm.sedacion_fecha),
-          aplicamanejodolor:        !!dNorm.manejo_dolor_fecha,           vencimientomanejodolor:        toDate(dNorm.manejo_dolor_fecha),
-          aplicaradioproteccion:    !!dNorm.radioproteccion_fecha,        vencimientoradioproteccion:    toDate(dNorm.radioproteccion_fecha),
-          aplicaiamii:              !!dNorm.iamii_fecha,                  vencimientoiamii:              toDate(dNorm.iamii_fecha),
-          aplicagestionduelo:       !!dNorm.gestion_duelo_fecha,          vencimientogestionduelo:       toDate(dNorm.gestion_duelo_fecha),
+          aplicabls:                !!dNorm.bls_fecha_venc || !!dNorm.bls_estado,               vencimientobls:                toDate(dNorm.bls_fecha_venc),
+          aplicaacls:               !!dNorm.acls_fecha_venc || !!dNorm.acls_estado,              vencimientoacls:               toDate(dNorm.acls_fecha_venc),
+          aplicapals:               !!dNorm.pals_fecha_venc || !!dNorm.pals_estado,              vencimientopals:               toDate(dNorm.pals_fecha_venc),
+          aplicanals:               !!dNorm.nals_fecha_venc || !!dNorm.nals_estado,              vencimientonals:               toDate(dNorm.nals_fecha_venc),
+          aplicaviolenciasexual:    !!dNorm.violencia_sexual_fecha || !!dNorm.violencia_sexual_estado,       vencimientoviolenciasexual:    toDate(dNorm.violencia_sexual_fecha),
+          aplicaataquesagentesquimicos: !!dNorm.ataques_quimicos_fecha || !!dNorm.ataques_quimicos_estado,   vencimientoataquesagentesquimicos: toDate(dNorm.ataques_quimicos_fecha),
+          aplicadengue:             !!dNorm.dengue_fecha || !!dNorm.dengue_estado,                 vencimientodengue:             toDate(dNorm.dengue_fecha),
+          aplicasedacion:           !!dNorm.sedacion_fecha || !!dNorm.sedacion_estado,               vencimientosedacion:           toDate(dNorm.sedacion_fecha),
+          aplicamanejodolor:        !!dNorm.manejo_dolor_fecha || !!dNorm.manejo_dolor_estado,           vencimientomanejodolor:        toDate(dNorm.manejo_dolor_fecha),
+          aplicaradioproteccion:    !!dNorm.radioproteccion_fecha || !!dNorm.radioproteccion_estado,        vencimientoradioproteccion:    toDate(dNorm.radioproteccion_fecha),
+          aplicaiamii:              !!dNorm.iamii_fecha || !!dNorm.iamii_estado,                  vencimientoiamii:              toDate(dNorm.iamii_fecha),
+          aplicagestionduelo:       !!dNorm.gestion_duelo_fecha || !!dNorm.gestion_duelo_estado,          vencimientogestionduelo:       toDate(dNorm.gestion_duelo_fecha),
+          aplicacurso3anos:         !!dNorm.cursos_3_anios_fecha_venc || !!dNorm.cursos_3_anios_estado,   vigenciacurso3anos:            toDate(dNorm.cursos_3_anios_fecha_venc),
         }));
 
         setContratacion(prev => ({
@@ -325,6 +329,7 @@ export default function Tab4Institucional({ medicoDoc, onNext, onPrev, markCompl
           correocorp:           dAcc.correo_corporativo     ?? '',
           radioexpuesto:        dAcc.radio_expuesto         ?? '',
           cartaturnos:          dAcc.carta_turnos           ?? '',
+          inspekor:             dAcc.inspektor              ?? '',
         }));
 
       } catch (e) {
@@ -337,7 +342,17 @@ export default function Tab4Institucional({ medicoDoc, onNext, onPrev, markCompl
   }, [medicoDoc]);
 
   /* ── Handlers ── */
-  const chgNorm = (field, value) => setNormativos(p   => ({ ...p, [field]: value }));
+  const chgNorm = (field, value) => {
+    // Interceptar desactivación de normativos: pedir credenciales
+    if (field.startsWith('aplica') && value === false && normativos[field] === true) {
+      // Buscar label del curso para el modal
+      const cursoKey = field.replace('aplica', '');
+      const cursoInfo = [...CURSOS, ...RESOLUCIONES].find(c => c.key === cursoKey);
+      setPendingDeactivation({ field, cursoLabel: cursoInfo?.label || cursoKey });
+      return;
+    }
+    setNormativos(p => ({ ...p, [field]: value }));
+  };
   const chgCont = (field, value) => setContratacion(p => ({ ...p, [field]: value }));
 
   /* ── Upsert ── */
@@ -362,18 +377,31 @@ export default function Tab4Institucional({ medicoDoc, onNext, onPrev, markCompl
         res_ejercicio_fecha_venc:     n.aplicaresolejercicioplaza ? (n.vencimientoresolejercicioplaza || null) : null,
         res_anestesiologo_fecha_venc: n.aplicaresolanastesiologo  ? (n.vencimientoresolanastesiologo  || null) : null,
         bls_fecha_venc:              n.aplicabls ? (n.vencimientobls || null) : null,
+        bls_estado:                  n.aplicabls ? getEstadoCurso(n.vencimientobls) : null,
         acls_fecha_venc:             n.aplicaacls ? (n.vencimientoacls || null) : null,
+        acls_estado:                 n.aplicaacls ? getEstadoCurso(n.vencimientoacls) : null,
         pals_fecha_venc:             n.aplicapals ? (n.vencimientopals || null) : null,
+        pals_estado:                 n.aplicapals ? getEstadoCurso(n.vencimientopals) : null,
         nals_fecha_venc:             n.aplicanals ? (n.vencimientonals || null) : null,
+        nals_estado:                 n.aplicanals ? getEstadoCurso(n.vencimientonals) : null,
         violencia_sexual_fecha:      n.aplicaviolenciasexual ? (n.vencimientoviolenciasexual || null) : null,
+        violencia_sexual_estado:     n.aplicaviolenciasexual ? getEstadoCurso(n.vencimientoviolenciasexual) : null,
         ataques_quimicos_fecha:      n.aplicaataquesagentesquimicos ? (n.vencimientoataquesagentesquimicos || null) : null,
+        ataques_quimicos_estado:     n.aplicaataquesagentesquimicos ? getEstadoCurso(n.vencimientoataquesagentesquimicos) : null,
         dengue_fecha:                n.aplicadengue ? (n.vencimientodengue || null) : null,
+        dengue_estado:               n.aplicadengue ? getEstadoCurso(n.vencimientodengue) : null,
         sedacion_fecha:              n.aplicasedacion ? (n.vencimientosedacion || null) : null,
+        sedacion_estado:             n.aplicasedacion ? getEstadoCurso(n.vencimientosedacion) : null,
         manejo_dolor_fecha:          n.aplicamanejodolor ? (n.vencimientomanejodolor || null) : null,
+        manejo_dolor_estado:         n.aplicamanejodolor ? getEstadoCurso(n.vencimientomanejodolor) : null,
         radioproteccion_fecha:       n.aplicaradioproteccion ? (n.vencimientoradioproteccion || null) : null,
+        radioproteccion_estado:      n.aplicaradioproteccion ? getEstadoCurso(n.vencimientoradioproteccion) : null,
         iamii_fecha:                 n.aplicaiamii ? (n.vencimientoiamii || null) : null,
+        iamii_estado:                n.aplicaiamii ? getEstadoCurso(n.vencimientoiamii) : null,
         gestion_duelo_fecha:         n.aplicagestionduelo ? (n.vencimientogestionduelo || null) : null,
-        vigenciacurso3anos:          n.aplicacurso3anos ? (n.vigenciacurso3anos || null) : null,
+        gestion_duelo_estado:        n.aplicagestionduelo ? getEstadoCurso(n.vencimientogestionduelo) : null,
+        cursos_3_anios_fecha_venc: n.aplicacurso3anos ? (n.vigenciacurso3anos || null) : null,
+        cursos_3_anios_estado:     n.aplicacurso3anos ? getEstadoCurso(n.vigenciacurso3anos) : null,
       };
 
       const accesosPayload = {
@@ -394,6 +422,7 @@ export default function Tab4Institucional({ medicoDoc, onNext, onPrev, markCompl
         correo_corporativo:     c.correocorp          || null,
         radio_expuesto:         c.radioexpuesto       || null,
         carta_turnos:           c.cartaturnos         || null,
+        inspektor:              c.inspekor            || null,
       };
 
       const contratacionPayload = {
@@ -594,7 +623,7 @@ export default function Tab4Institucional({ medicoDoc, onNext, onPrev, markCompl
                 onChange={e => chgCont('induccionmedicahsm', e.target.value)} options={OPTSINO} />
             </div>
             <div style={{ flex:'1 1 200px' }}>
-              <SimpleSelect label="Inducción médica HSM" value={contratacion.induccionmedicachsm}
+              <SimpleSelect label="Inducción Médica FSFB" value={contratacion.induccionmedicachsm}
                 onChange={e => chgCont('induccionmedicachsm', e.target.value)} options={OPTSINO} />
             </div>
             <div style={{ flex:'1 1 200px' }}>
@@ -656,7 +685,7 @@ export default function Tab4Institucional({ medicoDoc, onNext, onPrev, markCompl
             </div>
            
             <div style={{ flex:'1 1 160px' }}>
-              <SimpleSelect label="INSPEKOR" value={contratacion.inspekor}
+              <SimpleSelect label="INSPEKTOR" value={contratacion.inspekor}
                 onChange={e => chgCont('inspekor', e.target.value)} options={OPTSINONA} />
             </div>
           </div>
@@ -685,6 +714,25 @@ export default function Tab4Institucional({ medicoDoc, onNext, onPrev, markCompl
         </div>
       </div>
       <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+
+      {/* Modal de credenciales para desactivar normativo */}
+      {pendingDeactivation && (
+        <CredentialModal
+          title="Autorizar desactivación"
+          description={`Estás por desactivar el normativo "${pendingDeactivation.cursoLabel}". Esto limpiará su fecha de vencimiento y estado. Ingresa credenciales de Administrador o Supervisor para confirmar.`}
+          icon="toggle_off"
+          iconColor="#92400E"
+          iconBg="rgba(146,64,14,0.08)"
+          confirmLabel="Autorizar desactivación"
+          confirmColor="#92400E"
+          onClose={() => setPendingDeactivation(null)}
+          onSuccess={() => {
+            const field = pendingDeactivation.field;
+            setPendingDeactivation(null);
+            setNormativos(p => ({ ...p, [field]: false }));
+          }}
+        />
+      )}
     </div>
   );
 }

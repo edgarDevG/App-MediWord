@@ -132,7 +132,7 @@ function CampoSelect({ label, name, value, onChange, error, required,
           aria-required={required} aria-invalid={!!error}
           aria-describedby={error ? `${name}-err` : undefined}
         >
-          <option value="">{disabled ? 'Cargando…' : placeholder}</option>
+          <option value="">{disabled ? (options.length === 0 ? 'Cargando…' : 'No registrado') : placeholder}</option>
           {options.map(opt => (
             <option key={String(opt.value)} value={String(opt.value)}>
               {String(opt.label)}
@@ -380,6 +380,7 @@ export default function FormFSFB() {
   const [saveError,   setSaveError]   = useState(null);
   // FIX 1: era useState(isEdit) → causaba loadingData=true desde el inicio
   const [loadingData, setLoadingData] = useState(false);
+  const [originalTipoDoc, setOriginalTipoDoc] = useState('');
 
   const [rawExpedicion,   setRawExpedicion]   = useState([]);
   const [rawNacimiento,   setRawNacimiento]   = useState([]);
@@ -511,7 +512,7 @@ export default function FormFSFB() {
           fecha_nacimiento: toDateStr(hv.fecha_nacimiento ?? hv.fechanacimiento),
           lugar_nacimiento: hv.lugar_nacimiento ?? hv.lugarnacimiento ?? '',
           genero:           hv.sexo             ?? hv.genero          ?? '',
-          fecha_vencimiento_visa: hv.fecha_vencimiento_visa ?? '',
+          fecha_vencimiento_visa: toDateStr(hv.fecha_vencimiento_visa),
           correo_electronico:    cont.correo                    ?? cont.correo_electronico           ?? '',
           celular:               cont.celular                   ?? '',
           telefono:              cont.telefono                  ?? '',
@@ -523,6 +524,7 @@ export default function FormFSFB() {
           tel_emergencia:        cont.tel_emergencia            ?? '',
           correo_alterno:        cont.correo_alterno            ?? '',
         });
+        setOriginalTipoDoc(hv.tipo_documento ?? hv.tipodocumento ?? '');
         setMedicoDoc(med.documento_identidad ?? documento);
         markCompleted(1);
       } catch (e) {
@@ -614,8 +616,8 @@ export default function FormFSFB() {
                                   ? (tab1.fecha_vencimiento_visa || null)
                                   : null,
       };
-      try { await upsert(API.hv(savedDoc), API.hv(savedDoc), hvPayload, savedDoc); }
-      catch (hvErr) { console.warn('[FormMedico v9] documentos_hv:', hvErr); }
+      try { await axiosInstance.put(API.hv(savedDoc), hvPayload); }
+      catch (hvErr) { console.warn('[FormFSFB] documentos_hv:', hvErr); }
 
       // FIX 5: contactoPayload incluye estado_civil (tabla contacto sí lo tiene)
       const contactoPayload = {
@@ -635,8 +637,8 @@ export default function FormFSFB() {
         tel_emergencia:            tab1.tel_emergencia       || null,
         correo_alterno:            tab1.correo_alterno       || null,
       };
-      try { await upsert(API.contacto(savedDoc), API.contacto(savedDoc), contactoPayload, savedDoc); }
-      catch (contErr) { console.warn('[FormMedico v9] datos_contacto:', contErr); }
+      try { await axiosInstance.put(API.contacto(savedDoc), contactoPayload); }
+      catch (contErr) { console.warn('[FormFSFB] datos_contacto:', contErr); }
 
       setTab1Dirty(false); markCompleted(1); goStep(2);
     } catch (e) {
@@ -765,7 +767,8 @@ export default function FormFSFB() {
             <div className="fm-grid fm-grid-3">
               <CampoSelect label="Tipo de documento" name="tipo_documento"
                 value={tab1.tipo_documento} onChange={handleChange}
-                options={OPT_TIPO_DOC} error={errors.tipo_documento} required />
+                options={OPT_TIPO_DOC} error={errors.tipo_documento} required
+                disabled={isEdit && originalTipoDoc !== ''} />
               <Campo label="Número de documento" name="documento_identidad"
                 value={tab1.documento_identidad} onChange={handleChange}
                 error={errors.documento_identidad} required

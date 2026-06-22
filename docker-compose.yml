@@ -4,6 +4,7 @@ services:
   # BD externa: postgresql://dev_edgar@10.28.110.104:5432/MEDW
   # Las credenciales se leen de backend-v2/.env (gitignoreado)
   backend:
+    image: edgardevv/app-mediword-backend:latest
     build:
       context: ./backend-v2
       dockerfile: Dockerfile
@@ -12,11 +13,14 @@ services:
       - ./backend-v2/.env
     ports:
       - "${BACKEND_PORT:-8001}:8001"
+    volumes:
+      - mediword_uploads:/app/uploads/medicos
     networks:
       - mediword_net
 
   # ── Frontend React + Nginx ───────────────────────────────────
   frontend:
+    image: edgardevv/app-mediword-frontend:latest
     build:
       context: ./frontend/react-v2
       dockerfile: Dockerfile
@@ -34,3 +38,6 @@ services:
 networks:
   mediword_net:
     driver: bridge
+
+volumes:
+  mediword_uploads:

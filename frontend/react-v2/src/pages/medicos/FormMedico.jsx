@@ -6,10 +6,10 @@
    - Fix 8: fecha_vencimiento_visa en INIT_TAB1 y payload
 ══════════════════════════════════════════════════════════════ */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axiosInstance from '../../api/axiosInstance';
-import Tab2Habilitacion   from './Tab2Habilitacion';
+import Tab2Disciplinarios   from './Tab2Disciplinarios';
 import Tab3Especialidades from './Tab3Especialidades';
 import Tab4Institucional  from './Tab4institucional';
 import Tab5Revision       from './Tab5revision';
@@ -134,7 +134,7 @@ function CampoSelect({ label, name, value, onChange, error, required,
           aria-required={required} aria-invalid={!!error}
           aria-describedby={error ? `${name}-err` : undefined}
         >
-          <option value="">{disabled ? 'Cargando…' : placeholder}</option>
+          <option value="">{disabled ? (options.length === 0 ? 'Cargando…' : 'No registrado') : placeholder}</option>
           {options.map(opt => (
             <option key={String(opt.value)} value={String(opt.value)}>
               {String(opt.label)}
@@ -375,6 +375,11 @@ export default function FormMedico() {
   const [currentStep,    setCurrentStep]    = useState(1);
   const [completedSteps, setCompletedSteps] = useState(isEdit ? [1, 2, 3, 4] : []);
   const [medicoDoc,   setMedicoDoc]   = useState(isEdit ? documento : null);
+
+  /* Refs a sub-tabs para auto-guardar vía stepper */
+  const tab2Ref = useRef(null);
+  const tab3Ref = useRef(null);
+  const tab4Ref = useRef(null);
   const [tab1,        setTab1]        = useState(INIT_TAB1);
   const [tab1Dirty,   setTab1Dirty]   = useState(false);
   const [errors,      setErrors]      = useState({});
@@ -382,6 +387,7 @@ export default function FormMedico() {
   const [saveError,   setSaveError]   = useState(null);
   // FIX 1: era useState(isEdit) → causaba loadingData=true desde el inicio
   const [loadingData, setLoadingData] = useState(false);
+  const [originalTipoDoc, setOriginalTipoDoc] = useState('');
 
   const [rawExpedicion,   setRawExpedicion]   = useState([]);
   const [rawNacimiento,   setRawNacimiento]   = useState([]);
@@ -513,7 +519,7 @@ export default function FormMedico() {
           fecha_nacimiento: toDateStr(hv.fecha_nacimiento ?? hv.fechanacimiento),
           lugar_nacimiento: hv.lugar_nacimiento ?? hv.lugarnacimiento ?? '',
           genero:           hv.sexo             ?? hv.genero          ?? '',
-          fecha_vencimiento_visa: hv.fecha_vencimiento_visa ?? '',
+          fecha_vencimiento_visa: toDateStr(hv.fecha_vencimiento_visa),
           correo_electronico:    cont.correo                    ?? cont.correo_electronico           ?? '',
           celular:               cont.celular                   ?? '',
           telefono:              cont.telefono                  ?? '',
@@ -525,6 +531,7 @@ export default function FormMedico() {
           tel_emergencia:        cont.tel_emergencia            ?? '',
           correo_alterno:        cont.correo_alterno            ?? '',
         });
+        setOriginalTipoDoc(hv.tipo_documento ?? hv.tipodocumento ?? '');
         setMedicoDoc(med.documento_identidad ?? documento);
         markCompleted(1);
       } catch (e) {
@@ -551,14 +558,99 @@ export default function FormMedico() {
     if (errors[name]) setErrors(prev => { const n = { ...prev }; delete n[name]; return n; });
   };
 
-  const upsert = async (putUrl, postUrl, payload, docId) => {
-    try {
-      await axiosInstance.put(putUrl, payload);
-    } catch (err) {
-      if (err.response?.status === 404) {
-        await axiosInstance.post(postUrl, { ...payload, documento_identidad: docId });
-      } else { throw err; }
+  /* ── Persiste Tab1 en la API sin navegar (reutilizable desde stepper y Tab5) ── */
+  const saveTab1Data = async (docId) => {
+    const savedDoc = docId ?? medicoDoc ?? tab1.documento_identidad;
+    const medicoPayload = {
+      primer_nombre:            tab1.primer_nombre,
+      segundo_nombre:           tab1.segundo_nombre           || null,
+      primer_apellido:          tab1.primer_apellido,
+      segundo_apellido:         tab1.segundo_apellido         || null,
+      categoria:                tab1.categoria                || null,
+      cargo:                    tab1.cargo                    || null,
+      directorio_metrica_id:    tab1.directorio_metrica_id ? parseInt(tab1.directorio_metrica_id, 10) : null,
+      fecha_ingreso:            tab1.fecha_ingreso            || null,
+      estado:                   tab1.activo ? 'ACTIVO' : 'INACTIVO',
+      dept_coordinacion_id:     tab1.dept_coordinacion_id     || null,
+      dept_direccion_medica_id: tab1.dept_direccion_medica_id || null,
+      seccion_id:               tab1.seccion_id               || null,
+      especialidad:             tab1.especialidad             || null,
+    };
+    await axiosInstance.put(API.medico(savedDoc), medicoPayload);
+
+    const hvPayload = {
+      tipo_documento:         tab1.tipo_documento         || null,
+      lugar_expedicion:       tab1.lugar_expedicion       || null,
+      fecha_nacimiento:       tab1.fecha_nacimiento       || null,
+      lugar_nacimiento:       tab1.lugar_nacimiento       || null,
+      sexo:                   tab1.genero                 || null,
+      fecha_vencimiento_visa: tab1.tipo_documento === 'CE'
+                                ? (tab1.fecha_vencimiento_visa || null) : null,
+    };
+    try { await axiosInstance.put(API.hv(savedDoc), hvPayload); }
+    catch (hvErr) { console.warn('[FormMedico] documentos_hv:', hvErr); }
+
+    const contactoPayload = {
+      correo:                    tab1.correo_electronico   || null,
+      correo_corporativo:        tab1.correo_corporativo   || null,
+      celular:                   tab1.celular              || null,
+      telefono:                  tab1.telefono             || null,
+      direccion_correspondencia: tab1.direccion_residencia || null,
+      direccion_consultorio:     tab1.direccion_consultorio || null,
+      estado_civil:              tab1.estado_civil         || null,
+      tiene_hijos:               tab1.tiene_hijos === '' ? null : tab1.tiene_hijos === 'true',
+      idiomas:                   tab1.idiomas?.length ? tab1.idiomas : null,
+      otro_idioma:               tab1.otro_idioma          || null,
+      maneja_lengua_senas:       tab1.lenguaje_senas       ?? null,
+      contacto_emergencia:       tab1.contacto_emergencia  || null,
+      parentesco:                tab1.parentesco           || null,
+      tel_emergencia:            tab1.tel_emergencia       || null,
+      correo_alterno:            tab1.correo_alterno       || null,
+    };
+    try { await axiosInstance.put(API.contacto(savedDoc), contactoPayload); }
+    catch (contErr) { console.warn('[FormMedico] datos_contacto:', contErr); }
+
+    setTab1Dirty(false);
+    markCompleted(1);
+  };
+
+  /* ── Navegar vía stepper: auto-guarda el tab actual si tiene cambios pendientes ── */
+  const handleStepClick = async (targetStep) => {
+    if (currentStep === targetStep) return;
+
+    if (currentStep === 1 && tab1Dirty && (medicoDoc || documento)) {
+      const errs = validateTab1(tab1);
+      if (Object.keys(errs).length > 0) {
+        setErrors(errs);
+        document.getElementById(Object.keys(errs)[0])
+          ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      setSaving(true);
+      try {
+        await saveTab1Data();
+      } catch (e) {
+        setSaveError('Error al auto-guardar. Usa el botón "Actualizar y continuar".');
+        setSaving(false);
+        return;
+      }
+      setSaving(false);
+    } else if (currentStep >= 2 && currentStep <= 4) {
+      const tabRefs = { 2: tab2Ref, 3: tab3Ref, 4: tab4Ref };
+      const ref = tabRefs[currentStep];
+      if (ref?.current?.isDirty()) {
+        setSaving(true);
+        try {
+          await ref.current.save();
+        } catch (e) {
+          console.warn('[FormMedico] Error al auto-guardar tab', currentStep, e);
+        }
+        setSaving(false);
+      }
     }
+
+    setCurrentStep(targetStep);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleNextTab1 = async () => {
@@ -573,73 +665,31 @@ export default function FormMedico() {
 
     setSaving(true); setSaveError(null);
     try {
-      const docId = medicoDoc ?? tab1.documento_identidad;
-      const nombreCompleto = [tab1.primer_nombre, tab1.segundo_nombre,
-        tab1.primer_apellido, tab1.segundo_apellido].filter(Boolean).join(' ').trim();
+      let docId = medicoDoc ?? tab1.documento_identidad;
 
-      // FIX 4: medicoPayload solo contiene campos de la tabla medicos
-      // estado_civil NO va aquí (va en contacto)
-      const medicoPayload = {
-        primer_nombre:            tab1.primer_nombre,
-        segundo_nombre:           tab1.segundo_nombre           || null,
-        primer_apellido:          tab1.primer_apellido,
-        segundo_apellido:         tab1.segundo_apellido         || null,
-        categoria:                tab1.categoria                || null,
-        cargo:                    tab1.cargo                    || null,
-        directorio_metrica_id:    tab1.directorio_metrica_id ? parseInt(tab1.directorio_metrica_id, 10) : null,
-        fecha_ingreso:            tab1.fecha_ingreso            || null,
-        estado:                   tab1.activo ? 'ACTIVO' : 'INACTIVO',
-        dept_coordinacion_id:     tab1.dept_coordinacion_id     || null,
-        dept_direccion_medica_id: tab1.dept_direccion_medica_id || null,
-        seccion_id:               tab1.seccion_id               || null,
-        especialidad:             tab1.especialidad             || null,
-      };
-
-      if (isEdit || medicoDoc) {
-        await axiosInstance.put(API.medico(docId), medicoPayload);
-      } else {
+      if (!isEdit && !medicoDoc) {
         const res = await axiosInstance.post(API.medicos(), {
-          ...medicoPayload, documento_identidad: tab1.documento_identidad,
+          primer_nombre:            tab1.primer_nombre,
+          segundo_nombre:           tab1.segundo_nombre           || null,
+          primer_apellido:          tab1.primer_apellido,
+          segundo_apellido:         tab1.segundo_apellido         || null,
+          categoria:                tab1.categoria                || null,
+          cargo:                    tab1.cargo                    || null,
+          directorio_metrica_id:    tab1.directorio_metrica_id ? parseInt(tab1.directorio_metrica_id, 10) : null,
+          fecha_ingreso:            tab1.fecha_ingreso            || null,
+          estado:                   tab1.activo ? 'ACTIVO' : 'INACTIVO',
+          dept_coordinacion_id:     tab1.dept_coordinacion_id     || null,
+          dept_direccion_medica_id: tab1.dept_direccion_medica_id || null,
+          seccion_id:               tab1.seccion_id               || null,
+          especialidad:             tab1.especialidad             || null,
+          documento_identidad: tab1.documento_identidad,
         });
-        setMedicoDoc(res.data?.documento_identidad ?? tab1.documento_identidad);
+        docId = res.data?.documento_identidad ?? tab1.documento_identidad;
+        setMedicoDoc(docId);
       }
 
-      const savedDoc = medicoDoc ?? tab1.documento_identidad;
-      const hvPayload = {
-        tipo_documento:         tab1.tipo_documento         || null,
-        lugar_expedicion:       tab1.lugar_expedicion       || null,
-        fecha_nacimiento:       tab1.fecha_nacimiento       || null,
-        lugar_nacimiento:       tab1.lugar_nacimiento       || null,
-        sexo:                   tab1.genero                 || null,
-        fecha_vencimiento_visa: tab1.tipo_documento === 'CE'
-                                  ? (tab1.fecha_vencimiento_visa || null)
-                                  : null,
-      };
-      try { await upsert(API.hv(savedDoc), API.hv(savedDoc), hvPayload, savedDoc); }
-      catch (hvErr) { console.warn('[FormMedico v9] documentos_hv:', hvErr); }
-
-      // FIX 5: contactoPayload incluye estado_civil (tabla contacto sí lo tiene)
-      const contactoPayload = {
-        correo:                    tab1.correo_electronico   || null,
-        correo_corporativo:        tab1.correo_corporativo   || null,
-        celular:                   tab1.celular              || null,
-        telefono:                  tab1.telefono             || null,
-        direccion_correspondencia: tab1.direccion_residencia || null,
-        direccion_consultorio:     tab1.direccion_consultorio || null,
-        estado_civil:              tab1.estado_civil         || null,
-        tiene_hijos:               tab1.tiene_hijos === '' ? null : tab1.tiene_hijos === 'true',
-        idiomas:                   tab1.idiomas?.length ? tab1.idiomas : null,
-        otro_idioma:               tab1.otro_idioma          || null,
-        maneja_lengua_senas:       tab1.lenguaje_senas       ?? null,
-        contacto_emergencia:       tab1.contacto_emergencia  || null,
-        parentesco:                tab1.parentesco           || null,
-        tel_emergencia:            tab1.tel_emergencia       || null,
-        correo_alterno:            tab1.correo_alterno       || null,
-      };
-      try { await upsert(API.contacto(savedDoc), API.contacto(savedDoc), contactoPayload, savedDoc); }
-      catch (contErr) { console.warn('[FormMedico v9] datos_contacto:', contErr); }
-
-      setTab1Dirty(false); markCompleted(1); goStep(2);
+      await saveTab1Data(docId);
+      goStep(2);
     } catch (e) {
       const detail = e.response?.data?.detail;
       if (Array.isArray(detail)) {
@@ -687,7 +737,7 @@ export default function FormMedico() {
       <StepperBar
         currentStep={currentStep}
         completedSteps={completedSteps}
-        onStepClick={setCurrentStep}
+        onStepClick={handleStepClick}
       />
 
       {/* ── Step 1 ── */}
@@ -766,7 +816,8 @@ export default function FormMedico() {
             <div className="fm-grid fm-grid-3">
               <CampoSelect label="Tipo de documento" name="tipo_documento"
                 value={tab1.tipo_documento} onChange={handleChange}
-                options={OPT_TIPO_DOC} error={errors.tipo_documento} required />
+                options={OPT_TIPO_DOC} error={errors.tipo_documento} required
+                disabled={isEdit && originalTipoDoc !== ''} />
               <Campo label="Número de documento" name="documento_identidad"
                 value={tab1.documento_identidad} onChange={handleChange}
                 error={errors.documento_identidad} required
@@ -1007,23 +1058,24 @@ export default function FormMedico() {
 
       {/* ── Steps 2-5 ── */}
       {currentStep === 2 && (
-        <Tab2Habilitacion medicoDoc={medicoDoc ?? documento}
+        <Tab2Disciplinarios ref={tab2Ref} medicoDoc={medicoDoc ?? documento}
           onNext={() => { markCompleted(2); goStep(3); }}
           onPrev={() => goStep(1)} markCompleted={markCompleted} />
       )}
       {currentStep === 3 && (
-        <Tab3Especialidades medicoDoc={medicoDoc ?? documento}
+        <Tab3Especialidades ref={tab3Ref} medicoDoc={medicoDoc ?? documento}
           onNext={() => { markCompleted(3); goStep(4); }}
           onPrev={() => goStep(2)} markCompleted={markCompleted} />
       )}
       {currentStep === 4 && (
-        <Tab4Institucional medicoDoc={medicoDoc ?? documento}
+        <Tab4Institucional ref={tab4Ref} medicoDoc={medicoDoc ?? documento}
           onNext={() => { markCompleted(4); goStep(5); }}
           onPrev={() => goStep(3)} markCompleted={markCompleted} />
       )}
       {currentStep === 5 && (
         <Tab5Revision medicoDoc={medicoDoc ?? documento}
-          tab1Data={tab1} onPrev={() => goStep(4)}
+          tab1Data={tab1} tab1Dirty={tab1Dirty} onSaveTab1={saveTab1Data}
+          onPrev={() => goStep(4)}
           completedSteps={completedSteps} markCompleted={markCompleted} />
       )}
 

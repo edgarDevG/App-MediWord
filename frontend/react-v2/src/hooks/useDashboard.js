@@ -19,7 +19,7 @@ export default function useDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const res = await axiosInstance.get('/dashboard/resumen/');
+      const res = await axiosInstance.get('/dashboard/resumen');
       const r   = res.data;
 
       // ── Mapear por_categoria al shape que espera el Dashboard ──

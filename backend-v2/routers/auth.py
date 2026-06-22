@@ -126,3 +126,42 @@ def read_users_me(current_user: User = Depends(get_current_user)):
         "email":    current_user.email,
         "rol":      current_user.rol,
     }
+
+
+class VerifyCredentialsRequest(BaseModel):
+    email: str
+    password: str
+    required_roles: list[str] = ["admin", "supervisor"]
+
+
+@router.post("/verify-credentials")
+def verify_credentials(creds: VerifyCredentialsRequest, db: Session = Depends(get_db)):
+    """Valida credenciales y rol sin generar token.
+    Se usa para confirmar acciones sensibles (eliminación, reversión de normativos)."""
+    email = creds.email.strip().lower()
+    user = db.query(User).filter(
+        sa_func.lower(User.email) == email
+    ).first()
+
+    if not user or not verify_password(creds.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Correo o contraseña incorrectos",
+        )
+    if not user.activo:
+        raise HTTPException(status_code=400, detail="Usuario inactivo")
+    if user.rol not in creds.required_roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Se requiere rol {', '.join(creds.required_roles)}. Tu rol es '{user.rol}'.",
+        )
+
+    return {
+        "valid": True,
+        "user": {
+            "username": user.username,
+            "nombre":   user.nombre,
+            "rol":      user.rol,
+        },
+    }
+

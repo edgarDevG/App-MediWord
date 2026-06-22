@@ -16,6 +16,10 @@
 
 /* ── TOKENS GLOBALES ─────────────────────────────────────────────────── */
 :root {
+  /* Forzar light mode — la app tiene su propio design system,
+     no debe heredar el dark mode del sistema operativo */
+  color-scheme: light;
+
   /* Tipografía */
   --font-display: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
   --font-body:    'Inter', system-ui, sans-serif;
@@ -219,74 +223,10 @@
   --shadow-lg: 0 12px 32px oklch(0 0 0 / 0.45);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --color-bg:               #0D1520;
-    --color-surface:          #131E2E;
-    --color-surface-2:        #182336;
-    --color-surface-offset:   #111C2C;
-    --color-surface-dynamic:  #1E2D42;
-    --color-divider:          #1F2E42;
-    --color-border:           #2A3D56;
-    --color-background:              #0D1520;
-    --color-surface-container:       #182336;
-    --color-surface-container-lowest:#131E2E;
-    --color-outline-variant:         #2A3D56;
-    --color-text:          #D6E4F2;
-    --color-text-muted:    #6A8FAD;
-    --color-text-faint:    #3A5570;
-    --color-text-inverse:  #0F1923;
-    --color-on-surface:         #D6E4F2;
-    --color-on-surface-variant: #6A8FAD;
-    --color-sidebar:        #07101C;
-    --color-sidebar-hover:  rgba(255,255,255,0.06);
-    --color-sidebar-active: rgba(16,185,129,0.15);
-    --color-sidebar-active-border: #10b981;
-    --color-sidebar-text:   #A8C2D9;
-    --color-sidebar-muted:  #3E5E7A;
-    --color-sidebar-accent: #10b981;
-    --color-primary:           #4A9FD4;
-    --color-primary-hover:     #3A8EC0;
-    --color-primary-active:    #2A7BAD;
-    --color-primary-highlight: #1A3550;
-    --color-primary-surface:   #111F30;
-    --color-secondary:         #4A9FD4;
-    --color-action:           #2ABAA0;
-    --color-action-hover:     #20A08A;
-    --color-action-active:    #168A76;
-    --color-action-highlight: #123530;
-    --color-action-surface:   #0E2825;
-    --color-signature:        #2ABAA0;
-    --color-signature-hover:  #20A08A;
-    --color-success:           #4AB86A;
-    --color-success-hover:     #38A258;
-    --color-success-highlight: #152A1E;
-    --color-success-surface:   #0F1E16;
-    --color-success-text:      #A8EAC0;
-    --color-warning:           #E8942A;
-    --color-warning-hover:     #D07E1A;
-    --color-warning-highlight: #352210;
-    --color-warning-surface:   #251808;
-    --color-warning-text:      #F5C87A;
-    --color-error:           #E05A6A;
-    --color-error-hover:     #C84858;
-    --color-error-highlight: #351520;
-    --color-error-surface:   #250F18;
-    --color-error-text:      #F5A0AA;
-    --color-cat-a:     #5A9EDD;
-    --color-cat-a-bg:  #1A2E44;
-    --color-cat-a-text:#A0C8F0;
-    --color-cat-c:     #E8A040;
-    --color-cat-c-bg:  #352215;
-    --color-cat-c-text:#F5C87A;
-    --color-cat-e:     #7AA4D8;
-    --color-cat-e-bg:  #1E2E44;
-    --color-cat-e-text:#A8C8F0;
-    --shadow-sm: 0 1px 3px oklch(0 0 0 / 0.25);
-    --shadow-md: 0 4px 12px oklch(0 0 0 / 0.35);
-    --shadow-lg: 0 12px 32px oklch(0 0 0 / 0.45);
-  }
-}
+/* @media (prefers-color-scheme: dark) eliminado intencionalmente.
+   MedIndex usa siempre su propio design system light.
+   El dark mode explícito ([data-theme="dark"]) sigue disponible
+   si se habilita desde la app en el futuro. */
 
 /* ══ BASE RESET ══════════════════════════════════════════════════════════ */
 *, *::before, *::after {
@@ -415,36 +355,103 @@ a, button, [role="button"], input, textarea, select {
   flex-shrink: 0;
 }
 
-.sidebar-logo-icon {
-  width: 34px;
-  height: 34px;
-  min-width: 34px;
-  background: var(--color-sidebar-accent);
-  border-radius: var(--radius-lg);
+/* Badge MI — estado colapsado */
+.sidebar-logo-mi {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 10px;
+  background: linear-gradient(145deg, #0E9B8A, #0A7E6E);
+  box-shadow: 0 4px 14px rgba(14,155,138,0.35);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  user-select: none;
+}
+
+.sidebar-logo-mi-med {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.8rem;
+  color: #ffffff;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.sidebar-logo-mi-index {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.75);
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+/* Fila expandida: wordmark + ícono */
+.sidebar-logo-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  gap: 10px;
+}
+
+.sidebar-logo-icon-badge {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  border-radius: 8px;
+  background: linear-gradient(145deg, #0E9B8A, #0A7E6E);
+  box-shadow: 0 3px 10px rgba(14,155,138,0.3);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
+  flex-shrink: 0;
 }
 
-.sidebar-logo-text h1 {
+/* Wordmark expandido */
+.sidebar-logo-wordmark {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.sidebar-logo-wordmark-type {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  line-height: 1;
+}
+
+.slw-med {
   font-family: var(--font-display);
-  font-size: 0.875rem;
-  font-weight: 700;
+  font-weight: 800;
+  font-size: 1.35rem;
   color: #ffffff;
-  line-height: 1.2;
-  white-space: nowrap;
+  letter-spacing: -0.05em;
+  line-height: 1;
 }
 
-.sidebar-logo-text p {
-  font-size: 0.6875rem;
+.slw-index {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.35rem;
+  color: #0E9B8A;
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+
+.sidebar-logo-sub {
+  font-size: 0.575rem;
   color: var(--color-sidebar-muted);
   white-space: nowrap;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
+  margin-top: 2px;
 }
 
-.sidebar.collapsed .sidebar-logo-text,
 .sidebar.collapsed .nav-item-label,
 .sidebar.collapsed .sidebar-version {
   display: none;

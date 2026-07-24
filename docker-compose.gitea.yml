@@ -25,7 +25,8 @@ services:
     image: app-medindex-frontend:local # Nombre local para la imagen construida
     restart: unless-stopped
     ports:
-      - "7001:80"
+      - "7002:80"
+
     depends_on:
       - backend
     networks:

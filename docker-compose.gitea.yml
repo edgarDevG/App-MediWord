@@ -12,7 +12,7 @@ services:
       PORT: 8001
       MEDIA_ROOT: /app/uploads/medicos
     ports:
-      - "6005:8001"
+      - "6006:8001"
     volumes:
       - mediword_uploads:/app/uploads/medicos
     networks:

@@ -165,9 +165,16 @@ app.add_middleware(
         "http://10.28.110.104:80",
         "http://10.28.110.104:5173",
         "http://10.28.110.104:4173",
+        # Dominio de producción (Portainer/Docker)
+        "http://apps.chsm.com",
+        "http://apps.chsm.com:7001",
+        "http://apps.chsm.com:7002",
+        "https://apps.chsm.com",
+        "https://apps.chsm.com:7001",
+        "https://apps.chsm.com:7002",
     ],
-    # Acepta red interna 10.28.x.x, túneles, y localhost en cualquier puerto
-    allow_origin_regex=r"http://10\.28\.\d{1,3}\.\d{1,3}(:\d+)?|https://.*\.(devtunnels\.ms|app\.github\.dev|githubpreview\.dev)(:\d+)?|http://localhost(:\d+)?|http://127\.0\.0\.1(:\d+)?",
+    # Acepta red interna 10.28.x.x, dominio apps.chsm.com, túneles, y localhost en cualquier puerto
+    allow_origin_regex=r"https?://apps\.chsm\.com(:\d+)?|http://10\.28\.\d{1,3}\.\d{1,3}(:\d+)?|https://.*\.(devtunnels\.ms|app\.github\.dev|githubpreview\.dev)(:\d+)?|http://localhost(:\d+)?|http://127\.0\.0\.1(:\d+)?",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

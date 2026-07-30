@@ -126,7 +126,6 @@ export default function ListaFSFB() {
         emptyText="No se encontraron médicos FSFB"
         showCatFilter
         editRoute={(doc) => `/medicos-fsfb/${doc}/editar`}
-        SIZE={20}
       />
     </div>
   );

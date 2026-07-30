@@ -146,7 +146,6 @@ export default function ListaInactivos() {
           </div>
         )}
         refreshKey={refreshKey}
-        SIZE={20}
       />
 
       <ToastContainer />

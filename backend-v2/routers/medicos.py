@@ -291,7 +291,7 @@ def get_datos_hv(documento: str, db: Session = Depends(get_db)):
 @router.put("/medicos/{documento}/documentos-hv/", response_model=DatosHVOut)
 def update_datos_hv(documento: str, data: DatosHVUpdate, db: Session = Depends(get_db)):
     m = get_medico_or_404(documento, db)
-    return upsert_sub(db, MedicoDatosHV, m.id, data.model_dump())
+    return upsert_sub(db, MedicoDatosHV, m.id, data.model_dump(exclude_unset=True))
 
 
 # ── Contacto ──────────────────────────────────────────────────
@@ -307,7 +307,7 @@ def get_contacto(documento: str, db: Session = Depends(get_db)):
 @router.put("/medicos/{documento}/contacto/", response_model=ContactoOut)
 def update_contacto(documento: str, data: ContactoUpdate, db: Session = Depends(get_db)):
     m = get_medico_or_404(documento, db)
-    return upsert_sub(db, MedicoContacto, m.id, data.model_dump())
+    return upsert_sub(db, MedicoContacto, m.id, data.model_dump(exclude_unset=True))
 
 
 # ── Prerrogativas ─────────────────────────────────────────────
@@ -323,7 +323,7 @@ def get_prerrogativas(documento: str, db: Session = Depends(get_db)):
 @router.put("/medicos/{documento}/prerrogativas/", response_model=PrerrogativasOut)
 def update_prerrogativas(documento: str, data: PrerrogativasUpdate, db: Session = Depends(get_db)):
     m = get_medico_or_404(documento, db)
-    return upsert_sub(db, MedicoPrerrogativas, m.id, data.model_dump())
+    return upsert_sub(db, MedicoPrerrogativas, m.id, data.model_dump(exclude_unset=True))
 
 
 # ── Diplomas ──────────────────────────────────────────────────
@@ -339,7 +339,7 @@ def get_diplomas(documento: str, db: Session = Depends(get_db)):
 @router.put("/medicos/{documento}/diplomas-verificaciones/", response_model=DiplomasOut)
 def update_diplomas(documento: str, data: DiplomasUpdate, db: Session = Depends(get_db)):
     m = get_medico_or_404(documento, db)
-    return upsert_sub(db, MedicoDiplomas, m.id, data.model_dump())
+    return upsert_sub(db, MedicoDiplomas, m.id, data.model_dump(exclude_unset=True))
 
 
 # ── Normativos ────────────────────────────────────────────────
@@ -355,9 +355,9 @@ def get_normativos(documento: str, db: Session = Depends(get_db)):
 @router.put("/medicos/{documento}/normativos/", response_model=NormativosOut)
 def update_normativos(documento: str, data: NormativosUpdate, db: Session = Depends(get_db)):
     m = get_medico_or_404(documento, db)
-    d = data.model_dump()
+    d = data.model_dump(exclude_unset=True)
 
-    # Calcular estados automáticamente para campos con fecha
+    # Calcular estado solo para fechas que vinieron explícitamente en el payload
     fecha_fields = [
         ("bls_fecha_venc", "bls_estado"),
         ("acls_fecha_venc", "acls_estado"),
@@ -371,14 +371,15 @@ def update_normativos(documento: str, data: NormativosUpdate, db: Session = Depe
         ("manejo_dolor_fecha", "manejo_dolor_estado"),
         ("iamii_fecha", "iamii_estado"),
         ("gestion_duelo_fecha", "gestion_duelo_estado"),
+        ("gestion_donante_fecha", "gestion_donante_estado"),
+        ("cursos_3_anios_fecha_venc", "cursos_3_anios_estado"),
     ]
     for fecha_key, estado_key in fecha_fields:
+        if fecha_key not in d:
+            continue   # no vino en el payload → no tocar el estado guardado
         if d.get(estado_key) is not None:
-            continue
-        if d.get(fecha_key) is not None:
-            d[estado_key] = calcular_estado(d[fecha_key])
-        else:
-            d[estado_key] = None
+            continue   # el frontend ya mandó el estado calculado
+        d[estado_key] = calcular_estado(d[fecha_key]) if d[fecha_key] else None
 
     return upsert_sub(db, MedicoNormativos, m.id, d)
 
@@ -396,7 +397,7 @@ def get_contratacion(documento: str, db: Session = Depends(get_db)):
 @router.put("/medicos/{documento}/contratacion/", response_model=ContratacionOut)
 def update_contratacion(documento: str, data: ContratacionUpdate, db: Session = Depends(get_db)):
     m = get_medico_or_404(documento, db)
-    return upsert_sub(db, MedicoContratacion, m.id, data.model_dump())
+    return upsert_sub(db, MedicoContratacion, m.id, data.model_dump(exclude_unset=True))
 
 
 # ── Accesos ───────────────────────────────────────────────────
@@ -412,7 +413,7 @@ def get_accesos(documento: str, db: Session = Depends(get_db)):
 @router.put("/medicos/{documento}/accesos/", response_model=AccesosOut)
 def update_accesos(documento: str, data: AccesosUpdate, db: Session = Depends(get_db)):
     m = get_medico_or_404(documento, db)
-    return upsert_sub(db, MedicoAccesos, m.id, data.model_dump())
+    return upsert_sub(db, MedicoAccesos, m.id, data.model_dump(exclude_unset=True))
 
 
 # ── Docs Habilitación ─────────────────────────────────────────
@@ -431,11 +432,11 @@ def update_docs_habilitacion(documento: str, data: DocsHabilitacionUpdate, db: S
     obj = db.query(MedicoDocsHabilitacion).filter(MedicoDocsHabilitacion.medico_id == m.id).first()
     from sqlalchemy.orm.attributes import flag_modified
     if obj:
-        for k, v in data.model_dump().items():
-            setattr(obj, k, v)  # permite limpiar a null cuando se desmarca un documento
+        for k, v in data.model_dump(exclude_unset=True).items():
+            setattr(obj, k, v)
             flag_modified(obj, k)
     else:
-        obj = MedicoDocsHabilitacion(medico_id=m.id, **data.model_dump())
+        obj = MedicoDocsHabilitacion(medico_id=m.id, **data.model_dump(exclude_unset=True))
         db.add(obj)
     db.commit()
     db.refresh(obj)

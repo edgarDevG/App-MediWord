@@ -420,7 +420,8 @@ export default function MedicoTable({
   onNewClick,
   onEstadoAction,        // callback externo opcional para notificar al padre
   refreshKey       = 0,
-  SIZE             = 20,
+  SIZE             = 6,
+  catList,
   profileRoute     = (doc) => `/medicos/${doc}/perfil`,
   editRoute        = (doc) => `/medicos/${doc}/editar`,
 }) {
@@ -432,10 +433,12 @@ export default function MedicoTable({
   const [catFil,  setCatFil]  = useState('');
   const [loading, setLoading] = useState(true);
   const [gestion, setGestion] = useState(null); // { accion, doc, nombre, estadoActual }
+  
   const totalPages = Math.max(1, Math.ceil(total / SIZE));
 
   const fetchData = useCallback(() => {
     setLoading(true);
+    
     const params = new URLSearchParams({ page, size: SIZE });
     Object.entries(apiParams).forEach(([k, v]) => { if (v) params.set(k, v); });
     if (search) params.set('search', search);
@@ -445,10 +448,13 @@ export default function MedicoTable({
         const d  = r.data;
         const it = Array.isArray(d) ? d : (d.items ?? []);
         const cnt = Array.isArray(d) ? d.length : (d.total ?? it.length);
-        setItems(it); setTotal(cnt);
+        setItems(it);
+        setTotal(cnt);
       })
       .catch(console.error)
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setLoading(false);
+      });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, search, catFil, JSON.stringify(apiParams)]);
 
@@ -518,7 +524,7 @@ export default function MedicoTable({
           {/* Filtro categoría */}
           {showCatFilter && (
             <div style={{ display: 'flex', background: '#f1f5f9', padding: 3, borderRadius: 10, gap: 2 }}>
-              {['', 'A', 'AE', 'AP'].map(c => (
+              {['', ...(catList || ['A', 'AE', 'AP'])].map(c => (
                 <button key={c || 't'} onClick={() => setCatFil(c)} style={{
                   padding: '5px 13px', borderRadius: 7, border: 'none', cursor: 'pointer',
                   fontSize: '0.75rem', fontWeight: 700, transition: 'all 120ms',
@@ -671,25 +677,22 @@ export default function MedicoTable({
         <div style={{
           padding: '12px 24px', borderTop: '1px solid rgba(197,198,210,0.13)',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          flexWrap: 'wrap', gap: 8, background: '#fcfcfd',
+          flexWrap: 'wrap', gap: 16, background: '#fcfcfd',
         }}>
           <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-            {totalPages > 1
-              ? `${(page - 1) * SIZE + 1}–${Math.min(page * SIZE, total)} de ${total}`
-              : `${total} resultado${total !== 1 ? 's' : ''}`
-            }
+            Mostrando {items.length} de {total} resultado{total !== 1 ? 's' : ''}
           </span>
-          {totalPages > 1 && (
-            <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
-              <PgBtn onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} icon="chevron_left" />
-              {pageRange(page, totalPages).map((n, i) =>
-                n === '…'
-                  ? <span key={`e${i}`} style={{ padding: '0 4px', color: '#94a3b8', fontSize: '0.75rem' }}>…</span>
-                  : <PgBtn key={n} onClick={() => setPage(n)} active={page === n} label={String(n)} />
-              )}
-              <PgBtn onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} icon="chevron_right" />
-            </div>
-          )}
+          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+            <PgBtn icon="chevron_left" disabled={page === 1} onClick={() => setPage(p => p - 1)} />
+            {pageRange(page, totalPages).map((p, i) =>
+              p === '…' ? (
+                <span key={`dots-${i}`} style={{ color: '#94a3b8', padding: '0 4px', fontSize: '0.75rem' }}>…</span>
+              ) : (
+                <PgBtn key={p} label={p} active={p === page} onClick={() => setPage(p)} />
+              )
+            )}
+            <PgBtn icon="chevron_right" disabled={page === totalPages} onClick={() => setPage(p => p + 1)} />
+          </div>
         </div>
       )}
 

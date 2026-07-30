@@ -13,6 +13,7 @@ import Tab4Institucional  from './Tab4InstitucionalFSFB';
 import Tab5Revision       from './Tab5RevisionFSFB';
 import './FormFSFB.css';
 import FileUploadField from '../../components/shared/FileUploadField';
+import CampoSearchableSelectAsync from '../../components/shared/CampoSearchableSelectAsync';
 
 const STEPS = [
   { id: 1, label: 'Datos del Médico',          icon: 'person'         },
@@ -775,9 +776,9 @@ export default function FormFSFB() {
                 disabled={isEdit} placeholder="Ej: 1045234112"
                 autoComplete="off"
                 hint={!isEdit ? 'No podrá modificarse después de guardar' : undefined} />
-              <CampoSelect label="Lugar de expedición" name="lugar_expedicion"
+              <CampoSearchableSelectAsync label="Lugar de expedición" name="lugar_expedicion"
                 value={tab1.lugar_expedicion} onChange={handleChange}
-                options={optExpedicion} placeholder="Seleccionar ciudad…"
+                fallbackOptions={optExpedicion} placeholder="Buscar ciudad o país…"
                 disabled={loadingMaestras} />
             </div>
 
@@ -858,9 +859,9 @@ export default function FormFSFB() {
             <div className="fm-grid fm-grid-4">
               <Campo label="Fecha de nacimiento" name="fecha_nacimiento"
                 type="date" value={tab1.fecha_nacimiento} onChange={handleChange} />
-              <CampoSelect label="Lugar de nacimiento" name="lugar_nacimiento"
+              <CampoSearchableSelectAsync label="Lugar de nacimiento" name="lugar_nacimiento"
                 value={tab1.lugar_nacimiento} onChange={handleChange}
-                options={optNacimiento} placeholder="Seleccionar ciudad…"
+                fallbackOptions={optNacimiento} placeholder="Buscar ciudad o país…"
                 disabled={loadingMaestras} />
               <CampoSelect label="Género" name="genero"
                 value={tab1.genero} onChange={handleChange} options={OPT_GENERO} />

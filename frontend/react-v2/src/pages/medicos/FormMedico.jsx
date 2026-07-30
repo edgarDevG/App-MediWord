@@ -15,6 +15,7 @@ import Tab4Institucional  from './Tab4institucional';
 import Tab5Revision       from './Tab5revision';
 import './FormMedico.css';
 import FileUploadField from '../../components/shared/FileUploadField';
+import CampoSearchableSelectAsync from '../../components/shared/CampoSearchableSelectAsync';
 
 const STEPS = [
   { id: 1, label: 'Datos del Médico',          icon: 'person'         },
@@ -587,8 +588,13 @@ export default function FormMedico() {
       fecha_vencimiento_visa: tab1.tipo_documento === 'CE'
                                 ? (tab1.fecha_vencimiento_visa || null) : null,
     };
-    try { await axiosInstance.put(API.hv(savedDoc), hvPayload); }
-    catch (hvErr) { console.warn('[FormMedico] documentos_hv:', hvErr); }
+    try {
+      await axiosInstance.put(API.hv(savedDoc), hvPayload);
+    } catch (hvErr) {
+      if (hvErr.response?.status === 404) {
+        await axiosInstance.post(API.hv(savedDoc), { ...hvPayload, documento_identidad: savedDoc });
+      } else { console.warn('[FormMedico] documentos_hv:', hvErr); }
+    }
 
     const contactoPayload = {
       correo:                    tab1.correo_electronico   || null,
@@ -607,8 +613,13 @@ export default function FormMedico() {
       tel_emergencia:            tab1.tel_emergencia       || null,
       correo_alterno:            tab1.correo_alterno       || null,
     };
-    try { await axiosInstance.put(API.contacto(savedDoc), contactoPayload); }
-    catch (contErr) { console.warn('[FormMedico] datos_contacto:', contErr); }
+    try {
+      await axiosInstance.put(API.contacto(savedDoc), contactoPayload);
+    } catch (contErr) {
+      if (contErr.response?.status === 404) {
+        await axiosInstance.post(API.contacto(savedDoc), { ...contactoPayload, documento_identidad: savedDoc });
+      } else { console.warn('[FormMedico] datos_contacto:', contErr); }
+    }
 
     setTab1Dirty(false);
     markCompleted(1);
@@ -824,9 +835,9 @@ export default function FormMedico() {
                 disabled={isEdit} placeholder="Ej: 1045234112"
                 autoComplete="off"
                 hint={!isEdit ? 'No podrá modificarse después de guardar' : undefined} />
-              <CampoSelect label="Lugar de expedición" name="lugar_expedicion"
+              <CampoSearchableSelectAsync label="Lugar de expedición" name="lugar_expedicion"
                 value={tab1.lugar_expedicion} onChange={handleChange}
-                options={optExpedicion} placeholder="Seleccionar ciudad…"
+                fallbackOptions={optExpedicion} placeholder="Buscar ciudad o país…"
                 disabled={loadingMaestras} />
             </div>
 
@@ -907,9 +918,9 @@ export default function FormMedico() {
             <div className="fm-grid fm-grid-4">
               <Campo label="Fecha de nacimiento" name="fecha_nacimiento"
                 type="date" value={tab1.fecha_nacimiento} onChange={handleChange} />
-              <CampoSelect label="Lugar de nacimiento" name="lugar_nacimiento"
+              <CampoSearchableSelectAsync label="Lugar de nacimiento" name="lugar_nacimiento"
                 value={tab1.lugar_nacimiento} onChange={handleChange}
-                options={optNacimiento} placeholder="Seleccionar ciudad…"
+                fallbackOptions={optNacimiento} placeholder="Buscar ciudad o país…"
                 disabled={loadingMaestras} />
               <CampoSelect label="Género" name="genero"
                 value={tab1.genero} onChange={handleChange} options={OPT_GENERO} />

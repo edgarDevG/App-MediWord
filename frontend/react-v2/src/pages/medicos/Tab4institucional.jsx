@@ -33,7 +33,7 @@ const CURSOS = [
   { key: 'ataquesagentesquimicos',label: 'Agentes Químicos',           icon: 'science'             },
   { key: 'dengue',                label: 'Dengue',                     icon: 'bug_report'          },
   { key: 'sedacion',              label: 'Sedación',                   icon: 'medication'          },
-  { key: 'cuidadodonanteins',     label: 'Gest. Donación',             icon: 'volunteer_activism'  },
+  { key: 'gestiondonante',        label: 'Gest. Donación',             icon: 'volunteer_activism'  },
   { key: 'radioproteccion',       label: 'Radioprotección',            icon: 'radar'               },
   { key: 'manejodolor',           label: 'Manejo del Dolor',           icon: 'healing'             },
   { key: 'iamii',                 label: 'IAMII',                      icon: 'cardiology'          },
@@ -176,7 +176,7 @@ function CursoCard({ curso, aplica, vencimiento, onChange, medicoDoc }) {
           <span className="material-symbols-outlined" style={{ fontSize: 15, color: aplica ? 'var(--color-primary,#0A5C99)' : '#94a3b8', fontVariationSettings: "'FILL' 1", flexShrink: 0 }}>
             {curso.icon}
           </span>
-          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: aplica ? '#0f172a' : '#64748b', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: aplica ? '#0f172a' : '#64748b', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {curso.label}
           </span>
         </div>
@@ -290,6 +290,7 @@ const Tab4Institucional = forwardRef(function Tab4Institucional({ medicoDoc, onN
           aplicaataquesagentesquimicos: !!dNorm.ataques_quimicos_fecha || !!dNorm.ataques_quimicos_estado,   vencimientoataquesagentesquimicos: toDate(dNorm.ataques_quimicos_fecha),
           aplicadengue:             !!dNorm.dengue_fecha || !!dNorm.dengue_estado,                 vencimientodengue:             toDate(dNorm.dengue_fecha),
           aplicasedacion:           !!dNorm.sedacion_fecha || !!dNorm.sedacion_estado,               vencimientosedacion:           toDate(dNorm.sedacion_fecha),
+          aplicagestiondonante:     !!dNorm.gestion_donante_fecha || !!dNorm.gestion_donante_estado, vencimientogestiondonante:     toDate(dNorm.gestion_donante_fecha),
           aplicamanejodolor:        !!dNorm.manejo_dolor_fecha || !!dNorm.manejo_dolor_estado,           vencimientomanejodolor:        toDate(dNorm.manejo_dolor_fecha),
           aplicaradioproteccion:    !!dNorm.radioproteccion_fecha || !!dNorm.radioproteccion_estado,        vencimientoradioproteccion:    toDate(dNorm.radioproteccion_fecha),
           aplicaiamii:              !!dNorm.iamii_fecha || !!dNorm.iamii_estado,                  vencimientoiamii:              toDate(dNorm.iamii_fecha),
@@ -390,6 +391,8 @@ const Tab4Institucional = forwardRef(function Tab4Institucional({ medicoDoc, onN
       dengue_estado:               n.aplicadengue ? getEstadoCurso(n.vencimientodengue) : null,
       sedacion_fecha:              n.aplicasedacion ? (n.vencimientosedacion || null) : null,
       sedacion_estado:             n.aplicasedacion ? getEstadoCurso(n.vencimientosedacion) : null,
+      gestion_donante_fecha:       n.aplicagestiondonante ? (n.vencimientogestiondonante || null) : null,
+      gestion_donante_estado:      n.aplicagestiondonante ? getEstadoCurso(n.vencimientogestiondonante) : null,
       manejo_dolor_fecha:          n.aplicamanejodolor ? (n.vencimientomanejodolor || null) : null,
       manejo_dolor_estado:         n.aplicamanejodolor ? getEstadoCurso(n.vencimientomanejodolor) : null,
       radioproteccion_fecha:       n.aplicaradioproteccion ? (n.vencimientoradioproteccion || null) : null,

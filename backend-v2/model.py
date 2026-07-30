@@ -207,6 +207,7 @@ class MedicoPrerrogativas(Base):
     fecha_carta_aut_cme         = Column(Date)
     notif_ingreso_profesional   = Column(String(20))
     cert_entrega_modelo_medico  = Column(String(20))
+    carta_recepcion_docs        = Column(String(20))
     declaracion_conflicto       = Column(String(20))
     otros_docs_ingreso          = Column(Text)
 

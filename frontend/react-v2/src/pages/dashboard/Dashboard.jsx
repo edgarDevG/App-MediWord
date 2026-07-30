@@ -550,7 +550,7 @@ export default function Dashboard() {
         emptyIcon="person_search"
         emptyText="No se encontraron médicos"
         showCatFilter
-        SIZE={20}
+        catList={[...cats].sort((a, b) => b.total - a.total).slice(0, 4).map(c => c.categoria)}
         refreshKey={refreshKey}
       />
 

@@ -17,7 +17,7 @@ const CURSOS = [
   { key: 'ataquesagentesquimicos', label: 'Ag. Químicos',    icon: 'science',               campo: 'ataques_quimicos_fecha'     },
   { key: 'dengue',                 label: 'Dengue',          icon: 'bug_report',            campo: 'dengue_fecha'               },
   { key: 'sedacion',               label: 'Sedación',        icon: 'medication',            campo: 'sedacion_fecha'             },
-  { key: 'cuidadodonanteins',      label: 'Gest. Donación',  icon: 'volunteer_activism',    campo: 'cuidado_donante_fecha'      },
+  { key: 'gestiondonante',         label: 'Gest. Donación',  icon: 'volunteer_activism',    campo: 'gestion_donante_fecha'      },
   { key: 'radioproteccion',        label: 'Radioprotec.',    icon: 'radar',                 campo: 'radioproteccion_fecha'      },
   { key: 'manejodolor',            label: 'Man. Dolor',      icon: 'healing',               campo: 'manejo_dolor_fecha'         },
   { key: 'iamii',                  label: 'IAMII',           icon: 'cardiology',            campo: 'iamii_fecha'                },
@@ -71,7 +71,7 @@ function CursoCard({ curso }) {
         <span className="material-symbols-outlined" style={{ fontSize: 16, color: cfg.color, fontVariationSettings: "'FILL' 1", flexShrink: 0 }}>
           {curso.icon}
         </span>
-        <span style={{ fontSize: '0.775rem', fontWeight: 700, color: '#0f172a', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: '0.775rem', fontWeight: 700, color: '#0f172a', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {curso.label}
         </span>
       </div>

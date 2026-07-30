@@ -73,5 +73,8 @@ fi
 echo "[entrypoint] Creando usuario admin si no existe..."
 python create_admin.py
 
+echo "[entrypoint] Aplicando parches de esquema (alter_tables)..."
+python alter_tables.py
+
 echo "[entrypoint] Iniciando servidor MediWord v2 en puerto ${PORT:-8001}..."
-exec python -m uvicorn main:app --host 0.0.0.0 --port "${PORT:-8001}"
+exec python -m uvicorn main:app --host 0.0.0.0 --port "${PORT:-8001}" $UVICORN_ARGS

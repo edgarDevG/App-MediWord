@@ -11,25 +11,39 @@ services:
     restart: unless-stopped
     env_file:
       - ./backend-v2/.env
+    environment:
+      # Pasamos --reload al entrypoint que editamos para activar Hot Reload
+      - UVICORN_ARGS=--reload
     ports:
       - "${BACKEND_PORT:-8001}:8001"
     volumes:
       - mediword_uploads:/app/uploads/medicos
+      # Hot Reload: mapear el código local al contenedor
+      - ./backend-v2:/app
     networks:
       - mediword_net
 
-  # ── Frontend React + Nginx ───────────────────────────────────
+  # ── Frontend React + Vite (Desarrollo) ───────────────────────
   frontend:
-    image: edgardevv/app-mediword-frontend:latest
+    image: edgardevv/app-mediword-frontend:local-dev
     build:
       context: ./frontend/react-v2
       dockerfile: Dockerfile
+      # IMPORTANTE: Usamos la etapa de Node.js, no la de Nginx
+      target: builder
       args:
-        # Ruta relativa: nginx proxy /api/v1/* → backend:8001
-        VITE_API_URL: /api/v1
+        VITE_API_URL: http://localhost:8001/api/v1
+    # Sobrescribir el comando para arrancar el servidor de desarrollo de Vite
+    command: npm run dev -- --host 0.0.0.0 --port 80
     restart: unless-stopped
     ports:
-      - "${FRONTEND_PORT:-80}:80"
+      - "${FRONTEND_PORT:-3000}:80"
+    volumes:
+      # Hot Reload: mapear el código fuente de React
+      - ./frontend/react-v2:/app
+      # Volumen anónimo para no sobrescribir los node_modules del contenedor
+      # con la (inexistente) carpeta local.
+      - /app/node_modules
     depends_on:
       - backend
     networks:

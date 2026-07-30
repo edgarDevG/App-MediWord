@@ -138,7 +138,6 @@ export default function ListaRenuncias() {
             <EstadoBadge estado={m.estado ?? 'RENUNCIA'} />
           </div>
         )}
-        SIZE={20}
       />
     </div>
   );

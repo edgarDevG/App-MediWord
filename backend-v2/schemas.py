@@ -273,6 +273,7 @@ class PrerrogativasUpdate(BaseModel):
     fecha_carta_aut_cme: Optional[date] = None
     notif_ingreso_profesional: Optional[str] = None
     cert_entrega_modelo_medico: Optional[str] = None
+    carta_recepcion_docs: Optional[str] = None
     declaracion_conflicto: Optional[str] = None
     otros_docs_ingreso: Optional[str] = None
 

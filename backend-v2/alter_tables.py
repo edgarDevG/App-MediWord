@@ -33,6 +33,10 @@ def apply_alters():
     run("contratacion contrato_prestacion",
         "ALTER TABLE medicos_contratacion ADD COLUMN IF NOT EXISTS contrato_prestacion VARCHAR(20)")
 
+    # ── medicos_prerrogativas ──────────────────────────────────────
+    run("prerrogativas carta_recepcion_docs",
+        "ALTER TABLE medicos_prerrogativas ADD COLUMN IF NOT EXISTS carta_recepcion_docs VARCHAR(20)")
+
     # ── m_directorio_metrica: añadir id PK + activo ───────────────
     # La tabla ya existe con 128 filas (codigo, descripcion) pero sin PK ni id
     run("m_directorio_metrica ADD id",

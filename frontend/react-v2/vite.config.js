@@ -12,6 +12,9 @@ export default defineConfig({
     port: 5174,
     // Permite que ngrok y otros hosts externos accedan al dev server
     allowedHosts: 'all',
+    watch: {
+      usePolling: true,
+    },
     proxy: {
       '/api': {
         target: BACKEND_URL,

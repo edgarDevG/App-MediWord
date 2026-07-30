@@ -304,6 +304,7 @@ const Tab2Habilitacion = forwardRef(function Tab2Habilitacion({ medicoDoc, onNex
       fecha_carta_aut_cme:            pre.fechacartaauthingresocme       || null,
       notif_ingreso_profesional:      pre.notificacioningresoprofesional || null,
       cert_entrega_modelo_medico:     pre.certentregamodelomedico        || null,
+      carta_recepcion_docs:           pre.cartareceptdocmodelomedico     || null,
       declaracion_conflicto:          pre.declaracionconflictointereses  || null,
     };
 

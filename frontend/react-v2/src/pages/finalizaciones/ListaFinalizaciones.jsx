@@ -138,7 +138,6 @@ export default function ListaFinalizaciones() {
             <EstadoBadge estado={m.estado ?? 'FINALIZADO'} />
           </div>
         )}
-        SIZE={20}
       />
     </div>
   );

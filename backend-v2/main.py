@@ -166,8 +166,8 @@ app.add_middleware(
         "http://10.28.110.104:5173",
         "http://10.28.110.104:4173",
     ],
-    # Acepta red interna 10.28.x.x y túneles de VS Code (devtunnels.ms) / GitHub Codespaces
-    allow_origin_regex=r"http://10\.28\.\d{1,3}\.\d{1,3}(:\d+)?|https://.*\.(devtunnels\.ms|app\.github\.dev|githubpreview\.dev)(:\d+)?",
+    # Acepta red interna 10.28.x.x, túneles, y localhost en cualquier puerto
+    allow_origin_regex=r"http://10\.28\.\d{1,3}\.\d{1,3}(:\d+)?|https://.*\.(devtunnels\.ms|app\.github\.dev|githubpreview\.dev)(:\d+)?|http://localhost(:\d+)?|http://127\.0\.0\.1(:\d+)?",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

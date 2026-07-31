@@ -119,84 +119,37 @@ def debug_storage():
 @router.post("/debug/migrate", tags=["debug"])
 def migrate_old_to_samba():
     """
-    Migra archivos del volumen local viejo a SAMBA.
-    Usa copy sin metadata para evitar errores de chmod en CIFS.
+    Migra archivos usando comandos nativos de Linux (cp).
     ELIMINAR después de la migración exitosa.
     """
-    import shutil
+    import subprocess
+    import os
 
-    OLD_ROOT = Path("/app/uploads/medicos_old")
-    NEW_ROOT = MEDIA_ROOT  # /app/uploads/medicos (SAMBA)
+    OLD_ROOT = "/app/uploads/medicos_old"
+    NEW_ROOT = "/app/uploads/medicos"
 
-    result = {
-        "old_root": str(OLD_ROOT),
-        "new_root": str(NEW_ROOT),
-        "old_exists": OLD_ROOT.exists(),
-        "old_is_dir": OLD_ROOT.is_dir(),
-    }
+    if not os.path.exists(OLD_ROOT):
+        return {"error": "El volumen viejo no está montado en /app/uploads/medicos_old"}
 
-    if not OLD_ROOT.exists():
-        result["error"] = "El volumen viejo no está montado en /app/uploads/medicos_old"
-        return result
-
-    # Listar carpetas en el volumen viejo
+    # Comando cp recursivo ignorando permisos originales (esencial para CIFS/SAMBA)
+    cmd = f"cp -rv --no-preserve=mode,ownership {OLD_ROOT}/* {NEW_ROOT}/ | head -n 50"
+    
     try:
-        carpetas_old = os.listdir(OLD_ROOT)
-        result["carpetas_encontradas"] = carpetas_old
-        result["total_carpetas"] = len(carpetas_old)
+        proc = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        
+        # Verificar qué hay ahora en SAMBA
+        contenido_samba = os.listdir(NEW_ROOT)
+        
+        return {
+            "comando": cmd,
+            "exit_code": proc.returncode,
+            "stdout_parcial": proc.stdout.split("\n"),
+            "stderr": proc.stderr.split("\n"),
+            "carpetas_en_samba": len(contenido_samba),
+            "ejemplo_contenido": contenido_samba[:10]
+        }
     except Exception as e:
-        result["error"] = f"No se puede leer el volumen viejo: {e}"
-        return result
-
-    # Copiar archivo por archivo sin intentar cambiar permisos (CIFS no lo permite)
-    archivos_copiados = 0
-    archivos_omitidos = 0
-    errores = []
-
-    for root, dirs, files in os.walk(OLD_ROOT):
-        # Calcular la ruta relativa respecto al OLD_ROOT
-        rel_path = Path(root).relative_to(OLD_ROOT)
-        dest_dir = NEW_ROOT / rel_path
-
-        # Crear directorio destino si no existe
-        try:
-            dest_dir.mkdir(parents=True, exist_ok=True)
-        except Exception as e:
-            errores.append({"ruta": str(rel_path), "error": f"mkdir: {e}"})
-            continue
-
-        # Copiar cada archivo (sin metadata/chmod)
-        for filename in files:
-            src_file = Path(root) / filename
-            dst_file = dest_dir / filename
-
-            if dst_file.exists():
-                archivos_omitidos += 1
-                continue
-
-            try:
-                # shutil.copy solo copia contenido + permisos básicos, NO usa chmod
-                with open(src_file, "rb") as f_in:
-                    with open(dst_file, "wb") as f_out:
-                        shutil.copyfileobj(f_in, f_out)
-                archivos_copiados += 1
-            except Exception as e:
-                errores.append({"archivo": str(rel_path / filename), "error": str(e)})
-
-    result["archivos_copiados"] = archivos_copiados
-    result["archivos_omitidos_ya_existian"] = archivos_omitidos
-    result["errores"] = errores[:20]  # Limitar a 20 errores para no saturar
-    result["total_errores"] = len(errores)
-
-    # Verificar resultado
-    try:
-        contenido_nuevo = os.listdir(NEW_ROOT)
-        result["contenido_samba_despues"] = contenido_nuevo
-        result["total_en_samba"] = len(contenido_nuevo)
-    except Exception as e:
-        result["verificacion_error"] = str(e)
-
-    return result
+        return {"error_interno": str(e)}
 
 
 # ── Schemas Pydantic ──────────────────────────────────────────────────────────

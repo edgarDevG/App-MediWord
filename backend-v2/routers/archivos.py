@@ -120,6 +120,7 @@ def debug_storage():
 def migrate_old_to_samba():
     """
     Migra archivos del volumen local viejo a SAMBA.
+    Usa copy sin metadata para evitar errores de chmod en CIFS.
     ELIMINAR después de la migración exitosa.
     """
     import shutil
@@ -147,45 +148,45 @@ def migrate_old_to_samba():
         result["error"] = f"No se puede leer el volumen viejo: {e}"
         return result
 
-    # Copiar cada carpeta de médico
-    copiados = []
+    # Copiar archivo por archivo sin intentar cambiar permisos (CIFS no lo permite)
+    archivos_copiados = 0
+    archivos_omitidos = 0
     errores = []
-    archivos_total = 0
 
-    for carpeta in carpetas_old:
-        src = OLD_ROOT / carpeta
-        dst = NEW_ROOT / carpeta
+    for root, dirs, files in os.walk(OLD_ROOT):
+        # Calcular la ruta relativa respecto al OLD_ROOT
+        rel_path = Path(root).relative_to(OLD_ROOT)
+        dest_dir = NEW_ROOT / rel_path
 
-        if not src.is_dir():
+        # Crear directorio destino si no existe
+        try:
+            dest_dir.mkdir(parents=True, exist_ok=True)
+        except Exception as e:
+            errores.append({"ruta": str(rel_path), "error": f"mkdir: {e}"})
             continue
 
-        try:
-            if dst.exists():
-                # Si ya existe la carpeta destino, copiar archivos individuales
-                for root, dirs, files in os.walk(src):
-                    rel = Path(root).relative_to(src)
-                    dest_dir = dst / rel
-                    dest_dir.mkdir(parents=True, exist_ok=True)
-                    for f in files:
-                        src_file = Path(root) / f
-                        dst_file = dest_dir / f
-                        if not dst_file.exists():
-                            shutil.copy2(src_file, dst_file)
-                            archivos_total += 1
-            else:
-                shutil.copytree(src, dst)
-                # Contar archivos copiados
-                for _, _, files in os.walk(dst):
-                    archivos_total += len(files)
+        # Copiar cada archivo (sin metadata/chmod)
+        for filename in files:
+            src_file = Path(root) / filename
+            dst_file = dest_dir / filename
 
-            copiados.append(carpeta)
-        except Exception as e:
-            errores.append({"carpeta": carpeta, "error": str(e)})
+            if dst_file.exists():
+                archivos_omitidos += 1
+                continue
 
-    result["carpetas_copiadas"] = copiados
-    result["total_copiadas"] = len(copiados)
-    result["archivos_copiados"] = archivos_total
-    result["errores"] = errores
+            try:
+                # shutil.copy solo copia contenido + permisos básicos, NO usa chmod
+                with open(src_file, "rb") as f_in:
+                    with open(dst_file, "wb") as f_out:
+                        shutil.copyfileobj(f_in, f_out)
+                archivos_copiados += 1
+            except Exception as e:
+                errores.append({"archivo": str(rel_path / filename), "error": str(e)})
+
+    result["archivos_copiados"] = archivos_copiados
+    result["archivos_omitidos_ya_existian"] = archivos_omitidos
+    result["errores"] = errores[:20]  # Limitar a 20 errores para no saturar
+    result["total_errores"] = len(errores)
 
     # Verificar resultado
     try:

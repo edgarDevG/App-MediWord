@@ -41,6 +41,80 @@ _EDITORS     = require_roles("admin", "supervisor", "editor")
 _SUPERVISORS = require_roles("admin", "supervisor")
 
 
+# ── ENDPOINT TEMPORAL DE DIAGNÓSTICO (ELIMINAR DESPUÉS DE RESOLVER) ───────────
+@router.get("/debug/storage", tags=["debug"])
+def debug_storage():
+    """Diagnóstico temporal del volumen de almacenamiento. ELIMINAR después de resolver."""
+    import subprocess
+    info = {}
+
+    # 1. MEDIA_ROOT configurado
+    info["media_root"] = str(MEDIA_ROOT)
+    info["media_root_exists"] = MEDIA_ROOT.exists()
+    info["media_root_is_dir"] = MEDIA_ROOT.is_dir()
+
+    # 2. Contenido de la raíz
+    try:
+        contenido = os.listdir(MEDIA_ROOT)
+        info["contenido_raiz"] = contenido[:50]
+        info["total_items"] = len(contenido)
+    except Exception as e:
+        info["contenido_raiz_error"] = str(e)
+
+    # 3. Información de montaje (¿es CIFS/SAMBA o local?)
+    try:
+        result = subprocess.run(
+            ["findmnt", "-T", str(MEDIA_ROOT), "-o", "SOURCE,FSTYPE,TARGET,OPTIONS", "--json"],
+            capture_output=True, text=True, timeout=5
+        )
+        info["mount_info"] = result.stdout.strip() if result.returncode == 0 else f"findmnt error: {result.stderr.strip()}"
+    except FileNotFoundError:
+        # Si findmnt no existe, intentar con mount | grep
+        try:
+            result = subprocess.run(
+                ["mount"], capture_output=True, text=True, timeout=5
+            )
+            lineas_relevantes = [l for l in result.stdout.splitlines() if "uploads" in l or "cifs" in l or "medicos" in l]
+            info["mount_info"] = lineas_relevantes if lineas_relevantes else "No se encontró montaje CIFS/SAMBA para uploads"
+        except Exception as e2:
+            info["mount_info"] = f"Error ejecutando mount: {e2}"
+    except Exception as e:
+        info["mount_info"] = f"Error: {e}"
+
+    # 4. Permisos y propietario
+    try:
+        stat = os.stat(MEDIA_ROOT)
+        info["permisos"] = oct(stat.st_mode)
+        info["uid"] = stat.st_uid
+        info["gid"] = stat.st_gid
+    except Exception as e:
+        info["permisos_error"] = str(e)
+
+    # 5. Prueba de escritura
+    test_file = MEDIA_ROOT / "__test_samba_write__.tmp"
+    try:
+        test_file.write_text("test")
+        info["escritura_ok"] = True
+        test_file.unlink()
+    except Exception as e:
+        info["escritura_error"] = str(e)
+
+    # 6. /proc/mounts para ver montajes reales
+    try:
+        with open("/proc/mounts", "r") as f:
+            mounts = f.read()
+        cifs_mounts = [l for l in mounts.splitlines() if "cifs" in l or "uploads" in l]
+        info["proc_mounts_cifs"] = cifs_mounts if cifs_mounts else "NO HAY MONTAJES CIFS - El volumen NO está conectado a SAMBA"
+    except Exception as e:
+        info["proc_mounts_error"] = str(e)
+
+    # 7. Variables de entorno relevantes
+    info["env_MEDIA_ROOT"] = os.getenv("MEDIA_ROOT", "NO DEFINIDA")
+    info["env_DATABASE_URL_exists"] = bool(os.getenv("DATABASE_URL"))
+
+    return info
+
+
 # ── Schemas Pydantic ──────────────────────────────────────────────────────────
 
 class ArchivoOut(BaseModel):

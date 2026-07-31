@@ -115,6 +115,89 @@ def debug_storage():
     return info
 
 
+# ── ENDPOINT TEMPORAL DE MIGRACIÓN (ELIMINAR DESPUÉS DE RESOLVER) ─────────────
+@router.post("/debug/migrate", tags=["debug"])
+def migrate_old_to_samba():
+    """
+    Migra archivos del volumen local viejo a SAMBA.
+    ELIMINAR después de la migración exitosa.
+    """
+    import shutil
+
+    OLD_ROOT = Path("/app/uploads/medicos_old")
+    NEW_ROOT = MEDIA_ROOT  # /app/uploads/medicos (SAMBA)
+
+    result = {
+        "old_root": str(OLD_ROOT),
+        "new_root": str(NEW_ROOT),
+        "old_exists": OLD_ROOT.exists(),
+        "old_is_dir": OLD_ROOT.is_dir(),
+    }
+
+    if not OLD_ROOT.exists():
+        result["error"] = "El volumen viejo no está montado en /app/uploads/medicos_old"
+        return result
+
+    # Listar carpetas en el volumen viejo
+    try:
+        carpetas_old = os.listdir(OLD_ROOT)
+        result["carpetas_encontradas"] = carpetas_old
+        result["total_carpetas"] = len(carpetas_old)
+    except Exception as e:
+        result["error"] = f"No se puede leer el volumen viejo: {e}"
+        return result
+
+    # Copiar cada carpeta de médico
+    copiados = []
+    errores = []
+    archivos_total = 0
+
+    for carpeta in carpetas_old:
+        src = OLD_ROOT / carpeta
+        dst = NEW_ROOT / carpeta
+
+        if not src.is_dir():
+            continue
+
+        try:
+            if dst.exists():
+                # Si ya existe la carpeta destino, copiar archivos individuales
+                for root, dirs, files in os.walk(src):
+                    rel = Path(root).relative_to(src)
+                    dest_dir = dst / rel
+                    dest_dir.mkdir(parents=True, exist_ok=True)
+                    for f in files:
+                        src_file = Path(root) / f
+                        dst_file = dest_dir / f
+                        if not dst_file.exists():
+                            shutil.copy2(src_file, dst_file)
+                            archivos_total += 1
+            else:
+                shutil.copytree(src, dst)
+                # Contar archivos copiados
+                for _, _, files in os.walk(dst):
+                    archivos_total += len(files)
+
+            copiados.append(carpeta)
+        except Exception as e:
+            errores.append({"carpeta": carpeta, "error": str(e)})
+
+    result["carpetas_copiadas"] = copiados
+    result["total_copiadas"] = len(copiados)
+    result["archivos_copiados"] = archivos_total
+    result["errores"] = errores
+
+    # Verificar resultado
+    try:
+        contenido_nuevo = os.listdir(NEW_ROOT)
+        result["contenido_samba_despues"] = contenido_nuevo
+        result["total_en_samba"] = len(contenido_nuevo)
+    except Exception as e:
+        result["verificacion_error"] = str(e)
+
+    return result
+
+
 # ── Schemas Pydantic ──────────────────────────────────────────────────────────
 
 class ArchivoOut(BaseModel):

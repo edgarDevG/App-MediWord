@@ -2,7 +2,8 @@ services:
 
   # ── Backend FastAPI ──────────────────────────────────────────
   backend:
-    image: edgardevv/app-mediword-backend:latest
+    build:
+      context: ./backend-v2 # Apunta a la carpeta de tu código backend en Gitea
     restart: unless-stopped
     environment:
       DATABASE_URL: ${DATABASE_URL}
@@ -15,14 +16,13 @@ services:
       - mediword_uploads:/app/uploads/medicos
       # TEMPORAL: Volumen viejo (local ext4) para migración de archivos al SAMBA
       - old_uploads:/app/uploads/medicos_old:ro
-      # Inyectar el código modificado directamente al contenedor sin reconstruir
-      - ./backend-v2:/app
     networks:
       - mediword_net
 
   # ── Frontend React + Nginx ───────────────────────────────────
   frontend:
-    image: edgardevv/app-mediword-frontend:latest
+    build:
+      context: ./frontend/react-v2 # Apunta a la carpeta de tu código frontend en Gitea
     restart: unless-stopped
     ports:
       - "7002:80"

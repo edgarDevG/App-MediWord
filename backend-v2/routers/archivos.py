@@ -265,9 +265,15 @@ def download_archivo(
 
     ruta_fisica = MEDIA_ROOT / archivo.ruta_relativa
     if not ruta_fisica.exists():
+        import os
+        try:
+            contenido_dir = str(os.listdir(MEDIA_ROOT))[:200]
+        except Exception as e:
+            contenido_dir = f"Error leyendo {MEDIA_ROOT}: {e}"
+            
         raise HTTPException(
             status_code=404,
-            detail="Archivo físico no encontrado en disco. Puede haber sido movido o eliminado.",
+            detail=f"Archivo no encontrado. Buscando en: {ruta_fisica}. Archivos en la raíz: {contenido_dir}",
         )
 
     return FileResponse(

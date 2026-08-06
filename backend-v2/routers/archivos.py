@@ -42,41 +42,6 @@ _SUPERVISORS = require_roles("admin", "supervisor")
 
 
 
-# ── ENDPOINT TEMPORAL DE MIGRACIÓN (ELIMINAR DESPUÉS DE RESOLVER) ─────────────
-@router.post("/debug/migrate", tags=["debug"])
-def migrate_old_to_samba():
-    """
-    Migra archivos usando comandos nativos de Linux (cp).
-    ELIMINAR después de la migración exitosa.
-    """
-    import subprocess
-    import os
-
-    OLD_ROOT = "/app/uploads/medicos_old"
-    NEW_ROOT = "/app/uploads/medicos"
-
-    if not os.path.exists(OLD_ROOT):
-        return {"error": "El volumen viejo no está montado en /app/uploads/medicos_old"}
-
-    # Comando cp recursivo ignorando permisos originales (esencial para CIFS/SAMBA)
-    # Se eliminó el 'head -n 50' para que no aborte prematuramente
-    cmd = f"cp -r --no-preserve=mode,ownership {OLD_ROOT}/* {NEW_ROOT}/"
-    
-    try:
-        proc = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-        
-        # Verificar qué hay ahora en SAMBA
-        contenido_samba = os.listdir(NEW_ROOT)
-        
-        return {
-            "comando": cmd,
-            "exit_code": proc.returncode,
-            "carpetas_en_samba": len(contenido_samba),
-            "ejemplo_contenido": contenido_samba[:10],
-            "mensaje": "Migración completada exitosamente sin interrupciones."
-        }
-    except Exception as e:
-        return {"error_interno": str(e)}
 
 
 # ── Schemas Pydantic ──────────────────────────────────────────────────────────

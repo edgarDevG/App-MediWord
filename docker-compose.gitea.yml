@@ -14,7 +14,6 @@ services:
       - "6006:8001"
     volumes:
       - mediword_uploads:/app/uploads/medicos
-      # TEMPORAL: Volumen viejo (local ext4) para migración de archivos al SAMBA
       - old_uploads:/app/uploads/medicos_old:ro
     networks:
       - mediword_net
@@ -43,7 +42,6 @@ volumes:
       type: cifs
       device: "//10.28.110.106/Compartido/app_medicos"
       o: "username=${SAMBA_USER},password=${SAMBA_PASS},vers=3.0,uid=1000,gid=1000,file_mode=0770,dir_mode=0770"
-  # TEMPORAL: Referencia al volumen viejo que tiene los archivos en disco local
   old_uploads:
     external: true
     name: app-mediword-hsm_mediword_uploads

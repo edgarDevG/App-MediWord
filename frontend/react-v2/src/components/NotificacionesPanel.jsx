@@ -223,10 +223,11 @@ export default function NotificacionesPanel() {
           <div style={{ position: 'fixed', inset: 0, zIndex: 998 }} onClick={() => setOpen(false)} />
           <div style={{
             position: 'absolute', right: 0, top: 'calc(100% + 10px)',
-            width: 420, maxHeight: 600, background: 'white',
+            width: hayExpanded ? 700 : 420, maxHeight: 600, background: 'white',
             borderRadius: '0.875rem', border: '1px solid rgba(197,198,210,0.4)',
             boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
             zIndex: 999, overflow: 'hidden', display: 'flex', flexDirection: 'column',
+            transition: 'width 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
           }}>
 
             {/* Header */}

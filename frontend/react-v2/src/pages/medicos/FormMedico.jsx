@@ -404,12 +404,14 @@ export default function FormMedico() {
 
   const optExpedicion  = useMemo(() => applyMapper(rawExpedicion,  mappers.lugaresExpedicion), [rawExpedicion]);
   const optNacimiento  = useMemo(() => applyMapper(rawNacimiento,  mappers.lugaresNacimiento), [rawNacimiento]);
-  const optCategorias  = useMemo(() => applyMapper(rawCategorias,  mappers.categorias, [
-    { value: 'A',  label: 'A – Especialista'          },
-    { value: 'AE', label: 'AE – Especialista Externo' },
-    { value: 'AP', label: 'AP – Adicional Planta'     },
-    { value: 'C',  label: 'C – Contratista'           },
-  ]), [rawCategorias]);
+  const optCategorias  = useMemo(() => {
+    const EXCLUDED_CATEGORIES = ['A', 'AP', 'MG', 'N/D', 'O', 'PE', 'PSI'];
+    const filteredCategorias = rawCategorias.filter(c => !EXCLUDED_CATEGORIES.includes(c.code));
+    return applyMapper(filteredCategorias,  mappers.categorias, [
+      { value: 'AE', label: 'AE – Especialista Externo' },
+      { value: 'C',  label: 'C – Contratista'           },
+    ]);
+  }, [rawCategorias]);
   const optCondiciones    = useMemo(() => applyMapper(rawCondiciones,    mappers.condicionesLab),  [rawCondiciones]);
   const optDeptCoord      = useMemo(() => applyMapper(rawDeptCoord,      mappers.departamentos),   [rawDeptCoord]);
   const optDeptDM         = useMemo(() => applyMapper(rawDeptDM,         mappers.departamentos),   [rawDeptDM]);

@@ -58,5 +58,5 @@ volumes:
     driver: local
     driver_opts:
       type: cifs
-      device: "//10.28.110.106/Compartido/app_medicos"
+      device: "//10.28.110.106/app_medicos"
       o: "username=${SAMBA_USER},password=${SAMBA_PASS},vers=3.0,uid=1000,gid=1000,file_mode=0770,dir_mode=0770"

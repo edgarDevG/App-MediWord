@@ -40,8 +40,9 @@ if echo "$ALEMBIC_CURRENT" | grep -qE "[a-f0-9]{8,}"; then
 from database import engine
 from sqlalchemy import text
 
-# Head final del árbol de migraciones (merge de c2d5e8f1a607 + f3a8c1d2e904)
+# Head final del árbol de migraciones antiguo
 MERGE_HEAD = 'g4b7c2d1e805'
+LATER_HEADS = ['ae0a2e6f4adc']
 # Revisiones intermedias que NO deben coexistir con el merge head
 INTERMEDIATE = ['f3a8c1d2e904', 'c2d5e8f1a607']
 
@@ -49,9 +50,16 @@ with engine.connect() as conn:
     current = [r[0] for r in conn.execute(text('SELECT version_num FROM alembic_version')).fetchall()]
     print('[MIGRATION] Revisiones actuales en BD:', current)
 
-    # Si el merge head ya está registrado no hay nada que hacer
-    if MERGE_HEAD in current:
-        print('[MIGRATION] Merge head ya registrado, nada que sellar.')
+    # Limpiar overlaps si hay multiples heads pero uno es ancestro de otro
+    if MERGE_HEAD in current and any(h in current for h in LATER_HEADS):
+        print('[MIGRATION] Overlap detectado. Eliminando ancestro', MERGE_HEAD)
+        conn.execute(text('DELETE FROM alembic_version WHERE version_num=:r'), {'r': MERGE_HEAD})
+        conn.commit()
+        current.remove(MERGE_HEAD)
+
+    # Si el merge head o uno posterior ya está registrado no hay nada que sellar
+    if MERGE_HEAD in current or any(h in current for h in LATER_HEADS):
+        print('[MIGRATION] Merge head o posterior ya registrado, nada que sellar.')
     else:
         # Eliminar intermedias que bloqueen el upgrade
         for rev in INTERMEDIATE:

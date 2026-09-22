@@ -10,7 +10,7 @@ import model  # noqa: F401 — importar para registrar modelos en Base
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from datetime import date
-from model import MedicoNormativos, MedicoContratacion, Medico
+from model import MedicoNormativos, MedicoContratacion, Medico, HistorialEstados
 
 # ── Tareas programadas (Cron) ─────────────────────────────────
 def recalcular_vencimientos_diario():
@@ -44,6 +44,25 @@ def recalcular_vencimientos_diario():
                     m = db.query(Medico).filter(Medico.id == c.medico_id).first()
                     if m:
                         m.estado = "FINALIZADO"
+                        db.commit()
+
+        # 3. Rutina de Reactivación automática (FINALIZADO → ACTIVO si fecha_venc_oferta futura)
+        contratos_finalizados = db.query(MedicoContratacion).join(Medico, MedicoContratacion.medico_id == Medico.id).filter(Medico.estado == "FINALIZADO").all()
+        for c in contratos_finalizados:
+            if c.fecha_venc_oferta:
+                if c.fecha_venc_oferta >= date.today():
+                    print(f"[CRON] Reactivación automática del médico ID: {c.medico_id}. fecha_venc_oferta={c.fecha_venc_oferta}")
+                    m = db.query(Medico).filter(Medico.id == c.medico_id).first()
+                    if m:
+                        m.estado = "ACTIVO"
+                        m.fecha_finalizacion_contrato = None
+                        db.add(HistorialEstados(
+                            medico_id=m.id,
+                            estado_anterior="FINALIZADO",
+                            estado_nuevo="ACTIVO",
+                            usuario_cambio="sistema",
+                            motivo=f"Reactivación automática por cron: fecha_venc_oferta={c.fecha_venc_oferta} es futura",
+                        ))
                         db.commit()
 
     except Exception as e:
@@ -194,6 +213,7 @@ from routers.auth      import router as auth_router
 from routers.reportes  import router as reportes_router
 from routers.users     import router as users_router
 from routers.archivos  import router as archivos_router
+from routers.audit     import router as audit_router
 
 app.include_router(auth_router,      prefix='/api/v1/auth')
 app.include_router(users_router,     prefix='/api/v1')
@@ -202,3 +222,4 @@ app.include_router(maestras_router,  prefix='/api/v1')
 app.include_router(dashboard_router, prefix='/api/v1')
 app.include_router(archivos_router,  prefix='/api/v1')
 app.include_router(reportes_router,  prefix='/api/v1/reportes')
+app.include_router(audit_router,     prefix='/api/v1')

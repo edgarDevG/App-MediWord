@@ -265,15 +265,17 @@ export default function Tab4Institucional({ medicoDoc, onNext, onPrev, markCompl
     setLoading(true);
     const load = async () => {
       try {
-        const [rNorm, rCont, rAcc] = await Promise.allSettled([
+        const [rNorm, rCont, rAcc, rMed] = await Promise.allSettled([
           axiosInstance.get(`/medicos/${medicoDoc}/normativos/`,   { skipToast: true }),
           axiosInstance.get(`/medicos/${medicoDoc}/contratacion/`, { skipToast: true }),
           axiosInstance.get(`/medicos/${medicoDoc}/accesos/`,      { skipToast: true }),
+          axiosInstance.get(`/medicos/${medicoDoc}`,               { skipToast: true }),
         ]);
 
         const dNorm = rNorm.status === 'fulfilled' ? rNorm.value.data : {};
         const dCont = rCont.status === 'fulfilled' ? rCont.value.data : {};
         const dAcc  = rAcc.status  === 'fulfilled' ? rAcc.value.data  : {};
+        const dMed  = rMed.status  === 'fulfilled' ? rMed.value.data  : {};
 
         setNormativos(prev => ({
           ...prev,
@@ -298,15 +300,19 @@ export default function Tab4Institucional({ medicoDoc, onNext, onPrev, markCompl
           aplicacurso3anos:         !!dNorm.cursos_3_anios_fecha_venc || !!dNorm.cursos_3_anios_estado,   vigenciacurso3anos:            toDate(dNorm.cursos_3_anios_fecha_venc),
         }));
 
+        const isInactiveOrFinalized = ['INACTIVO', 'FINALIZADO'].includes(dMed.estado);
+        const defaultEstadoContrato = isInactiveOrFinalized ? 'NA' : (dCont.estado_contrato ?? '');
+        const defaultEstadoOferta = isInactiveOrFinalized ? 'NA' : (dCont.estado_oferta ?? '');
+
         setContratacion(prev => ({
           ...prev,
           tipovinculacion:            dCont.tipo_vinculacion    ?? '',
-          estadocontratolaboral:      dCont.estado_contrato     ?? '',
+          estadocontratolaboral:      defaultEstadoContrato,
           jornadalaboralcontrato:     dCont.jornada             ?? '',
           tipocontrato:               dCont.tipo_contrato       ?? '',
           fechafirmacontratacion:     toDate(dCont.fecha_firma_contrato),
           condicionescontratacion:    dCont.condiciones_contrato ?? '',
-          estadoofertamercantil:      dCont.estado_oferta       ?? '',
+          estadoofertamercantil:      defaultEstadoOferta,
           persona:                    dCont.tipo_persona        ?? '',
           fechafirmaofertamercantil:  toDate(dCont.fecha_firma_oferta),
           fechavencimientoofertamercantil: toDate(dCont.fecha_venc_oferta),

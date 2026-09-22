@@ -405,11 +405,14 @@ class AuditLog(Base):
     id          = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
     user_id     = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"))
     medico_id   = Column(BigInteger, ForeignKey("medicos.id", ondelete="SET NULL"))
-    action      = Column(String(50), nullable=False)          # read_sensitive|update|delete|login|export
-    table_name  = Column(String(50))
-    ip_address  = Column(String(45))
-    changes     = Column(JSON)                                # {before: {...}, after: {...}}
-    created_at  = Column(DateTime(timezone=True), server_default=func.now())
+    action          = Column(String(50), nullable=False)
+    event_category  = Column(String(50))                              # AUTH | CRUD | LIFECYCLE | ACCESS
+    severity        = Column(String(20), default="INFO")              # INFO | WARNING | CRITICAL
+    table_name      = Column(String(50))
+    ip_address      = Column(String(45))
+    user_agent      = Column(String(255))
+    changes         = Column(JSON)                                    # {before: {...}, after: {...}}
+    created_at      = Column(DateTime(timezone=True), server_default=func.now())
 
 # ═══════════════════════════════════════════════════════════════
 # 10. USUARIOS (SISTEMA_LOGIN)

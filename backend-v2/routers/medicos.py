@@ -1,7 +1,7 @@
 """
 Router: /api/v1/medicos — CRUD + sub-recursos por carpeta
 """
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func as sa_func
 from database import get_db
@@ -13,6 +13,7 @@ from model import (
     Seccion, Departamento, User,
 )
 from routers.auth import get_current_user, require_roles
+from utils_audit import registrar_auditoria, calcular_delta
 
 _EDITORS     = require_roles("admin", "supervisor", "editor")
 _SUPERVISORS = require_roles("admin", "supervisor")
@@ -76,10 +77,16 @@ def enrich(items: list[Medico], db: Session) -> list[MedicoOut]:
     return result
 
 
-def upsert_sub(db: Session, model_cls, medico_id: int, data: dict):
+def upsert_sub(db: Session, model_cls, medico_id: int, data: dict, request: Request = None, current_user: User = None, table_name: str = None):
     """Insert or update a sub-resource row by medico_id.
     Permite enviar None para limpiar campos (ej: desmarcar normativos)."""
     obj = db.query(model_cls).filter(model_cls.medico_id == medico_id).first()
+    
+    delta = None
+    if table_name and current_user:
+        from utils_audit import calcular_delta
+        delta = calcular_delta(obj, data)
+        
     if obj:
         for k, v in data.items():
             setattr(obj, k, v)  # Permite limpiar campos enviando None
@@ -88,6 +95,14 @@ def upsert_sub(db: Session, model_cls, medico_id: int, data: dict):
         db.add(obj)
     db.commit()
     db.refresh(obj)
+    
+    if delta and table_name and current_user:
+        from utils_audit import registrar_auditoria
+        registrar_auditoria(
+            db, current_user.id, "RECORD_UPDATE", table_name, medico_id, 
+            delta, event_category="CRUD", severity="INFO", request=request
+        )
+        
     return obj
 
 
@@ -131,15 +146,23 @@ def list_medicos(
 
 
 @router.post("/medicos/", response_model=MedicoOut, status_code=201)
-def create_medico(data: MedicoCreate, db: Session = Depends(get_db), _: User = Depends(_EDITORS)):
+def create_medico(request: Request, data: MedicoCreate, db: Session = Depends(get_db), current_user: User = Depends(_EDITORS)):
     existing = db.query(Medico).filter(Medico.documento_identidad == data.documento_identidad).first()
     if existing:
         raise HTTPException(409, "Ya existe un médico con ese documento")
 
-    medico = Medico(**data.model_dump(exclude_none=True))
+    payload = data.model_dump(exclude_none=True)
+    medico = Medico(**payload)
     db.add(medico)
     db.commit()
     db.refresh(medico)
+    
+    # Registro de auditoría
+    registrar_auditoria(
+        db, current_user.id, "RECORD_CREATE", "medicos", medico.id, 
+        {"after": payload}, event_category="CRUD", severity="INFO", request=request
+    )
+    
     return medico
 
 
@@ -149,7 +172,7 @@ def get_medico(documento: str, db: Session = Depends(get_db)):
 
 
 @router.put("/medicos/{documento}/", response_model=MedicoOut)
-def update_medico(documento: str, data: MedicoUpdate, db: Session = Depends(get_db), _: User = Depends(_EDITORS)):
+def update_medico(request: Request, documento: str, data: MedicoUpdate, db: Session = Depends(get_db), current_user: User = Depends(_EDITORS)):
     medico = get_medico_or_404(documento, db)
     update_data = data.model_dump(exclude_none=True)
 
@@ -161,11 +184,22 @@ def update_medico(documento: str, data: MedicoUpdate, db: Session = Depends(get_
         sa = update_data.get("segundo_apellido", medico.segundo_apellido)
         update_data["nombre_medico"] = " ".join(p for p in [pn, sn, pa, sa] if p)
 
+    # Calculate delta before applying changes
+    delta = calcular_delta(medico, update_data)
+
     for k, v in update_data.items():
         setattr(medico, k, v)
 
     db.commit()
     db.refresh(medico)
+    
+    # Registro de auditoría
+    if delta:
+        registrar_auditoria(
+            db, current_user.id, "RECORD_UPDATE", "medicos", medico.id, 
+            delta, event_category="CRUD", severity="INFO", request=request
+        )
+        
     return medico
 
 
@@ -242,6 +276,16 @@ def patch_medico_estado(
     db.add(historial)
     db.commit()
     db.refresh(medico)
+
+    # Registro de auditoría
+    registrar_auditoria(
+        db, current_user.id, 
+        f"UPDATE_ESTADO_{nuevo}", 
+        "medicos", 
+        medico.id, 
+        {"estado_anterior": estado_anterior, "estado_nuevo": nuevo, "motivo": data.motivo}
+    )
+
     return medico
 
 
@@ -289,9 +333,9 @@ def get_datos_hv(documento: str, db: Session = Depends(get_db)):
 
 
 @router.put("/medicos/{documento}/documentos-hv/", response_model=DatosHVOut)
-def update_datos_hv(documento: str, data: DatosHVUpdate, db: Session = Depends(get_db)):
+def update_datos_hv(request: Request, documento: str, data: DatosHVUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     m = get_medico_or_404(documento, db)
-    return upsert_sub(db, MedicoDatosHV, m.id, data.model_dump(exclude_unset=True))
+    return upsert_sub(db, MedicoDatosHV, m.id, data.model_dump(exclude_unset=True), request=request, current_user=current_user, table_name="medico_datos_hv")
 
 
 # ── Contacto ──────────────────────────────────────────────────
@@ -305,9 +349,9 @@ def get_contacto(documento: str, db: Session = Depends(get_db)):
 
 
 @router.put("/medicos/{documento}/contacto/", response_model=ContactoOut)
-def update_contacto(documento: str, data: ContactoUpdate, db: Session = Depends(get_db)):
+def update_contacto(request: Request, documento: str, data: ContactoUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     m = get_medico_or_404(documento, db)
-    return upsert_sub(db, MedicoContacto, m.id, data.model_dump(exclude_unset=True))
+    return upsert_sub(db, MedicoContacto, m.id, data.model_dump(exclude_unset=True), request=request, current_user=current_user, table_name="medico_contacto")
 
 
 # ── Prerrogativas ─────────────────────────────────────────────
@@ -321,9 +365,9 @@ def get_prerrogativas(documento: str, db: Session = Depends(get_db)):
 
 
 @router.put("/medicos/{documento}/prerrogativas/", response_model=PrerrogativasOut)
-def update_prerrogativas(documento: str, data: PrerrogativasUpdate, db: Session = Depends(get_db)):
+def update_prerrogativas(request: Request, documento: str, data: PrerrogativasUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     m = get_medico_or_404(documento, db)
-    return upsert_sub(db, MedicoPrerrogativas, m.id, data.model_dump(exclude_unset=True))
+    return upsert_sub(db, MedicoPrerrogativas, m.id, data.model_dump(exclude_unset=True), request=request, current_user=current_user, table_name="medico_prerrogativas")
 
 
 # ── Diplomas ──────────────────────────────────────────────────
@@ -337,9 +381,9 @@ def get_diplomas(documento: str, db: Session = Depends(get_db)):
 
 
 @router.put("/medicos/{documento}/diplomas-verificaciones/", response_model=DiplomasOut)
-def update_diplomas(documento: str, data: DiplomasUpdate, db: Session = Depends(get_db)):
+def update_diplomas(request: Request, documento: str, data: DiplomasUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     m = get_medico_or_404(documento, db)
-    return upsert_sub(db, MedicoDiplomas, m.id, data.model_dump(exclude_unset=True))
+    return upsert_sub(db, MedicoDiplomas, m.id, data.model_dump(exclude_unset=True), request=request, current_user=current_user, table_name="medico_diplomas")
 
 
 # ── Normativos ────────────────────────────────────────────────
@@ -353,7 +397,7 @@ def get_normativos(documento: str, db: Session = Depends(get_db)):
 
 
 @router.put("/medicos/{documento}/normativos/", response_model=NormativosOut)
-def update_normativos(documento: str, data: NormativosUpdate, db: Session = Depends(get_db)):
+def update_normativos(request: Request, documento: str, data: NormativosUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     m = get_medico_or_404(documento, db)
     d = data.model_dump(exclude_unset=True)
 
@@ -381,7 +425,7 @@ def update_normativos(documento: str, data: NormativosUpdate, db: Session = Depe
             continue   # el frontend ya mandó el estado calculado
         d[estado_key] = calcular_estado(d[fecha_key]) if d[fecha_key] else None
 
-    return upsert_sub(db, MedicoNormativos, m.id, d)
+    return upsert_sub(db, MedicoNormativos, m.id, d, request=request, current_user=current_user, table_name="medico_normativos")
 
 
 # ── Contratación ──────────────────────────────────────────────
@@ -395,9 +439,65 @@ def get_contratacion(documento: str, db: Session = Depends(get_db)):
 
 
 @router.put("/medicos/{documento}/contratacion/", response_model=ContratacionOut)
-def update_contratacion(documento: str, data: ContratacionUpdate, db: Session = Depends(get_db)):
+def update_contratacion(request: Request, documento: str, data: ContratacionUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     m = get_medico_or_404(documento, db)
-    return upsert_sub(db, MedicoContratacion, m.id, data.model_dump(exclude_unset=True))
+    payload = data.model_dump(exclude_unset=True)
+    
+    # Calculate delta before upsert
+    old_obj = db.query(MedicoContratacion).filter(MedicoContratacion.medico_id == m.id).first()
+    delta = calcular_delta(old_obj, payload)
+    print(f"[DEBUG AUDIT] Contratacion Delta: {delta}")
+    
+    result = upsert_sub(db, MedicoContratacion, m.id, payload)
+
+    # ── Auditoría
+    if delta:
+        print(f"[DEBUG AUDIT] Llamando registrar_auditoria con delta...")
+        registrar_auditoria(
+            db, current_user.id, "RECORD_UPDATE", "medico_contratacion", m.id, 
+            delta, event_category="CRUD", severity="INFO", request=request
+        )
+    else:
+        print(f"[DEBUG AUDIT] Delta vacío, NO se llama auditoría.")
+
+    # ── Reactivación automática: FINALIZADO → ACTIVO ──────────
+    # Si la nueva fecha_venc_oferta es futura y el médico está
+    # FINALIZADO, se reactiva automáticamente a ACTIVO.
+    nueva_fecha = payload.get("fecha_venc_oferta")
+    if nueva_fecha and nueva_fecha >= date_type.today() and m.estado == "FINALIZADO":
+        estado_anterior = m.estado
+        m.estado = "ACTIVO"
+        m.fecha_finalizacion_contrato = None
+        historial = HistorialEstados(
+            medico_id=m.id,
+            estado_anterior=estado_anterior,
+            estado_nuevo="ACTIVO",
+            usuario_cambio=current_user.username if current_user else "sistema",
+            motivo=f"Reactivación automática: fecha_venc_oferta actualizada a {nueva_fecha}",
+        )
+        db.add(historial)
+        db.commit()
+        db.refresh(m)
+
+    # ── Finalización automática: ACTIVO → FINALIZADO ──────────
+    # Si la nueva fecha_venc_oferta es pasada y el médico está
+    # ACTIVO, se finaliza automáticamente.
+    elif nueva_fecha and nueva_fecha < date_type.today() and m.estado == "ACTIVO":
+        estado_anterior = m.estado
+        m.estado = "FINALIZADO"
+        m.fecha_finalizacion_contrato = nueva_fecha
+        historial = HistorialEstados(
+            medico_id=m.id,
+            estado_anterior=estado_anterior,
+            estado_nuevo="FINALIZADO",
+            usuario_cambio=current_user.username if current_user else "sistema",
+            motivo=f"Finalización automática: fecha_venc_oferta actualizada a {nueva_fecha} (vencida)",
+        )
+        db.add(historial)
+        db.commit()
+        db.refresh(m)
+
+    return result
 
 
 # ── Accesos ───────────────────────────────────────────────────
@@ -411,9 +511,9 @@ def get_accesos(documento: str, db: Session = Depends(get_db)):
 
 
 @router.put("/medicos/{documento}/accesos/", response_model=AccesosOut)
-def update_accesos(documento: str, data: AccesosUpdate, db: Session = Depends(get_db)):
+def update_accesos(request: Request, documento: str, data: AccesosUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     m = get_medico_or_404(documento, db)
-    return upsert_sub(db, MedicoAccesos, m.id, data.model_dump(exclude_unset=True))
+    return upsert_sub(db, MedicoAccesos, m.id, data.model_dump(exclude_unset=True), request=request, current_user=current_user, table_name="medico_accesos")
 
 
 # ── Docs Habilitación ─────────────────────────────────────────
@@ -427,19 +527,31 @@ def get_docs_habilitacion(documento: str, db: Session = Depends(get_db)):
 
 
 @router.put("/medicos/{documento}/docs-habilitacion/", response_model=DocsHabilitacionOut)
-def update_docs_habilitacion(documento: str, data: DocsHabilitacionUpdate, db: Session = Depends(get_db)):
+def update_docs_habilitacion(request: Request, documento: str, data: DocsHabilitacionUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     m = get_medico_or_404(documento, db)
     obj = db.query(MedicoDocsHabilitacion).filter(MedicoDocsHabilitacion.medico_id == m.id).first()
+    
+    from utils_audit import calcular_delta, registrar_auditoria
+    payload = data.model_dump(exclude_unset=True)
+    delta = calcular_delta(obj, payload)
+    
     from sqlalchemy.orm.attributes import flag_modified
     if obj:
-        for k, v in data.model_dump(exclude_unset=True).items():
+        for k, v in payload.items():
             setattr(obj, k, v)
             flag_modified(obj, k)
     else:
-        obj = MedicoDocsHabilitacion(medico_id=m.id, **data.model_dump(exclude_unset=True))
+        obj = MedicoDocsHabilitacion(medico_id=m.id, **payload)
         db.add(obj)
     db.commit()
     db.refresh(obj)
+    
+    if delta:
+        registrar_auditoria(
+            db, current_user.id, "RECORD_UPDATE", "medico_docs_habilitacion", m.id, 
+            delta, event_category="CRUD", severity="INFO", request=request
+        )
+        
     return obj
 
 

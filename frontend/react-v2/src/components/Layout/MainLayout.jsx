@@ -8,12 +8,12 @@ import { useAuth } from '../../context/AuthContext';
 import NotificacionesPanel from '../NotificacionesPanel';
 
 const NAV_ITEMS = [
-  { label: 'Cuerpo Médico',     icon: 'group',             path: '/' },
-  { label: 'Médicos FSFB',      icon: 'business',          path: '/medicos-fsfb' },
-  { label: 'Renuncias',         icon: 'assignment_return', path: '/renuncias' },
-  { label: 'Finalizaciones',    icon: 'event_busy',        path: '/finalizaciones' },
-  { label: 'Personal Inactivo', icon: 'person_off',        path: '/personal-inactivo' },
-  { label: 'Reportes',          icon: 'analytics',         path: '/reportes' },
+  { label: 'Cuerpo Médico', icon: 'group', path: '/' },
+  { label: 'Médicos FSFB', icon: 'business', path: '/medicos-fsfb' },
+  { label: 'Renuncias', icon: 'assignment_return', path: '/renuncias' },
+  { label: 'Finalizaciones', icon: 'event_busy', path: '/finalizaciones' },
+  { label: 'Personal Inactivo', icon: 'person_off', path: '/personal-inactivo' },
+  { label: 'Reportes', icon: 'analytics', path: '/reportes' },
 ];
 
 const NAV_BOTTOM = [
@@ -21,23 +21,23 @@ const NAV_BOTTOM = [
 ];
 
 const ROL_LABELS = {
-  admin:      'Administrador',
+  admin: 'Administrador',
   supervisor: 'Supervisor',
-  editor:     'Editor',
-  viewer:     'Solo lectura',
-  user:       'Usuario',
+  editor: 'Editor',
+  viewer: 'Solo lectura',
+  user: 'Usuario',
 };
 
 const ROUTE_TITLES = {
-  '/':                  'Cuerpo Médico',
-  '/medicos':           'Cuerpo Médico',
-  '/medicos/nuevo':     'Nuevo Médico',
-  '/medicos-fsfb':      'Médicos FSFB',
-  '/renuncias':         'Renuncias',
-  '/finalizaciones':    'Finalizaciones',
+  '/': 'Cuerpo Médico',
+  '/medicos': 'Cuerpo Médico',
+  '/medicos/nuevo': 'Nuevo Médico',
+  '/medicos-fsfb': 'Médicos FSFB',
+  '/renuncias': 'Renuncias',
+  '/finalizaciones': 'Finalizaciones',
   '/personal-inactivo': 'Personal Inactivo',
-  '/reportes':          'Reportes',
-  '/configuracion':     'Configuración',
+  '/reportes': 'Reportes',
+  '/configuracion': 'Configuración',
 };
 
 function getTitle(pathname) {
@@ -49,7 +49,7 @@ function getTitle(pathname) {
 
 /* ── Layout principal ─────────────────────────────────────────── */
 export default function MainLayout({ children }) {
-  const [collapsed,    setCollapsed]    = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const { user, logout } = useAuth();
@@ -65,9 +65,9 @@ export default function MainLayout({ children }) {
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
+      document.documentElement.requestFullscreen().catch(() => { });
     } else {
-      document.exitFullscreen().catch(() => {});
+      document.exitFullscreen().catch(() => { });
     }
   };
 
@@ -100,8 +100,8 @@ export default function MainLayout({ children }) {
             <div className="sidebar-logo-row">
               <div className="sidebar-logo-icon-badge" aria-hidden="true">
                 <svg viewBox="0 0 32 32" fill="none" width="16" height="16">
-                  <rect x="13" y="4" width="6" height="24" rx="2" fill="white"/>
-                  <rect x="4" y="13" width="24" height="6" rx="2" fill="white"/>
+                  <rect x="13" y="4" width="6" height="24" rx="2" fill="white" />
+                  <rect x="4" y="13" width="24" height="6" rx="2" fill="white" />
                 </svg>
               </div>
               <div className="sidebar-logo-wordmark">

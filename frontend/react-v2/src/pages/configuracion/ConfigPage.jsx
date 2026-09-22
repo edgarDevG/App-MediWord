@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import axiosInstance from '../../api/axiosInstance';
 import { useToast } from '../../components/Toast';
+import AuditLogs from './AuditLogs';
 
 /* ── Constantes de roles ─────────────────────────────────────── */
 const ROLES = [
@@ -359,6 +360,7 @@ const btnStyle = (bg, color) => ({
 /* ── ConfigPage ──────────────────────────────────────────────── */
 const TABS = [
   { id: 'usuarios', label: 'Gestión de Usuarios', icon: 'manage_accounts' },
+  { id: 'auditoria', label: 'Auditoría (Logs)', icon: 'history' },
 ];
 
 export default function ConfigPage() {
@@ -406,6 +408,7 @@ export default function ConfigPage() {
         boxShadow: '0 4px 20px rgba(0,0,0,0.04)', padding: '1.75rem',
       }}>
         {activeTab === 'usuarios' && <GestionUsuarios showToast={showToast} />}
+        {activeTab === 'auditoria' && <AuditLogs />}
       </div>
 
       <ToastContainer />

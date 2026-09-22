@@ -11,6 +11,64 @@ import CredentialModal from './CredentialModal';
    MedicoTable — Componente premium compartido · MediWork HSM v2
    ══════════════════════════════════════════════════════════════ */
 
+/* ── Opciones de Contratación ── */
+const OPTESTADO  = [{ value: '', label: 'Seleccionar' }, { value: 'ACTIVO', label: 'Activo' },  { value: 'NA', label: 'N/A' }];
+const CONTRATOCONDICIONES = [{ value: '', label: 'Seleccionar' }, { value: 'SALARIO BASE', label: 'Salario Base' }, { value: 'SALARIO BASE + JORNADAS ADICIONALES', label: 'Salario Base + Jornadas Adicionales' }, { value: 'SALARIO BASE + JORNADAS ADICIONALES + PRODUCTIVIDAD', label: 'Salario Base + Jornadas Adicionales + Productividad' }, { value: 'SALARIO BASE + PRODUCTIVIDAD', label: 'Salario Base + Productividad' }, {value: 'SALARIO BASE + DISPNIBILIDAD', label: 'Salario Base + Disponibilidad'}, {value: 'SALARIO BASE + DISPNIBILIDAD + PRODUCTIVIDAD', label: 'Salario Base + Disponibilidad + Productividad'  },{value: 'SALARIO BASE + BONIFICACION', label: 'Salario Base + Bonificación'}, { value: 'NA', label: 'N/A' }];
+const TCONTRATO= [{ value: '', label: 'Seleccionar' }, { value: 'INDIFINIDO', label: 'Indefinido' }, { value: 'TERMINO FIJO', label: 'Término Fijo' }, { value: 'TEMPORAL', label: 'Temporal' }, { value: 'NA', label: 'N/A' }];
+const MCONTRATO= [{ value: '', label: 'Seleccionar' }, { value: 'RVG', label: 'RVG' }, { value: 'TARIJA HORA', label: 'Tarifa Hora' }, { value: 'VALOR FIJO', label: 'Valor Fijo' }, { value: 'RVG + MIN GARANTZADO', label: 'RVG + Mínimo Garantizado' }, { value: 'RVG + TARIFARIO', label: 'RVG + Tarifario' }, { value: 'NA', label: 'N/A' }];
+const OPTCONTRATO= [{ value: '', label: 'Seleccionar' }, { value: 'LABORAL', label: 'Laboral' }, { value: 'OFERTA MERCANTIL', label: 'Oferta Mercantil' }, { value: 'LABORAL/OFERTA MERCANTIL', label: 'Laboral / Oferta Mercantil' }, { value: 'NA', label: 'N/A' }];
+
+/* ── UI Helpers de Contratación ── */
+function SimpleSelect({ label, value, onChange, options, disabled, hint }) {
+  return (
+    <div className="form-group" style={{ marginBottom: 0 }}>
+      {label && <label className="form-label">{label}</label>}
+      <select className="form-select" value={value ?? ''} onChange={onChange} disabled={disabled}>
+        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+      {hint && <span style={{ fontSize:'0.75rem', color:'#94a3b8', marginTop:3, display:'block' }}>{hint}</span>}
+    </div>
+  );
+}
+
+function CampoFechaNullable({ label, fieldKey, value, onChangeFn, required }) {
+  const esNA = value === null;
+  return (
+    <div className="form-group" style={{ marginBottom: 0 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
+        {label && (
+          <label className="form-label" style={{ marginBottom:0, color: required ? '#dc2626' : undefined }}>
+            {label} {required && '*'}
+          </label>
+        )}
+        <button type="button" onClick={() => onChangeFn(fieldKey, esNA ? '' : null)}
+          style={{ fontSize:'0.6875rem', fontWeight:700, padding:'1px 8px', borderRadius:9999, border:'none', cursor:'pointer', background: esNA ? 'rgba(148,163,184,0.20)' : 'rgba(26,78,215,0.08)', color: esNA ? '#64748b' : 'var(--color-primary,#1a4ed7)', transition:'all 160ms' }}>
+          {esNA ? 'Agregar fecha' : 'N/A'}
+        </button>
+      </div>
+      {esNA
+        ? <div style={{ padding:'8px 12px', borderRadius:8, background:'rgba(148,163,184,0.08)', border:'1px dashed rgba(148,163,184,0.3)', fontSize:'0.8125rem', color:'#94a3b8', textAlign:'center' }}>No aplica — fecha nula</div>
+        : <input type="date" className="form-input" value={value ?? ''} onChange={e => onChangeFn(fieldKey, e.target.value || null)} style={required ? { border: '1px solid #fca5a5', background: '#fef2f2' } : {}} />
+      }
+    </div>
+  );
+}
+
+function VigenciaOferta({ fecha }) {
+  if (!fecha) return null;
+  const dias = Math.ceil((new Date(fecha + 'T00:00:00') - new Date()) / (1000 * 60 * 60 * 24));
+  let bg, color, icon, texto;
+  if (dias < 0)    { bg = 'rgba(220,38,38,0.12)';  color = '#b91c1c'; icon = 'cancel';       texto = `Vencida hace ${Math.abs(dias)}d`; }
+  else if (dias <= 30) { bg = 'rgba(234,179,8,0.12)'; color = '#a16207'; icon = 'schedule';      texto = `Vence en ${dias}d`; }
+  else             { bg = 'rgba(22,163,74,0.12)';  color = '#15803d'; icon = 'check_circle'; texto = 'VIGENTE'; }
+  return (
+    <span style={{ display:'inline-flex', alignItems:'center', gap:4, padding:'3px 10px', borderRadius:9999, background:bg, color, fontSize:'0.75rem', fontWeight:700 }}>
+      <span className="material-symbols-outlined" style={{ fontSize:13, fontVariationSettings:"'FILL' 1" }}>{icon}</span>
+      {texto}
+    </span>
+  );
+}
+
 // Re-exportamos para compatibilidad con PerfilMedico.jsx
 export { CAT_COLORS };
 export const catColor = (cat) => {
@@ -73,6 +131,22 @@ function GestionModal({ accion, doc, nombre, estadoActual, onClose, onDone }) {
   const [showCredModal, setShowCredModal] = useState(false);
   const [saving,   setSaving]   = useState(false);
   const [error,    setError]    = useState(null);
+  const [contrato, setContrato] = useState({});
+  const [loadingContrato, setLoadingContrato] = useState(false);
+
+  useEffect(() => {
+    if (accion === 'reactivar' || accion === 'reingreso') {
+      setLoadingContrato(true);
+      axiosInstance.get(`/medicos/${doc}/contratacion/`, { skipToast: true })
+        .then(r => {
+          if (r.data) setContrato(r.data);
+        })
+        .catch(() => {}) // Ignore if missing
+        .finally(() => setLoadingContrato(false));
+    }
+  }, [accion, doc]);
+
+  const chgCont = useCallback((key, val) => setContrato(p => ({ ...p, [key]: val })), []);
 
   const nombreCorto = (nombre ?? doc).replace(/^Dr[a]?\.?\s+/i, '').split(' ').slice(0, 3).join(' ');
 
@@ -106,7 +180,16 @@ function GestionModal({ accion, doc, nombre, estadoActual, onClose, onDone }) {
 
     setSaving(true);
     try {
-      await axiosInstance.patch(`/medicos/${doc}/estado`, payload);
+      if (accion === 'reactivar' || accion === 'reingreso') {
+        // Enviar la info del contrato que hace la magia de reactivación automática si la fecha es futura
+        await axiosInstance.put(`/medicos/${doc}/contratacion/`, contrato);
+        // Aun así enviamos el PATCH de estado por si se dejó una nota/motivo y para el flujo estándar
+        if (motivo) {
+          await axiosInstance.patch(`/medicos/${doc}/estado`, payload);
+        }
+      } else {
+        await axiosInstance.patch(`/medicos/${doc}/estado`, payload);
+      }
       onDone();
     } catch (e) {
       const msg = e.response?.data?.detail;
@@ -117,7 +200,7 @@ function GestionModal({ accion, doc, nombre, estadoActual, onClose, onDone }) {
 
   return createPortal(
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 9100, background: 'rgba(0,16,62,0.45)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 20, padding: '2rem', width: '100%', maxWidth: 440, boxShadow: '0 24px 48px rgba(0,16,62,0.18)' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 20, padding: '2rem', width: '100%', maxWidth: (accion === 'reactivar' || accion === 'reingreso') ? 860 : 440, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 24px 48px rgba(0,16,62,0.18)' }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: '1.5rem' }}>
           <div style={{ width: 44, height: 44, borderRadius: 12, background: cfg.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -140,8 +223,8 @@ function GestionModal({ accion, doc, nombre, estadoActual, onClose, onDone }) {
             </div>
           )}
 
-          {/* Fecha */}
-          {!cfg.isDeletion && (
+          {/* Configuración de Fechas original para otros estados */}
+          {!cfg.isDeletion && accion !== 'reactivar' && accion !== 'reingreso' && (
             <div>
               <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>
                 {cfg.fechaLabel}
@@ -150,6 +233,92 @@ function GestionModal({ accion, doc, nombre, estadoActual, onClose, onDone }) {
               </label>
               <input type="date" value={fecha} onChange={e => setFecha(e.target.value)}
                 style={{ width: '100%', padding: '9px 12px', border: '1px solid rgba(197,198,210,0.5)', borderRadius: 10, fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box' }} />
+            </div>
+          )}
+
+          {/* Formulario de Contratación (Solo Reactivación) */}
+          {(accion === 'reactivar' || accion === 'reingreso') && (
+            <div style={{ background: 'var(--color-surface,#fff)', border: '1px solid rgba(26,78,215,0.09)', borderRadius: 12, boxShadow: '0 1px 6px rgba(26,78,215,0.05)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(26,78,215,0.07)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--color-primary,#1a4ed7)', fontVariationSettings: "'FILL' 1" }}>medical_information</span>
+                <p style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-on-surface,#1e293b)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                  Datos de Contratación
+                </p>
+              </div>
+              <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
+              
+              {loadingContrato ? (
+                <div style={{ fontSize: '0.8125rem', color: '#64748b' }}>Cargando datos...</div>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+                    <div style={{ flex: '1 1 200px' }}>
+                      <SimpleSelect label="Tipo vinculación" value={contrato.tipo_vinculacion}
+                        onChange={e => chgCont('tipo_vinculacion', e.target.value)} options={OPTCONTRATO} />
+                    </div>
+                    <div style={{ flex: '1 1 200px' }}>
+                      <SimpleSelect label="Estado contrato laboral" value={contrato.estado_contrato}
+                        onChange={e => chgCont('estado_contrato', e.target.value)} options={OPTESTADO} />
+                    </div>
+                    <div style={{ flex: '1 1 200px' }}>
+                      <SimpleSelect label="Tipo contrato" value={contrato.tipo_contrato}
+                        onChange={e => chgCont('tipo_contrato', e.target.value)} options={TCONTRATO} />
+                    </div>
+                    <div style={{ flex: '1 1 180px' }}>
+                      <CampoFechaNullable label="Firma contratación"
+                        fieldKey="fecha_firma_contrato" value={contrato.fecha_firma_contrato} onChangeFn={chgCont} />
+                    </div>
+                    <div style={{ flex: '1 1 240px' }}>
+                      <SimpleSelect label="Condiciones contratación" value={contrato.condiciones_contrato}
+                        onChange={e => chgCont('condiciones_contrato', e.target.value)} options={CONTRATOCONDICIONES}  />
+                    </div>
+                    <div style={{ flex: '1 1 180px' }}>
+                      <SimpleSelect label="Modalidad honorarios" value={contrato.modalidad_honorarios}
+                        onChange={e => chgCont('modalidad_honorarios', e.target.value)} options={MCONTRATO}/>
+                    </div>
+                  </div>
+
+                  {['OFERTA MERCANTIL', 'LABORAL/OFERTA MERCANTIL'].includes(contrato.tipo_vinculacion) && (
+                    <>
+                      <div style={{ height: 1, background: 'rgba(26,78,215,0.07)', margin: '4px 0 12px' }} />
+                      <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.06em', margin: '0 0 12px 0' }}>OFERTA MERCANTIL</p>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+                        <div style={{ flex: '1 1 200px' }}>
+                          <SimpleSelect label="Estado oferta mercantil" value={contrato.estado_oferta}
+                            onChange={e => chgCont('estado_oferta', e.target.value)} options={OPTESTADO} />
+                        </div>
+                        <div style={{ flex: '1 1 160px' }}>
+                          <SimpleSelect label="Tipo persona" value={contrato.tipo_persona}
+                            onChange={e => chgCont('tipo_persona', e.target.value)}
+                            options={[{ value:'', label:'Seleccionar' }, { value:'NATURAL', label:'Natural' }, { value:'JURIDICA', label:'Jurídica' }]} />
+                        </div>
+                        <div style={{ flex: '1 1 180px' }}>
+                          <CampoFechaNullable label="Firma oferta mercantil"
+                            fieldKey="fecha_firma_oferta" value={contrato.fecha_firma_oferta} onChangeFn={chgCont} />
+                        </div>
+                        <div style={{ flex: '1 1 180px' }}>
+                          <CampoFechaNullable label="Vencimiento (Activa)" required={true}
+                            fieldKey="fecha_venc_oferta" value={contrato.fecha_venc_oferta} onChangeFn={chgCont} />
+                        </div>
+                        <div style={{ flex: '1 1 180px' }}>
+                          <CampoFechaNullable label="Fecha acep. pre-legal"
+                            fieldKey="fecha_firma_acep_prelegal" value={contrato.fecha_firma_acep_prelegal} onChangeFn={chgCont} />
+                        </div>
+                      </div>
+
+                      {/* Vigencia card oferta mercantil */}
+                      {contrato.fecha_venc_oferta && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, padding: '8px 14px', borderRadius: 10, background: 'rgba(26,78,215,0.04)', border: '1px solid rgba(26,78,215,0.10)' }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: 17, color: 'var(--color-secondary)' }}>event_available</span>
+                          <span style={{ fontSize: '0.8125rem', color: '#475569', fontWeight: 500 }}>Vigencia oferta mercantil:</span>
+                          <VigenciaOferta fecha={contrato.fecha_venc_oferta} />
+                        </div>
+                      )}
+                    </>
+                  )}
+                </>
+              )}
+              </div>
             </div>
           )}
 

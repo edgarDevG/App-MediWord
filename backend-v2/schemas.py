@@ -486,3 +486,24 @@ class UserUpdate(BaseModel):
 
 class PasswordReset(BaseModel):
     nueva_password: str
+
+# ═══════════════════════════════════════════════════════════════
+# AUDITORÍA (Logs)
+# ═══════════════════════════════════════════════════════════════
+
+class AuditLogOut(BaseModel):
+    id: int
+    user_id: Optional[int] = None
+    usuario_nombre: Optional[str] = None
+    medico_id: Optional[int] = None
+    medico_nombre: Optional[str] = None
+    action: str
+    event_category: Optional[str] = None
+    severity: Optional[str] = None
+    table_name: Optional[str] = None
+    ip_address: Optional[str] = None
+    user_agent: Optional[str] = None
+    changes: Optional[Any] = None
+    created_at: Optional[datetime] = None
+
+    model_config = {"from_attributes": True}
